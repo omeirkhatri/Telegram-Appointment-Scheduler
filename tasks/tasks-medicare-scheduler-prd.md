@@ -47,7 +47,7 @@
 
 - [ ] 2.0 Database Schema and Migrations Strictly View
       /Volumes/BestDOC/Scheduler/medicare_scheduler_prd.md for more information on this
-  - [ ] 2.1 Create patients table with all required fields and constraints
+  - [x] 2.1 Create patients table with all required fields and constraints
   - [ ] 2.2 Create staff table with enum types and Google Calendar integration
   - [ ] 2.3 Create appointments table with JSONB custom_fields and recurring rules
   - [ ] 2.4 Create appointment_staff junction table with proper relationships

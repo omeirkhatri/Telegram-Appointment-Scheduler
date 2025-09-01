@@ -13,19 +13,8 @@ export interface User {
   created_at: string;
 }
 
-export interface Patient {
-  id: string;
-  name: string;
-  email: string;
-  phone: string;
-  date_of_birth: string;
-  address: string;
-  emergency_contact: string;
-  medical_history: string;
-  id_document_url: string | null;
-  created_at: string;
-  updated_at: string;
-}
+// Export patient types from dedicated file
+export * from './patient';
 
 export interface Staff {
   id: string;
