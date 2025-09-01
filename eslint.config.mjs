@@ -10,14 +10,78 @@ const compat = new FlatCompat({
 });
 
 const eslintConfig = [
-  ...compat.extends("next/core-web-vitals", "next/typescript"),
+  ...compat.extends(
+    "next/core-web-vitals",
+    "next/typescript",
+    "prettier"
+  ),
+  {
+    rules: {
+      // TypeScript specific rules
+      "@typescript-eslint/no-unused-vars": ["error", { 
+        argsIgnorePattern: "^_",
+        varsIgnorePattern: "^_",
+        caughtErrorsIgnorePattern: "^_"
+      }],
+      "@typescript-eslint/no-explicit-any": "warn",
+      "@typescript-eslint/no-var-requires": "error",
+      "@typescript-eslint/explicit-function-return-type": "off",
+      "@typescript-eslint/explicit-module-boundary-types": "off",
+      "@typescript-eslint/no-non-null-assertion": "warn",
+      
+      // React specific rules
+      "react/react-in-jsx-scope": "off", // Not needed in Next.js
+      "react/prop-types": "off", // Using TypeScript instead
+      "react/jsx-uses-react": "off", // Not needed in React 17+
+      "react/jsx-key": "error",
+      "react/jsx-no-duplicate-props": "error",
+      "react/no-array-index-key": "warn",
+      "react/no-danger": "warn",
+      "react/self-closing-comp": "error",
+      
+      // General code quality rules
+      "no-console": ["warn", { allow: ["warn", "error"] }],
+      "no-debugger": "error",
+      "no-alert": "warn",
+      "no-var": "error",
+      "prefer-const": "error",
+      "no-unused-expressions": "error",
+      "no-duplicate-imports": "error",
+      "no-multiple-empty-lines": ["error", { max: 2, maxEOF: 1 }],
+      "eol-last": "error",
+      "no-trailing-spaces": "error",
+      "comma-dangle": ["error", "always-multiline"],
+      "semi": ["error", "always"],
+      "quotes": ["error", "single", { avoidEscape: true }],
+      
+      // Prettier integration handled by eslint-config-prettier
+    }
+  },
+  {
+    files: ["**/*.test.ts", "**/*.test.tsx", "**/*.spec.ts", "**/*.spec.tsx"],
+    rules: {
+      "@typescript-eslint/no-explicit-any": "off",
+      "no-console": "off"
+    }
+  },
+  {
+    files: ["**/*.config.js", "**/*.config.mjs", "**/*.config.ts"],
+    rules: {
+      "@typescript-eslint/no-var-requires": "off"
+    }
+  },
   {
     ignores: [
       "node_modules/**",
       ".next/**",
       "out/**",
       "build/**",
+      "dist/**",
+      "coverage/**",
       "next-env.d.ts",
+      "*.config.js",
+      "*.config.mjs",
+      "*.config.ts"
     ],
   },
 ];

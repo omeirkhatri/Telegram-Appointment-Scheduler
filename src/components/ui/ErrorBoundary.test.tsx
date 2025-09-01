@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import ErrorBoundary from './ErrorBoundary';
 
 // Component that throws an error for testing
@@ -24,7 +24,7 @@ describe('ErrorBoundary', () => {
     render(
       <ErrorBoundary>
         <div>Test content</div>
-      </ErrorBoundary>
+      </ErrorBoundary>,
     );
 
     expect(screen.getByText('Test content')).toBeInTheDocument();
@@ -34,11 +34,15 @@ describe('ErrorBoundary', () => {
     render(
       <ErrorBoundary>
         <ThrowError shouldThrow={true} />
-      </ErrorBoundary>
+      </ErrorBoundary>,
     );
 
     expect(screen.getByText('Something went wrong')).toBeInTheDocument();
-    expect(screen.getByText('We encountered an unexpected error. Please try refreshing the page.')).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'We encountered an unexpected error. Please try refreshing the page.',
+      ),
+    ).toBeInTheDocument();
     expect(screen.getByText('Try again')).toBeInTheDocument();
   });
 
@@ -46,7 +50,7 @@ describe('ErrorBoundary', () => {
     render(
       <ErrorBoundary>
         <ThrowError shouldThrow={true} />
-      </ErrorBoundary>
+      </ErrorBoundary>,
     );
 
     expect(screen.getByText('Something went wrong')).toBeInTheDocument();
@@ -54,7 +58,13 @@ describe('ErrorBoundary', () => {
   });
 
   it('renders custom fallback when provided', () => {
-    const CustomFallback = ({ error, resetError }: { error: Error; resetError: () => void }) => (
+    const CustomFallback = ({
+      error,
+      resetError,
+    }: {
+      error: Error;
+      resetError: () => void;
+    }) => (
       <div>
         <p>Custom error: {error.message}</p>
         <button onClick={resetError}>Custom reset</button>
@@ -64,7 +74,7 @@ describe('ErrorBoundary', () => {
     render(
       <ErrorBoundary fallback={CustomFallback}>
         <ThrowError shouldThrow={true} />
-      </ErrorBoundary>
+      </ErrorBoundary>,
     );
 
     expect(screen.getByText('Custom error: Test error')).toBeInTheDocument();

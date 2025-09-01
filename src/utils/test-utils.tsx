@@ -1,31 +1,26 @@
-import React, { ReactElement } from 'react'
-import { render, RenderOptions } from '@testing-library/react'
-import { ThemeProvider } from 'next-themes'
+import React, { ReactElement } from 'react';
+import { render, RenderOptions } from '@testing-library/react';
 
 // Mock theme provider for testing
 const MockThemeProvider = ({ children }: { children: React.ReactNode }) => {
-  return <div data-testid="theme-provider">{children}</div>
-}
+  return <div data-testid='theme-provider'>{children}</div>;
+};
 
 // Custom render function that includes providers
 const AllTheProviders = ({ children }: { children: React.ReactNode }) => {
-  return (
-    <MockThemeProvider>
-      {children}
-    </MockThemeProvider>
-  )
-}
+  return <MockThemeProvider>{children}</MockThemeProvider>;
+};
 
 const customRender = (
   ui: ReactElement,
-  options?: Omit<RenderOptions, 'wrapper'>
-) => render(ui, { wrapper: AllTheProviders, ...options })
+  options?: Omit<RenderOptions, 'wrapper'>,
+) => render(ui, { wrapper: AllTheProviders, ...options });
 
 // Re-export everything
-export * from '@testing-library/react'
+export * from '@testing-library/react';
 
 // Override render method
-export { customRender as render }
+export { customRender as render };
 
 // Test data factories
 export const createMockPatient = (overrides = {}) => ({
@@ -41,7 +36,7 @@ export const createMockPatient = (overrides = {}) => ({
   created_at: '2024-01-01T00:00:00Z',
   updated_at: '2024-01-01T00:00:00Z',
   ...overrides,
-})
+});
 
 export const createMockStaff = (overrides = {}) => ({
   id: 'test-staff-id',
@@ -54,7 +49,7 @@ export const createMockStaff = (overrides = {}) => ({
   created_at: '2024-01-01T00:00:00Z',
   updated_at: '2024-01-01T00:00:00Z',
   ...overrides,
-})
+});
 
 export const createMockAppointment = (overrides = {}) => ({
   id: 'test-appointment-id',
@@ -70,13 +65,13 @@ export const createMockAppointment = (overrides = {}) => ({
   created_at: '2024-01-01T00:00:00Z',
   updated_at: '2024-01-01T00:00:00Z',
   ...overrides,
-})
+});
 
 // Mock Supabase responses
 export const mockSupabaseResponse = {
   data: null,
   error: null,
-}
+};
 
 export const mockSupabaseError = {
   data: null,
@@ -84,7 +79,7 @@ export const mockSupabaseError = {
     message: 'Test error message',
     code: 'TEST_ERROR',
   },
-}
+};
 
 // Test environment helpers
 export const setupTestEnvironment = () => {
@@ -94,10 +89,10 @@ export const setupTestEnvironment = () => {
     setItem: jest.fn(),
     removeItem: jest.fn(),
     clear: jest.fn(),
-  }
+  };
   Object.defineProperty(window, 'localStorage', {
     value: localStorageMock,
-  })
+  });
 
   // Mock sessionStorage
   const sessionStorageMock = {
@@ -105,43 +100,43 @@ export const setupTestEnvironment = () => {
     setItem: jest.fn(),
     removeItem: jest.fn(),
     clear: jest.fn(),
-  }
+  };
   Object.defineProperty(window, 'sessionStorage', {
     value: sessionStorageMock,
-  })
+  });
 
   return {
     localStorage: localStorageMock,
     sessionStorage: sessionStorageMock,
-  }
-}
+  };
+};
 
 // Async test helpers
 export const waitForLoadingToFinish = () => {
-  return new Promise(resolve => setTimeout(resolve, 0))
-}
+  return new Promise(resolve => setTimeout(resolve, 0));
+};
 
 // Custom matchers for testing
 export const expectElementToBeInDocument = (element: HTMLElement | null) => {
-  expect(element).toBeInTheDocument()
-}
+  expect(element).toBeInTheDocument();
+};
 
 export const expectElementNotToBeInDocument = (element: HTMLElement | null) => {
-  expect(element).not.toBeInTheDocument()
-}
+  expect(element).not.toBeInTheDocument();
+};
 
 // Form testing helpers
 export const fillFormField = async (
   screen: any,
   label: string,
-  value: string
+  value: string,
 ) => {
-  const field = screen.getByLabelText(label)
-  await field.clear()
-  await field.type(value)
-}
+  const field = screen.getByLabelText(label);
+  await field.clear();
+  await field.type(value);
+};
 
 export const submitForm = async (screen: any, submitButtonText = 'Submit') => {
-  const submitButton = screen.getByRole('button', { name: submitButtonText })
-  await submitButton.click()
-}
+  const submitButton = screen.getByRole('button', { name: submitButtonText });
+  await submitButton.click();
+};
