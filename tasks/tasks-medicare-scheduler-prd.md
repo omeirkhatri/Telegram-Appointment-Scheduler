@@ -58,21 +58,21 @@
 
 - [ ] 3.0 Core Data Management (Patients, Staff, Appointments)
   - [ ] 3.1 Implement Supabase client configuration with proper error handling
-  - [ ] 3.2 Create patient CRUD operations with file upload functionality
-  - [ ] 3.3 Create staff CRUD operations with Google Calendar ID validation
-  - [ ] 3.4 Create appointment CRUD operations with staff assignment logic
-  - [ ] 3.5 Implement React Hook Form + Zod validation for all forms
-  - [ ] 3.6 Create custom hooks for data management (usePatients, useStaff, useAppointments)
-  - [ ] 3.7 Implement search and filtering functionality for all entities
-  - [ ] 3.8 Add proper loading states and error handling for all operations
+  - [x] 3.2 Create patient CRUD operations with file upload functionality
+  - [x] 3.3 Create staff CRUD operations with Google Calendar ID validation
+  - [x] 3.4 Create appointment CRUD operations with staff assignment logic
+  - [x] 3.5 Implement React Hook Form + Zod validation for all forms
+  - [x] 3.6 Create custom hooks for data management (usePatients, useStaff, useAppointments)
+  - [x] 3.7 Implement search and filtering functionality for all entities
+  - [x] 3.8 Add proper loading states and error handling for all operations
 
 - [ ] 4.0 Google Calendar Integration
-  - [ ] 4.1 Set up Google Calendar API v3 authentication and configuration
-  - [ ] 4.2 Implement event creation with proper title and description formatting
-  - [ ] 4.3 Create driver vs medical staff event description builders
-  - [ ] 4.4 Implement bidirectional sync with webhook handling
-  - [ ] 4.5 Add timezone handling (UTC storage, Asia/Dubai display)
-  - [ ] 4.6 Implement conflict resolution and retry logic
+  - [x] 4.1 Set up Google Calendar API v3 authentication and configuration
+  - [x] 4.2 Implement event creation with proper title and description formatting
+  - [x] 4.3 Create driver vs medical staff event description builders
+  - [x] 4.4 Implement bidirectional sync with webhook handling
+  - [x] 4.5 Add timezone handling (UTC storage, Asia/Dubai display)
+  - [x] 4.6 Implement conflict resolution and retry logic
   - [ ] 4.7 Create calendar event update and deletion handlers
   - [ ] 4.8 Add proper error handling and logging for calendar operations
 
