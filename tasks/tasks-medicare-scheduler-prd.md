@@ -45,16 +45,16 @@
   - [x] 1.7 Configure ESLint and Prettier with project-specific rules
   - [x] 1.8 Set up folder structure following clean code conventions
 
-- [ ] 2.0 Database Schema and Migrations Strictly View
+- [x] 2.0 Database Schema and Migrations
       /Volumes/BestDOC/Scheduler/medicare_scheduler_prd.md for more information on this
   - [x] 2.1 Create patients table with all required fields and constraints
   - [x] 2.2 Create staff table with enum types and Google Calendar integration
   - [x] 2.3 Create appointments table with JSONB custom_fields and recurring rules
   - [x] 2.4 Create appointment_staff junction table with proper relationships
-  - [ ] 2.5 Set up Supabase Storage for patient ID document uploads
-  - [ ] 2.6 Create database indexes for performance optimization
-  - [ ] 2.7 Set up seed data for testing and development
-  - [ ] 2.8 Configure local to cloud migration scripts
+  - [x] 2.5 Set up Supabase Storage for patient ID document uploads
+  - [x] 2.6 Create database indexes for performance optimization
+  - [x] 2.7 Set up seed data for testing and development
+  - [x] 2.8 Configure local to cloud migration scripts
 
 - [ ] 3.0 Core Data Management (Patients, Staff, Appointments)
   - [ ] 3.1 Implement Supabase client configuration with proper error handling

@@ -4,4 +4,4 @@ export { default as appointmentStaffService } from './appointmentStaffService';
 export { default as googleCalendarService } from './googleCalendarService';
 export { default as patientService } from './patientService';
 export { default as staffService } from './staffService';
-export { localStorageService, sessionStorageService } from './storage';
+export { storageService } from './storage';
