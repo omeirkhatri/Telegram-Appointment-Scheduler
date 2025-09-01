@@ -19,15 +19,9 @@ export * from './patient';
 export * from './staff';
 // Export appointment types from dedicated file
 export * from './appointment';
+// Export appointment staff types from dedicated file
+export * from './appointmentStaff';
 
-
-export interface AppointmentStaff {
-  id: string;
-  appointment_id: string;
-  staff_id: string;
-  role: 'primary' | 'assistant';
-  created_at: string;
-}
 
 // Form types
 export interface PatientFormData {

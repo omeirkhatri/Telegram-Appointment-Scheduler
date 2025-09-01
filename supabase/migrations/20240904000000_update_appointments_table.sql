@@ -50,24 +50,24 @@ CREATE TABLE appointments (
 );
 
 -- Add constraints
-ALTER TABLE appointments 
-    ADD CONSTRAINT appointments_duration_minutes_check 
+ALTER TABLE appointments
+    ADD CONSTRAINT appointments_duration_minutes_check
     CHECK (duration_minutes > 0 AND duration_minutes <= 1440); -- Max 24 hours
 
-ALTER TABLE appointments 
-    ADD CONSTRAINT appointments_date_check 
+ALTER TABLE appointments
+    ADD CONSTRAINT appointments_date_check
     CHECK (appointment_date >= CURRENT_DATE);
 
-ALTER TABLE appointments 
-    ADD CONSTRAINT appointments_transportation_check 
+ALTER TABLE appointments
+    ADD CONSTRAINT appointments_transportation_check
     CHECK (
         (transportation_type = 'driver' AND driver_id IS NOT NULL) OR
         (transportation_type = 'self_transport' AND transportation_method IS NOT NULL) OR
         transportation_type IS NULL
     );
 
-ALTER TABLE appointments 
-    ADD CONSTRAINT appointments_recurring_rule_check 
+ALTER TABLE appointments
+    ADD CONSTRAINT appointments_recurring_rule_check
     CHECK (
         recurring_rule IS NULL OR
         (recurring_rule ? 'frequency' AND recurring_rule ? 'interval')
@@ -87,23 +87,23 @@ CREATE INDEX idx_appointments_recurring_rule ON appointments USING GIN(recurring
 CREATE INDEX idx_appointments_google_event_ids ON appointments USING GIN(google_event_ids);
 
 -- Create updated_at trigger for appointments
-CREATE TRIGGER update_appointments_updated_at 
-    BEFORE UPDATE ON appointments 
-    FOR EACH ROW 
+CREATE TRIGGER update_appointments_updated_at
+    BEFORE UPDATE ON appointments
+    FOR EACH ROW
     EXECUTE FUNCTION update_updated_at_column();
 
 -- Enable Row Level Security
 ALTER TABLE appointments ENABLE ROW LEVEL SECURITY;
 
 -- Create RLS policies for appointments
-CREATE POLICY "Enable read access for all users" ON appointments 
+CREATE POLICY "Enable read access for all users" ON appointments
     FOR SELECT USING (true);
 
-CREATE POLICY "Enable insert access for authenticated users" ON appointments 
+CREATE POLICY "Enable insert access for authenticated users" ON appointments
     FOR INSERT WITH CHECK (true);
 
-CREATE POLICY "Enable update access for authenticated users" ON appointments 
+CREATE POLICY "Enable update access for authenticated users" ON appointments
     FOR UPDATE USING (true);
 
-CREATE POLICY "Enable delete access for authenticated users" ON appointments 
+CREATE POLICY "Enable delete access for authenticated users" ON appointments
     FOR DELETE USING (true);
