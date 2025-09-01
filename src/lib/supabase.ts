@@ -1,7 +1,9 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { config } from './env';
+import { Database } from '../types/supabase';
 
-export const supabase = createClient(
+// Enhanced Supabase client with better error handling
+export const supabase = createClient<Database>(
   config.supabase.url,
   config.supabase.anonKey,
   {
@@ -18,209 +20,155 @@ export const supabase = createClient(
         'X-Client-Info': 'medicare-scheduler',
       },
     },
+    realtime: {
+      params: {
+        eventsPerSecond: 10,
+      },
+    },
   },
 );
 
-// Helper function to get the service role client (server-side only)
-export const getServiceRoleClient = () => {
-  return createClient(config.supabase.url, config.supabase.serviceRoleKey, {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false,
+// Service role client for server-side operations (with enhanced security)
+export const getServiceRoleClient = (): SupabaseClient<Database> => {
+  if (typeof window !== 'undefined') {
+    throw new Error('Service role client cannot be used in browser');
+  }
+  
+  if (!config.supabase.serviceRoleKey) {
+    throw new Error('SUPABASE_SERVICE_ROLE_KEY is not configured');
+  }
+
+  return createClient<Database>(
+    config.supabase.url,
+    config.supabase.serviceRoleKey,
+    {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+      },
+      db: {
+        schema: 'public',
+      },
+      global: {
+        headers: {
+          'X-Client-Info': 'medicare-scheduler-service',
+        },
+      },
     },
-  });
+  );
 };
 
-// Type definitions for database tables
-export interface Database {
-  public: {
-    Tables: {
-      patients: {
-        Row: {
-          id: string;
-          name: string;
-          email: string;
-          phone: string;
-          date_of_birth: string;
-          address: string;
-          emergency_contact: string;
-          medical_history: string;
-          id_document_url: string | null;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          id?: string;
-          name: string;
-          email: string;
-          phone: string;
-          date_of_birth: string;
-          address: string;
-          emergency_contact: string;
-          medical_history: string;
-          id_document_url?: string | null;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: {
-          id?: string;
-          name?: string;
-          email?: string;
-          phone?: string;
-          date_of_birth?: string;
-          address?: string;
-          emergency_contact?: string;
-          medical_history?: string;
-          id_document_url?: string | null;
-          created_at?: string;
-          updated_at?: string;
-        };
-      };
-      staff: {
-        Row: {
-          id: string;
-          name: string;
-          email: string;
-          phone: string;
-          staff_type: 'driver' | 'medical';
-          google_calendar_id: string | null;
-          is_active: boolean;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          id?: string;
-          name: string;
-          email: string;
-          phone: string;
-          staff_type: 'driver' | 'medical';
-          google_calendar_id?: string | null;
-          is_active?: boolean;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: {
-          id?: string;
-          name?: string;
-          email?: string;
-          phone?: string;
-          staff_type?: 'driver' | 'medical';
-          google_calendar_id?: string | null;
-          is_active?: boolean;
-          created_at?: string;
-          updated_at?: string;
-        };
-      };
-      appointments: {
-        Row: {
-          id: string;
-          patient_id: string;
-          appointment_type:
-            | 'consultation'
-            | 'follow_up'
-            | 'emergency'
-            | 'routine';
-          start_time: string;
-          end_time: string;
-          status:
-            | 'scheduled'
-            | 'confirmed'
-            | 'in_progress'
-            | 'completed'
-            | 'cancelled';
-          notes: string;
-          custom_fields: Record<string, unknown>;
-          recurring_rule: Record<string, unknown> | null;
-          google_calendar_event_id: string | null;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          id?: string;
-          patient_id: string;
-          appointment_type:
-            | 'consultation'
-            | 'follow_up'
-            | 'emergency'
-            | 'routine';
-          start_time: string;
-          end_time: string;
-          status?:
-            | 'scheduled'
-            | 'confirmed'
-            | 'in_progress'
-            | 'completed'
-            | 'cancelled';
-          notes?: string;
-          custom_fields?: Record<string, unknown>;
-          recurring_rule?: Record<string, unknown> | null;
-          google_calendar_event_id?: string | null;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: {
-          id?: string;
-          patient_id?: string;
-          appointment_type?:
-            | 'consultation'
-            | 'follow_up'
-            | 'emergency'
-            | 'routine';
-          start_time?: string;
-          end_time?: string;
-          status?:
-            | 'scheduled'
-            | 'confirmed'
-            | 'in_progress'
-            | 'completed'
-            | 'cancelled';
-          notes?: string;
-          custom_fields?: Record<string, unknown>;
-          recurring_rule?: Record<string, unknown> | null;
-          google_calendar_event_id?: string | null;
-          created_at?: string;
-          updated_at?: string;
-        };
-      };
-      appointment_staff: {
-        Row: {
-          id: string;
-          appointment_id: string;
-          staff_id: string;
-          role: 'primary' | 'assistant';
-          created_at: string;
-        };
-        Insert: {
-          id?: string;
-          appointment_id: string;
-          staff_id: string;
-          role?: 'primary' | 'assistant';
-          created_at?: string;
-        };
-        Update: {
-          id?: string;
-          appointment_id?: string;
-          staff_id?: string;
-          role?: 'primary' | 'assistant';
-          created_at?: string;
-        };
-      };
-    };
-    Views: {
-      [_ in never]: never;
-    };
-    Functions: {
-      [_ in never]: never;
-    };
-    Enums: {
-      [_ in never]: never;
-    };
-  };
+// Enhanced error handling
+export class SupabaseError extends Error {
+  public readonly code?: string;
+  public readonly details?: string;
+  public readonly hint?: string;
+  public readonly retryable: boolean;
+
+  constructor(
+    message: string,
+    code?: string,
+    details?: string,
+    hint?: string,
+    retryable: boolean = false,
+  ) {
+    super(message);
+    this.name = 'SupabaseError';
+    this.code = code;
+    this.details = details;
+    this.hint = hint;
+    this.retryable = retryable;
+  }
 }
 
-export type Tables<T extends keyof Database['public']['Tables']> =
-  Database['public']['Tables'][T]['Row'];
-export type Inserts<T extends keyof Database['public']['Tables']> =
-  Database['public']['Tables'][T]['Insert'];
-export type Updates<T extends keyof Database['public']['Tables']> =
-  Database['public']['Tables'][T]['Update'];
+// Retry configuration
+const RETRY_CONFIG = {
+  maxAttempts: 3,
+  baseDelay: 1000, // 1 second
+  maxDelay: 10000, // 10 seconds
+} as const;
+
+// Exponential backoff with jitter
+function calculateDelay(attempt: number): number {
+  const delay = Math.min(
+    RETRY_CONFIG.baseDelay * Math.pow(2, attempt - 1),
+    RETRY_CONFIG.maxDelay
+  );
+  const jitter = Math.random() * 0.1 * delay; // 10% jitter
+  return delay + jitter;
+}
+
+// Enhanced query wrapper with retry logic
+export async function executeQuery<T>(
+  queryFn: () => Promise<{ data: T | null; error: any }>,
+  options: {
+    retryable?: boolean;
+    maxAttempts?: number;
+  } = {}
+): Promise<T> {
+  const { retryable = true, maxAttempts = RETRY_CONFIG.maxAttempts } = options;
+  
+  let lastError: any;
+  
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      const { data, error } = await queryFn();
+      
+      if (error) {
+        throw new SupabaseError(
+          error.message || 'Database operation failed',
+          error.code,
+          error.details,
+          error.hint,
+          retryable && attempt < maxAttempts
+        );
+      }
+      
+      if (data === null) {
+        throw new SupabaseError('No data returned from query', undefined, undefined, undefined, false);
+      }
+      
+      return data;
+      
+    } catch (error) {
+      lastError = error;
+      
+      // Don't retry non-retryable errors
+      if (error instanceof SupabaseError && !error.retryable) {
+        throw error;
+      }
+      
+      // Don't retry on last attempt
+      if (attempt === maxAttempts) {
+        break;
+      }
+      
+      // Wait before retry
+      const delay = calculateDelay(attempt);
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+  
+  // If we get here, all retries failed
+  throw new SupabaseError(
+    `Operation failed after ${maxAttempts} attempts: ${lastError?.message || 'Unknown error'}`,
+    lastError?.code,
+    lastError?.details,
+    lastError?.hint,
+    false
+  );
+}
+
+// Connection health check
+export async function checkConnection(): Promise<boolean> {
+  try {
+    const { error } = await supabase.from('patients').select('id').limit(1);
+    return !error;
+  } catch {
+    return false;
+  }
+}
+
+// Export types for convenience
+export type { Database } from '../types/supabase';
+export type { SupabaseClient } from '@supabase/supabase-js';

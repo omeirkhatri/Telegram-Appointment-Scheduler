@@ -1,0 +1,105 @@
+# MediCare Scheduler - Updated Task List
+
+## 1.0 Project Setup and Infrastructure
+- [x] 1.1 Initialize Next.js 14 project with TypeScript strict mode and App Router
+- [x] 1.2 Configure Tailwind CSS with custom theme for healthcare UI
+- [x] 1.3 Set up Supabase local development environment with Docker
+- [x] 1.4 Configure environment variables and TypeScript paths
+- [x] 1.5 Set up Jest and React Testing Library for testing
+- [x] 1.6 Create global error boundary and loading components
+- [x] 1.7 Configure ESLint and Prettier with project-specific rules
+- [x] 1.8 Set up folder structure following clean code conventions
+
+## 2.0 Database Schema and Migrations
+- [x] 2.1 Create patients table with all required fields and constraints
+- [x] 2.2 Create staff table with enum types and Google Calendar integration
+- [x] 2.3 Create appointments table with JSONB custom_fields and recurring rules
+- [x] 2.4 Create appointment_staff junction table with proper relationships
+- [x] 2.5 Set up Supabase Storage for patient ID document uploads
+- [x] 2.6 Create database indexes for performance optimization
+- [x] 2.7 Set up seed data for testing and development
+- [x] 2.8 Configure local to cloud migration scripts
+
+## 3.0 Core Data Management (Patients, Staff, Appointments)
+- [x] 3.1 Supabase client hardening  
+- [ ] 3.2 Patient model gaps (address, Google Maps link, medical notes, emergency contact, transport, ID upload)  
+- [ ] 3.3 Staff model gaps (staff_type, specialization, google_calendar_id, available_days, email notifications)  
+- [ ] 3.4 Appointment type enums & templates (Doctor on Call, Lab Test, Teleconsultation, Physiotherapy, Caregiver, IV Therapy)  
+- [ ] 3.5 Recurring appointments (recurring_rule JSONB support)  
+
+## 4.0 Google Calendar Integration
+- [x] 4.1 Set up Google Calendar API v3 authentication and configuration
+- [x] 4.2 Implement event creation with proper title and description formatting
+- [x] 4.3 Create driver vs medical staff event description builders
+- [x] 4.4 Implement bidirectional sync with webhook handling
+- [x] 4.5 Add timezone handling (UTC storage, Asia/Dubai display)
+- [x] 4.6 Implement conflict resolution and retry logic
+- [x] 4.7 Create calendar event update and deletion handlers
+- [x] 4.8 Add proper error handling and logging for calendar operations
+
+## 5.0 Calendar UI and Appointment Management
+- [ ] 5.1 FullCalendar setup (day/week/month/agenda views, 15-min grid)  
+- [ ] 5.2 Drag-and-drop rescheduling  
+- [ ] 5.3 Duration resize (with min/max by type)  
+- [ ] 5.4 Color coding by appointment type  
+- [ ] 5.5 Filters: staff, type, date range, status  
+- [ ] 5.6 Context menu on events (Edit, Copy, Cancel, Open in GCal)  
+- [ ] 5.7 Appointment creation modal launcher  
+- [ ] 5.8 Real-time UI sync after edits  
+
+## 6.0 Daily Email System
+- [ ] 6.1 SMTP config + secure env  
+- [ ] 6.2 HTML agenda template (responsive)  
+- [ ] 6.3 Aggregation by staff (Asia/Dubai, 06:00)  
+- [ ] 6.4 Job scheduler (cron)  
+- [ ] 6.5 Delivery logging + retries  
+- [ ] 6.6 “Send test agenda” button  
+- [ ] 6.7 Staff preference management  
+- [ ] 6.8 Automated generation + sending  
+
+## 7.0 Copy Appointment Feature
+- [ ] 7.1 Copy modal with prefilled fields  
+- [ ] 7.2 Deep clone with new UUIDs  
+- [ ] 7.3 Conflict check with override option  
+- [ ] 7.4 Staff reassignment selector  
+- [ ] 7.5 Bulk copy (patterns: daily/weekly/custom)  
+- [ ] 7.6 Copy audit trail  
+
+## 8.0 Testing and Quality Assurance
+- [ ] 8.1 Unit tests for utils  
+- [ ] 8.2 Component tests for forms  
+- [ ] 8.3 Integration tests for APIs  
+- [ ] 8.4 Supabase query mocking  
+- [ ] 8.5 Google Calendar API mocking  
+- [ ] 8.6 End-to-end tests for critical flows  
+- [ ] 8.7 Performance testing  
+- [ ] 8.8 Accessibility compliance  
+
+## 9.0 Admin UX & Additional UI
+- [ ] 9.1 Appointment details drawer  
+- [ ] 9.2 Reports dashboard (KPIs, CSV export)  
+- [ ] 9.3 Google Calendar linking UI + sync status  
+- [ ] 9.4 Recurrence rule builder (basic patterns)  
+- [ ] 9.5 Email preferences in Settings  
+- [ ] 9.6 Backup & export (CSV dumps)  
+- [ ] 9.7 Unified toasts & error system  
+
+## 10.0 Google Calendar Integration (Enhancements)
+- [ ] 10.1 Event builders by role (driver vs medical)  
+- [ ] 10.2 Webhook dedupe/retries/backoff  
+- [ ] 10.3 External edits surface in UI  
+- [ ] 10.4 google_event_ids integrity checks  
+
+## 11.0 Deployment, Ops & Migration
+- [ ] 11.1 .env.example with keys & guards  
+- [ ] 11.2 Docker Compose for local  
+- [ ] 11.3 Supabase Cloud migration scripts  
+- [ ] 11.4 Cron/worker for daily emails  
+- [ ] 11.5 Error logging & observability  
+
+## 12.0 Performance & UX Polish
+- [ ] 12.1 Data virtualization for tables  
+- [ ] 12.2 Debounced search, cached filters, skeleton loaders  
+- [ ] 12.3 Timezone utilities (UTC store, Dubai display)  
+- [ ] 12.4 Keyboard shortcuts  
+- [ ] 12.5 Print-friendly agenda & appointment sheets  
