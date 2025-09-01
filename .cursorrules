@@ -1,0 +1,52 @@
+# MediCare Scheduler – Global Cursor Rules
+# ---------------------------------------
+
+## Context
+Internal, single-admin healthcare scheduler built with:
+• Next.js 14  • React 18  • TypeScript strict  
+• Tailwind CSS  • Supabase (PostgreSQL + Storage)  
+• Google Calendar API (bidirectional sync)  
+
+Staff never log in; they see only Google Calendar events and daily e-mails.
+
+## Code-Style Standards
+- TypeScript `strict: true`; prefer `const` and explicit return types
+- camelCase for vars/fns, PascalCase for React components
+- Semicolons on, trailing commas on
+- Use Tailwind utility classes; never inline `<style>`
+- One React component per file; co-locate hooks alongside component if shared
+
+## Supabase Patterns
+- Always import the pre-configured client from `/lib/supabase.ts`
+- Queried columns must be explicit:  
+  `supabase.from('patients').select('id, name, phone')`
+- Check `error` on every response – throw or surface a toast
+- Use UUID PKs; store flexible fields in `custom_fields` JSONB
+- No RLS (single-user), but keep `service_role_key` server-side only
+- Storage uploads return signed URLs valid ≤ 1 hour
+
+## Google Calendar Integration
+- Each staff member ⇒ one event; driver event uses minimal description
+- Event title template: `[First] - [Area] - [Type] - [Staff Firsts]`
+- Time-zone always `Asia/Dubai`; format dates `DD/MM/YYYY`
+- Handle Google webhook `event.updated` → patch DB row
+
+## React / UI Rules
+- Use FullCalendar React with 15-min slot duration
+- Drag-&-drop reschedules appointment & triggers calendar patch
+- All forms use React Hook Form + Zod; surface field errors inline
+- Copy-Appointment modal must deep-clone appointment (new UUID, events)
+
+## Error & Loading UX
+- `Skeleton` component for table & calendar placeholders
+- Global error boundary logs to console and toast "Something went wrong"
+- Wrap async calls with `try/catch`; show toast on error
+
+## Testing
+- Jest + React Testing Library for components
+- Supabase queries mocked with `@supabase/supabase-js` stubs
+- Calendar integration tests mock Google API responses
+
+## Rule Metadata
+ruleType: always
+applyTo: "*"

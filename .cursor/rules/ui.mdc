@@ -1,0 +1,82 @@
+# FullCalendar Setup
+```typescript
+<FullCalendar
+  plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
+  initialView="timeGridWeek"
+  slotDuration="00:15:00"
+  eventTimeFormat={{ hour: '2-digit', minute: '2-digit', hour12: false }}
+  events={events}
+  timeZone="Asia/Dubai"
+  eventDrop={handleEventMove}
+  eventResize={handleEventResize}
+/>
+```
+
+# Drag-and-drop handler
+```typescript
+async function handleEventMove(arg: EventDropArg) {
+  const { id, start, end } = arg.event;
+  try {
+    await updateAppointmentTime(id, start, end);
+    toast.success('Appointment rescheduled');
+  } catch (e) {
+    toast.error('Failed to reschedule'); 
+    arg.revert();
+  }
+}
+```
+
+## React Component Patterns
+- Use functional components with hooks
+- Implement proper TypeScript interfaces
+- Use React Hook Form for all forms
+- Implement proper error boundaries
+
+## Form Validation
+```typescript
+const schema = z.object({
+  patient_id: z.string().uuid(),
+  start_time: z.date(),
+  end_time: z.date(),
+  staff_ids: z.array(z.string().uuid()).min(1)
+});
+
+const form = useForm<z.infer<typeof schema>>({
+  resolver: zodResolver(schema)
+});
+```
+
+## Loading States
+```typescript
+const [isLoading, setIsLoading] = useState(false);
+
+// Use Skeleton components for loading states
+{isLoading ? (
+  <Skeleton className="h-20 w-full" />
+) : (
+  <Calendar events={events} />
+)}
+```
+
+## Error Handling
+```typescript
+const [error, setError] = useState<string | null>(null);
+
+try {
+  await updateAppointment(data);
+  toast.success('Appointment updated successfully');
+} catch (err) {
+  setError(err instanceof Error ? err.message : 'An error occurred');
+  toast.error('Failed to update appointment');
+}
+```
+
+## Responsive Design
+- Use Tailwind responsive classes
+- Mobile-first approach for calendar
+- Ensure touch-friendly interactions
+- Test on various screen sizes
+description:
+globs:
+alwaysApply: false
+---

@@ -1,0 +1,62 @@
+# Clean Code Practices
+
+## Naming
+- camelCase for variables and functions.
+- PascalCase for React components and types.
+- Descriptive, no cryptic abbreviations.
+
+## Function Design
+- Single responsibility; keep ≤40 LOC.
+- Pure where practical; side-effects isolated.
+- Extract shared logic into `/hooks` or `/lib`.
+
+## Component Design
+- One component per file.
+- Compose small components instead of large monoliths.
+- Co-locate styles (Tailwind classes) and tests.
+
+## Comments & Docs
+- Only when intent is non-obvious.
+- Use TSDoc for complex utilities and API types.
+- Prefer self-explanatory code over comments.
+
+## Error Handling
+```typescript
+try {
+  const { data, error } = await supabase.from('patients').insert(values).single();
+  if (error) throw error;
+} catch (err) {
+  console.error('Insert failed', err);
+  toast.error('Could not save patient');
+}
+```
+
+## Testing
+- React Testing Library for UI.
+- Jest mocks for Supabase and Google APIs.
+- One test file per component or util.
+
+# Recommended Folder Structure
+
+```
+/project-root
+  ├─ app/                 # Next.js routes (App Router)
+  ├─ components/          # Reusable UI grouped by feature
+  ├─ hooks/               # Custom React hooks
+  ├─ lib/                 # Supabase client, helpers, calendar SDK
+  ├─ types/               # Global TypeScript interfaces/enums
+  ├─ styles/              # Tailwind config & global CSS
+  ├─ public/              # Static assets
+  ├─ supabase/            # SQL migrations & seed scripts
+  ├─ tests/               # Unit/integration tests
+  └─ .cursor/             # Rule files (this file lives here)
+```
+
+# Additional Tips
+- Use `index.ts` barrels for cleaner imports.
+- Keep folder nesting shallow (max depth ≈ 3).
+- Place feature-specific assets beside their component.
+description:
+globs:
+alwaysApply: false
+---

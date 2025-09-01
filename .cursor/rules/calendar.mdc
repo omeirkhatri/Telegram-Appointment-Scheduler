@@ -1,0 +1,59 @@
+# Event Creation Template
+```typescript
+await calendar.events.insert({
+  calendarId: staff.googleCalendarId,
+  resource: {
+    summary: title,
+    location: patient.fullAddress,
+    description: buildDescription(appointment, staff.staff_type),
+    start: { dateTime: startISO, timeZone: 'Asia/Dubai' },
+    end: { dateTime: endISO, timeZone: 'Asia/Dubai' }
+  }
+});
+```
+
+# Driver vs Medical Description
+- If `staff_type === "driver"` → call `buildDriverDescription`
+- Else → `buildMedicalDescription`
+
+## Event Title Format
+```typescript
+const buildEventTitle = (appointment: Appointment, staff: Staff[]) => {
+  const patientFirst = appointment.patient.first_name;
+  const area = appointment.area;
+  const type = appointment.type;
+  const staffFirsts = staff.map(s => s.first_name).join(', ');
+  
+  return `${patientFirst} - ${area} - ${type} - ${staffFirsts}`;
+};
+```
+
+## Timezone Handling
+- Always use `Asia/Dubai` timezone
+- Store all timestamps in UTC in database
+- Convert to local timezone for display
+- Use `date-fns-tz` for timezone conversions
+
+## Webhook Handling
+```typescript
+// Handle Google Calendar webhook
+app.post('/api/webhooks/calendar', async (req, res) => {
+  const { event } = req.body;
+  
+  if (event.updated) {
+    await updateAppointmentFromCalendar(event);
+  }
+  
+  res.status(200).send('OK');
+});
+```
+
+## Calendar Sync Patterns
+- Bidirectional sync between database and Google Calendar
+- Handle conflicts by prioritizing database state
+- Use event IDs to track sync status
+- Implement retry logic for failed operations
+description:
+globs:
+alwaysApply: false
+---

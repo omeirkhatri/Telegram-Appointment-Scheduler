@@ -1,0 +1,50 @@
+# Supabase Pattern
+
+## Insert example
+```typescript
+const { data, error } = await supabase
+  .from('appointments')
+  .insert([appointmentData])
+  .select('id')
+  .single();
+
+if (error) throw new Error('DB insert failed: ' + error.message);
+return data.id;
+```
+
+## Migration snippet
+```sql
+CREATE TABLE appointment_staff (
+  appointment_id UUID REFERENCES appointments(id) ON DELETE CASCADE,
+  staff_id UUID REFERENCES staff(id) ON DELETE CASCADE,
+  role TEXT NOT NULL,
+  is_primary BOOLEAN DEFAULT FALSE,
+  google_event_id TEXT,
+  PRIMARY KEY (appointment_id, staff_id)
+);
+```
+
+## Query Patterns
+- Always use explicit column selection: `.select('id, name, phone')`
+- Check for errors on every response
+- Use `.single()` when expecting one result
+- Use `.maybeSingle()` when result might not exist
+- Always handle RLS policies appropriately
+
+## Error Handling
+```typescript
+const { data, error } = await supabase.from('table').select('*');
+if (error) {
+  console.error('Database error:', error);
+  throw new Error(`Failed to fetch data: ${error.message}`);
+}
+```
+
+## UUID Usage
+- All primary keys should be UUIDs
+- Use `gen_random_uuid()` for new records
+- Reference foreign keys with proper constraints
+description:
+globs:
+alwaysApply: false
+---
