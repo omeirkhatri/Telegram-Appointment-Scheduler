@@ -1,6 +1,6 @@
+import { FlatCompat } from "@eslint/eslintrc";
 import { dirname } from "path";
 import { fileURLToPath } from "url";
-import { FlatCompat } from "@eslint/eslintrc";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -18,7 +18,7 @@ const eslintConfig = [
   {
     rules: {
       // TypeScript specific rules
-      "@typescript-eslint/no-unused-vars": ["error", { 
+      "@typescript-eslint/no-unused-vars": ["error", {
         argsIgnorePattern: "^_",
         varsIgnorePattern: "^_",
         caughtErrorsIgnorePattern: "^_"
@@ -28,7 +28,7 @@ const eslintConfig = [
       "@typescript-eslint/explicit-function-return-type": "off",
       "@typescript-eslint/explicit-module-boundary-types": "off",
       "@typescript-eslint/no-non-null-assertion": "warn",
-      
+
       // React specific rules
       "react/react-in-jsx-scope": "off", // Not needed in Next.js
       "react/prop-types": "off", // Using TypeScript instead
@@ -38,7 +38,7 @@ const eslintConfig = [
       "react/no-array-index-key": "warn",
       "react/no-danger": "warn",
       "react/self-closing-comp": "error",
-      
+
       // General code quality rules
       "no-console": ["warn", { allow: ["warn", "error"] }],
       "no-debugger": "error",
@@ -53,7 +53,7 @@ const eslintConfig = [
       "comma-dangle": ["error", "always-multiline"],
       "semi": ["error", "always"],
       "quotes": ["error", "single", { avoidEscape: true }],
-      
+
       // Prettier integration handled by eslint-config-prettier
     }
   },

@@ -43,7 +43,7 @@
   - [x] 1.5 Set up Jest and React Testing Library for testing
   - [x] 1.6 Create global error boundary and loading components
   - [x] 1.7 Configure ESLint and Prettier with project-specific rules
-  - [ ] 1.8 Set up folder structure following clean code conventions
+  - [x] 1.8 Set up folder structure following clean code conventions
 
 - [ ] 2.0 Database Schema and Migrations Strictly View
       /Volumes/BestDOC/Scheduler/medicare_scheduler_prd.md for more information on this
