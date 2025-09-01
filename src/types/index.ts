@@ -15,18 +15,9 @@ export interface User {
 
 // Export patient types from dedicated file
 export * from './patient';
+// Export staff types from dedicated file
+export * from './staff';
 
-export interface Staff {
-  id: string;
-  name: string;
-  email: string;
-  phone: string;
-  staff_type: 'driver' | 'medical';
-  google_calendar_id: string | null;
-  is_active: boolean;
-  created_at: string;
-  updated_at: string;
-}
 
 export interface Appointment {
   id: string;

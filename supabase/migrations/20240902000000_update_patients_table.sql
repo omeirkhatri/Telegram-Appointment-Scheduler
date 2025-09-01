@@ -26,28 +26,28 @@ CREATE TABLE patients (
 );
 
 -- Add constraints
-ALTER TABLE patients 
-    ADD CONSTRAINT patients_phone_check 
+ALTER TABLE patients
+    ADD CONSTRAINT patients_phone_check
     CHECK (phone ~ '^[+]?[0-9\s\-\(\)]+$');
 
-ALTER TABLE patients 
-    ADD CONSTRAINT patients_name_check 
+ALTER TABLE patients
+    ADD CONSTRAINT patients_name_check
     CHECK (LENGTH(TRIM(name)) > 0);
 
-ALTER TABLE patients 
-    ADD CONSTRAINT patients_flat_villa_no_check 
+ALTER TABLE patients
+    ADD CONSTRAINT patients_flat_villa_no_check
     CHECK (LENGTH(TRIM(flat_villa_no)) > 0);
 
-ALTER TABLE patients 
-    ADD CONSTRAINT patients_building_street_check 
+ALTER TABLE patients
+    ADD CONSTRAINT patients_building_street_check
     CHECK (LENGTH(TRIM(building_street)) > 0);
 
-ALTER TABLE patients 
-    ADD CONSTRAINT patients_area_check 
+ALTER TABLE patients
+    ADD CONSTRAINT patients_area_check
     CHECK (LENGTH(TRIM(area)) > 0);
 
-ALTER TABLE patients 
-    ADD CONSTRAINT patients_city_check 
+ALTER TABLE patients
+    ADD CONSTRAINT patients_city_check
     CHECK (LENGTH(TRIM(city)) > 0);
 
 -- Create indexes for performance
@@ -57,23 +57,23 @@ CREATE INDEX idx_patients_city ON patients(city);
 CREATE INDEX idx_patients_name ON patients(name);
 
 -- Create updated_at trigger for patients
-CREATE TRIGGER update_patients_updated_at 
-    BEFORE UPDATE ON patients 
-    FOR EACH ROW 
+CREATE TRIGGER update_patients_updated_at
+    BEFORE UPDATE ON patients
+    FOR EACH ROW
     EXECUTE FUNCTION update_updated_at_column();
 
 -- Enable Row Level Security
 ALTER TABLE patients ENABLE ROW LEVEL SECURITY;
 
 -- Create RLS policies for patients
-CREATE POLICY "Enable read access for all users" ON patients 
+CREATE POLICY "Enable read access for all users" ON patients
     FOR SELECT USING (true);
 
-CREATE POLICY "Enable insert access for authenticated users" ON patients 
+CREATE POLICY "Enable insert access for authenticated users" ON patients
     FOR INSERT WITH CHECK (true);
 
-CREATE POLICY "Enable update access for authenticated users" ON patients 
+CREATE POLICY "Enable update access for authenticated users" ON patients
     FOR UPDATE USING (true);
 
-CREATE POLICY "Enable delete access for authenticated users" ON patients 
+CREATE POLICY "Enable delete access for authenticated users" ON patients
     FOR DELETE USING (true);
