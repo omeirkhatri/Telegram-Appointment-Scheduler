@@ -17,22 +17,9 @@ export interface User {
 export * from './patient';
 // Export staff types from dedicated file
 export * from './staff';
+// Export appointment types from dedicated file
+export * from './appointment';
 
-
-export interface Appointment {
-  id: string;
-  patient_id: string;
-  appointment_type: 'consultation' | 'follow_up' | 'emergency' | 'routine';
-  start_time: string;
-  end_time: string;
-  status: 'scheduled' | 'confirmed' | 'in_progress' | 'completed' | 'cancelled';
-  notes: string;
-  custom_fields: Record<string, unknown>;
-  recurring_rule: Record<string, unknown> | null;
-  google_calendar_event_id: string | null;
-  created_at: string;
-  updated_at: string;
-}
 
 export interface AppointmentStaff {
   id: string;

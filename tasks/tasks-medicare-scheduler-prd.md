@@ -49,7 +49,7 @@
       /Volumes/BestDOC/Scheduler/medicare_scheduler_prd.md for more information on this
   - [x] 2.1 Create patients table with all required fields and constraints
   - [x] 2.2 Create staff table with enum types and Google Calendar integration
-  - [ ] 2.3 Create appointments table with JSONB custom_fields and recurring rules
+  - [x] 2.3 Create appointments table with JSONB custom_fields and recurring rules
   - [ ] 2.4 Create appointment_staff junction table with proper relationships
   - [ ] 2.5 Set up Supabase Storage for patient ID document uploads
   - [ ] 2.6 Create database indexes for performance optimization
