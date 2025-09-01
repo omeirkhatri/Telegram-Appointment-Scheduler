@@ -66,15 +66,15 @@
   - [x] 3.7 Implement search and filtering functionality for all entities
   - [x] 3.8 Add proper loading states and error handling for all operations
 
-- [ ] 4.0 Google Calendar Integration
+- [x] 4.0 Google Calendar Integration
   - [x] 4.1 Set up Google Calendar API v3 authentication and configuration
   - [x] 4.2 Implement event creation with proper title and description formatting
   - [x] 4.3 Create driver vs medical staff event description builders
   - [x] 4.4 Implement bidirectional sync with webhook handling
   - [x] 4.5 Add timezone handling (UTC storage, Asia/Dubai display)
   - [x] 4.6 Implement conflict resolution and retry logic
-  - [ ] 4.7 Create calendar event update and deletion handlers
-  - [ ] 4.8 Add proper error handling and logging for calendar operations
+  - [x] 4.7 Create calendar event update and deletion handlers
+  - [x] 4.8 Add proper error handling and logging for calendar operations
 
 - [ ] 5.0 Calendar UI and Appointment Management
   - [ ] 5.1 Set up FullCalendar with required plugins and configuration

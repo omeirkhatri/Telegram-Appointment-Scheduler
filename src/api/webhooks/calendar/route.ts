@@ -1,10 +1,9 @@
+import { RETRY_CONFIGS, retryWithBackoff } from '@/lib/retryUtils';
 import { appointmentService } from '@/services/appointmentService';
 import { appointmentStaffService } from '@/services/appointmentStaffService';
 import { googleCalendarService } from '@/services/googleCalendarService';
 import { patientService } from '@/services/patientService';
 import { staffService } from '@/services/staffService';
-import { retryWithBackoff, RETRY_CONFIGS } from '@/lib/retryUtils';
-import { detectConflicts, resolveConflicts } from '@/lib/conflictResolution';
 import { utcToDateString, utcToTimeString } from '@/utils/date';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -139,10 +138,25 @@ async function handleCalendarChanges(resourceId: string | null, channelId: strin
       endDate.toISOString()
     );
 
+    // Get current appointment events for this staff member
+    const currentAppointments = await appointmentService.getAppointmentsByStaff(staff.id);
+    const currentEventIds = new Set<string>();
+
     // Process each event with conflict resolution
     for (const event of events) {
+      // Validate event data before processing
+      const validation = validateCalendarEvent(event);
+      if (!validation.valid) {
+        console.error(`Invalid calendar event ${event.id}:`, validation.errors);
+        continue;
+      }
+
+      currentEventIds.add(event.id);
       await processCalendarEventWithConflictResolution(event, staff);
     }
+
+    // Check for deleted events and handle them
+    await handleDeletedEvents(currentEventIds, staff);
 
     console.log(`Processed ${events.length} events for staff ${staff.id}`);
   } catch (error) {
@@ -227,10 +241,10 @@ async function processCalendarEventWithConflictResolution(event: any, staff: any
       if (existingAppointment) {
         // Check for conflicts before updating
         const conflicts = await checkConflictsForUpdate(existingAppointment, event, staff);
-        
+
         if (conflicts.length > 0) {
           console.log(`Conflicts detected for appointment ${existingAppointment.id}:`, conflicts);
-          
+
           // For now, log conflicts and continue with update
           // In a full implementation, you might want to flag for manual review
           await updateAppointmentFromCalendarEvent(existingAppointment, event, staff);
@@ -244,12 +258,12 @@ async function processCalendarEventWithConflictResolution(event: any, staff: any
         if (potentialAppointment) {
           // Check for conflicts before linking
           const conflicts = await checkConflictsForLink(potentialAppointment, event, staff);
-          
+
           if (conflicts.length > 0) {
             console.log(`Conflicts detected when linking appointment ${potentialAppointment.id}:`, conflicts);
             // Log conflicts but proceed with linking
           }
-          
+
           await linkGoogleEventToAppointment(potentialAppointment, event, staff);
         } else {
           // This might be a new appointment created in Google Calendar
@@ -261,9 +275,27 @@ async function processCalendarEventWithConflictResolution(event: any, staff: any
 
     if (!result.success) {
       console.error('Failed to process calendar event after retries:', result.error);
+      // Log detailed error information for debugging
+      console.error('Event details:', {
+        eventId: event.id,
+        summary: event.summary,
+        start: event.start,
+        end: event.end,
+        staffId: staff.id,
+        staffName: `${staff.first_name} ${staff.last_name}`
+      });
     }
   } catch (error) {
     console.error('Error processing calendar event with conflict resolution:', error);
+    // Log detailed error information for debugging
+    console.error('Event details:', {
+      eventId: event.id,
+      summary: event.summary,
+      start: event.start,
+      end: event.end,
+      staffId: staff.id,
+      staffName: `${staff.first_name} ${staff.last_name}`
+    });
   }
 }
 
@@ -280,7 +312,7 @@ async function checkConflictsForUpdate(appointment: any, event: any, staff: any)
   const appointmentEnd = new Date(appointmentStart.getTime() + appointment.duration_minutes * 60000);
 
   const timeDiff = Math.abs(eventStart.getTime() - appointmentStart.getTime());
-  const durationDiff = Math.abs((eventEnd.getTime() - eventStart.getTime()) - 
+  const durationDiff = Math.abs((eventEnd.getTime() - eventStart.getTime()) -
                                (appointmentEnd.getTime() - appointmentStart.getTime()));
 
   if (timeDiff > 5 * 60 * 1000) { // More than 5 minutes difference
@@ -320,9 +352,9 @@ async function checkConflictsForLink(appointment: any, event: any, staff: any) {
   // Check for time conflicts
   const eventStart = new Date(event.start.dateTime || event.start.date);
   const appointmentStart = new Date(`${appointment.appointment_date}T${appointment.start_time}:00Z`);
-  
+
   const timeDiff = Math.abs(eventStart.getTime() - appointmentStart.getTime());
-  
+
   if (timeDiff > 15 * 60 * 1000) { // More than 15 minutes difference
     conflicts.push({
       type: 'time_conflict',
@@ -418,6 +450,15 @@ async function updateAppointmentFromCalendarEvent(appointment: any, event: any, 
     // Calculate duration in minutes
     const durationMinutes = Math.round((eventEnd.getTime() - eventStart.getTime()) / (1000 * 60));
 
+    // Validate event data
+    if (isNaN(eventStart.getTime()) || isNaN(eventEnd.getTime())) {
+      throw new Error('Invalid event start or end time');
+    }
+
+    if (durationMinutes <= 0) {
+      throw new Error('Invalid event duration');
+    }
+
     // Update appointment details
     const updateData = {
       id: appointment.id,
@@ -427,11 +468,53 @@ async function updateAppointmentFromCalendarEvent(appointment: any, event: any, 
       notes: event.description || appointment.notes,
     };
 
+    // Log the update for audit purposes
+    console.log(`Updating appointment ${appointment.id} from Google Calendar event ${event.id}:`, {
+      oldDate: appointment.appointment_date,
+      newDate: updateData.appointment_date,
+      oldTime: appointment.start_time,
+      newTime: updateData.start_time,
+      oldDuration: appointment.duration_minutes,
+      newDuration: updateData.duration_minutes,
+      staffId: staff.id,
+      staffName: `${staff.first_name} ${staff.last_name}`
+    });
+
     await appointmentService.updateAppointment(updateData);
 
-    console.log(`Updated appointment ${appointment.id} from Google Calendar event ${event.id}`);
+    // Log successful update
+    logCalendarOperation(
+      'update',
+      event.id,
+      appointment.id,
+      staff.id,
+      `${staff.first_name} ${staff.last_name}`,
+      true
+    );
+
+    console.log(`Successfully updated appointment ${appointment.id} from Google Calendar event ${event.id}`);
   } catch (error) {
+    // Log failed update
+    logCalendarOperation(
+      'update',
+      event.id,
+      appointment.id,
+      staff.id,
+      `${staff.first_name} ${staff.last_name}`,
+      false,
+      error
+    );
+
     console.error('Error updating appointment from calendar event:', error);
+    console.error('Event details:', {
+      eventId: event.id,
+      summary: event.summary,
+      start: event.start,
+      end: event.end,
+      appointmentId: appointment.id,
+      staffId: staff.id
+    });
+    throw error; // Re-throw to allow retry logic to handle it
   }
 }
 
@@ -460,9 +543,132 @@ async function linkGoogleEventToAppointment(appointment: any, event: any, staff:
       );
     }
 
+    // Log successful link
+    logCalendarOperation(
+      'link',
+      event.id,
+      appointment.id,
+      staff.id,
+      `${staff.first_name} ${staff.last_name}`,
+      true
+    );
+
     console.log(`Linked Google Calendar event ${event.id} to appointment ${appointment.id}`);
   } catch (error) {
+    // Log failed link
+    logCalendarOperation(
+      'link',
+      event.id,
+      appointment.id,
+      staff.id,
+      `${staff.first_name} ${staff.last_name}`,
+      false,
+      error
+    );
+
     console.error('Error linking Google Calendar event to appointment:', error);
+    throw error; // Re-throw to allow retry logic to handle it
+  }
+}
+
+/**
+ * Handle deleted events from Google Calendar
+ */
+async function handleDeletedEvents(currentEventIds: Set<string>, staff: any) {
+  try {
+    // Get all appointments for this staff member that have Google Calendar event IDs
+    const appointments = await appointmentService.getAppointmentsByStaff(staff.id);
+    
+    for (const appointment of appointments) {
+      if (!appointment.google_event_ids || !appointment.google_event_ids[staff.id]) {
+        continue;
+      }
+
+      const eventId = appointment.google_event_ids[staff.id];
+      
+      // If the event ID is not in the current events, it was deleted
+      if (!currentEventIds.has(eventId)) {
+        await handleAppointmentEventDeletion(appointment, eventId, staff);
+      }
+    }
+  } catch (error) {
+    console.error('Error handling deleted events:', error);
+  }
+}
+
+/**
+ * Handle deletion of a Google Calendar event for an appointment
+ */
+async function handleAppointmentEventDeletion(appointment: any, eventId: string, staff: any) {
+  try {
+    console.log(`Google Calendar event ${eventId} was deleted for appointment ${appointment.id}`);
+
+    // Log the deletion for audit purposes
+    console.log(`Processing deletion of Google Calendar event ${eventId} for appointment ${appointment.id}:`, {
+      appointmentId: appointment.id,
+      patientId: appointment.patient_id,
+      appointmentType: appointment.appointment_type,
+      appointmentDate: appointment.appointment_date,
+      startTime: appointment.start_time,
+      staffId: staff.id,
+      staffName: `${staff.first_name} ${staff.last_name}`,
+      eventId: eventId
+    });
+
+    // Remove the Google Calendar event ID from the appointment
+    await appointmentService.removeGoogleCalendarEventId(
+      appointment.id,
+      staff.id
+    );
+
+    // Update appointment staff assignment to remove Google Calendar event ID
+    const staffAssignment = await appointmentStaffService.getStaffAssignment(
+      appointment.id,
+      staff.id
+    );
+
+    if (staffAssignment) {
+      await appointmentStaffService.updateGoogleCalendarEventId(
+        staffAssignment.id,
+        null // Remove the event ID
+      );
+    }
+
+    // Log successful deletion
+    logCalendarOperation(
+      'unlink',
+      eventId,
+      appointment.id,
+      staff.id,
+      `${staff.first_name} ${staff.last_name}`,
+      true
+    );
+
+    console.log(`Successfully removed Google Calendar event ${eventId} from appointment ${appointment.id} for staff ${staff.id}`);
+
+    // Note: We don't delete the appointment itself, just remove the calendar link
+    // This allows the appointment to continue existing in the system
+    // The appointment can be re-linked to a new calendar event if needed
+  } catch (error) {
+    // Log failed deletion
+    logCalendarOperation(
+      'unlink',
+      eventId,
+      appointment.id,
+      staff.id,
+      `${staff.first_name} ${staff.last_name}`,
+      false,
+      error
+    );
+
+    console.error('Error handling appointment event deletion:', error);
+    console.error('Deletion details:', {
+      appointmentId: appointment.id,
+      eventId: eventId,
+      staffId: staff.id,
+      staffName: `${staff.first_name} ${staff.last_name}`
+    });
+    throw error; // Re-throw to allow retry logic to handle it
   }
 }
 
@@ -508,4 +714,88 @@ export async function GET(request: NextRequest) {
     message: 'Google Calendar Webhook Handler',
     status: 'active'
   });
+}
+
+/**
+ * Comprehensive error handling and logging for calendar operations
+ */
+function logCalendarOperation(
+  operation: 'create' | 'update' | 'delete' | 'link' | 'unlink',
+  eventId: string,
+  appointmentId: string,
+  staffId: string,
+  staffName: string,
+  success: boolean,
+  error?: any
+) {
+  const logData = {
+    timestamp: new Date().toISOString(),
+    operation,
+    eventId,
+    appointmentId,
+    staffId,
+    staffName,
+    success,
+    error: error ? {
+      message: error.message,
+      stack: error.stack,
+      code: error.code
+    } : undefined
+  };
+
+  if (success) {
+    console.log(`Calendar operation ${operation} successful:`, logData);
+  } else {
+    console.error(`Calendar operation ${operation} failed:`, logData);
+  }
+
+  // In a production environment, you might want to send this to a logging service
+  // or store it in a database for audit purposes
+}
+
+/**
+ * Validate calendar event data before processing
+ */
+function validateCalendarEvent(event: any): { valid: boolean; errors: string[] } {
+  const errors: string[] = [];
+
+  if (!event.id) {
+    errors.push('Event ID is required');
+  }
+
+  if (!event.summary) {
+    errors.push('Event summary is required');
+  }
+
+  if (!event.start) {
+    errors.push('Event start time is required');
+  } else {
+    const startDate = new Date(event.start.dateTime || event.start.date);
+    if (isNaN(startDate.getTime())) {
+      errors.push('Invalid event start time');
+    }
+  }
+
+  if (!event.end) {
+    errors.push('Event end time is required');
+  } else {
+    const endDate = new Date(event.end.dateTime || event.end.date);
+    if (isNaN(endDate.getTime())) {
+      errors.push('Invalid event end time');
+    }
+  }
+
+  // Check if start is before end
+  if (event.start && event.end) {
+    const startDate = new Date(event.start.dateTime || event.start.date);
+    const endDate = new Date(event.end.dateTime || event.end.date);
+    if (startDate >= endDate) {
+      errors.push('Event start time must be before end time');
+    }
+  }
+
+  return {
+    valid: errors.length === 0,
+    errors
+  };
 }
