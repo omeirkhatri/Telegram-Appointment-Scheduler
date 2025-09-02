@@ -2,8 +2,10 @@
 
 import { AppointmentForm } from '@/components/forms';
 import { ErrorMessage, LoadingOverlay } from '@/components/ui';
-import type { Appointment, Patient, Staff, AppointmentStaffWithDetails } from '@/types';
-import { X, Users, UserPlus, UserMinus } from 'lucide-react';
+import type { Appointment, AppointmentStaffWithDetails, Patient, Staff } from '@/types';
+import type { BulkCopyConfig, BulkCopyResult, BulkCopyProgress } from '@/types/bulkCopy';
+import { generateBulkCopyDates, validateBulkCopyConfig, getDefaultBulkCopyConfig, formatBulkCopyPattern } from '@/lib/bulkCopyUtils';
+import { UserMinus, UserPlus, Users, X, Copy, Calendar, Settings } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 interface CopyAppointmentModalProps {
@@ -39,6 +41,13 @@ export function CopyAppointmentModal({
   const [sourceStaffAssignments, setSourceStaffAssignments] = useState<AppointmentStaffWithDetails[]>([]);
   const [isLoadingStaffAssignments, setIsLoadingStaffAssignments] = useState(false);
   const [showStaffReassignment, setShowStaffReassignment] = useState(false);
+  
+  // Bulk copy state
+  const [copyMode, setCopyMode] = useState<'single' | 'bulk'>('single');
+  const [bulkConfig, setBulkConfig] = useState<BulkCopyConfig>(getDefaultBulkCopyConfig());
+  const [bulkProgress, setBulkProgress] = useState<BulkCopyProgress | null>(null);
+  const [bulkResult, setBulkResult] = useState<BulkCopyResult | null>(null);
+  const [showBulkConfig, setShowBulkConfig] = useState(false);
 
   // Fetch source appointment staff assignments when modal opens
   useEffect(() => {
@@ -53,12 +62,12 @@ export function CopyAppointmentModal({
 
   const fetchSourceStaffAssignments = async () => {
     if (!sourceAppointment) return;
-    
+
     setIsLoadingStaffAssignments(true);
     try {
       const response = await fetch(`/api/appointments/${sourceAppointment.id}/staff`);
       const result = await response.json();
-      
+
       if (result.success) {
         setSourceStaffAssignments(result.data.staff_assignments || []);
       } else {
@@ -72,6 +81,14 @@ export function CopyAppointmentModal({
   };
 
   const handleSubmit = async (data: any) => {
+    if (copyMode === 'bulk') {
+      await handleBulkSubmit(data);
+    } else {
+      await handleSingleSubmit(data);
+    }
+  };
+
+  const handleSingleSubmit = async (data: any) => {
     setIsSubmitting(true);
     setSubmitError(null);
 
@@ -116,6 +133,90 @@ export function CopyAppointmentModal({
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to copy appointment';
       setSubmitError(errorMessage);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleBulkSubmit = async (data: any) => {
+    setIsSubmitting(true);
+    setSubmitError(null);
+    setBulkResult(null);
+
+    // Validate bulk config
+    const configErrors = validateBulkCopyConfig(bulkConfig);
+    if (configErrors.length > 0) {
+      setSubmitError(`Bulk copy configuration error: ${configErrors.join(', ')}`);
+      setIsSubmitting(false);
+      return;
+    }
+
+    try {
+      // Generate dates to show progress
+      const targetDates = generateBulkCopyDates(bulkConfig);
+      
+      setBulkProgress({
+        current: 0,
+        total: targetDates.length,
+        currentDate: '',
+        status: 'preparing',
+        message: 'Preparing bulk copy...'
+      });
+
+      const response = await fetch(`/api/appointments/${sourceAppointment.id}/bulk-copy`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          sourceAppointmentId: sourceAppointment.id,
+          config: bulkConfig,
+          staffAssignments: sourceStaffAssignments.map(assignment => ({
+            staff_id: assignment.staff_id,
+            role: assignment.role,
+            is_primary: assignment.is_primary,
+          })),
+          overrideConflicts: overrideConflicts,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to perform bulk copy');
+      }
+
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to perform bulk copy');
+      }
+
+      setBulkResult(result.data);
+      setBulkProgress({
+        current: result.data.totalCreated,
+        total: result.data.totalRequested,
+        currentDate: '',
+        status: 'completed',
+        message: `Bulk copy completed: ${result.data.totalCreated}/${result.data.totalRequested} appointments created`
+      });
+
+      // Close modal and trigger success callback if any appointments were created
+      if (result.data.totalCreated > 0) {
+        setTimeout(() => {
+          onClose();
+          onSuccess();
+        }, 2000);
+      }
+
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to perform bulk copy';
+      setSubmitError(errorMessage);
+      setBulkProgress({
+        current: 0,
+        total: 0,
+        currentDate: '',
+        status: 'error',
+        message: errorMessage
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -168,6 +269,49 @@ export function CopyAppointmentModal({
           >
             <X className="w-5 h-5" />
           </button>
+        </div>
+
+        {/* Copy Mode Selection */}
+        <div className="p-6 border-b border-[--border]">
+          <div className="flex items-center space-x-4">
+            <span className="text-sm font-medium text-[--foreground]">Copy Mode:</span>
+            <div className="flex space-x-2">
+              <button
+                type="button"
+                onClick={() => setCopyMode('single')}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  copyMode === 'single'
+                    ? 'bg-[--primary] text-white'
+                    : 'bg-[--muted] text-[--muted-foreground] hover:bg-[--accent]'
+                }`}
+              >
+                <Copy className="w-4 h-4 inline mr-2" />
+                Single Copy
+              </button>
+              <button
+                type="button"
+                onClick={() => setCopyMode('bulk')}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  copyMode === 'bulk'
+                    ? 'bg-[--primary] text-white'
+                    : 'bg-[--muted] text-[--muted-foreground] hover:bg-[--accent]'
+                }`}
+              >
+                <Calendar className="w-4 h-4 inline mr-2" />
+                Bulk Copy
+              </button>
+            </div>
+            {copyMode === 'bulk' && (
+              <button
+                type="button"
+                onClick={() => setShowBulkConfig(!showBulkConfig)}
+                className="ml-auto px-3 py-2 text-sm text-[--primary] hover:text-[--primary]/80 transition-colors"
+              >
+                <Settings className="w-4 h-4 inline mr-1" />
+                Configure Pattern
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Content */}
@@ -238,7 +382,7 @@ export function CopyAppointmentModal({
                     </span>
                   </label>
                 </div>
-                
+
                 {/* Staff reassignment options for conflicts */}
                 {conflicts.some(c => c.type === 'staff_unavailable') && (
                   <div className="p-3 bg-[--accent]/20 border border-[--accent] rounded-lg">
@@ -305,7 +449,7 @@ export function CopyAppointmentModal({
                   {showStaffReassignment ? 'Hide' : 'Modify'} Assignments
                 </button>
               </div>
-              
+
               {isLoadingStaffAssignments ? (
                 <div className="text-sm text-[--muted-foreground]">Loading staff assignments...</div>
               ) : (
@@ -378,7 +522,7 @@ export function CopyAppointmentModal({
                       )}
                     </div>
                   ))}
-                  
+
                   {showStaffReassignment && (
                     <div className="pt-2 border-t border-[--border]">
                       <button
@@ -411,8 +555,157 @@ export function CopyAppointmentModal({
             </div>
           )}
 
+          {/* Bulk Copy Configuration */}
+          {copyMode === 'bulk' && showBulkConfig && (
+            <div className="mb-6 p-4 bg-[--muted]/30 border border-[--border] rounded-lg">
+              <h3 className="text-lg font-semibold text-[--foreground] mb-4 flex items-center">
+                <Settings className="w-5 h-5 mr-2" />
+                Bulk Copy Configuration
+              </h3>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Pattern Selection */}
+                <div>
+                  <label className="block text-sm font-medium text-[--foreground] mb-2">
+                    Pattern
+                  </label>
+                  <select
+                    value={bulkConfig.pattern}
+                    onChange={(e) => setBulkConfig({
+                      ...bulkConfig,
+                      pattern: e.target.value as any,
+                      customDates: e.target.value === 'custom' ? [] : bulkConfig.customDates
+                    })}
+                    className="w-full px-3 py-2 border border-[--border] rounded-lg bg-[--background] text-[--foreground]"
+                  >
+                    <option value="daily">Daily</option>
+                    <option value="weekly">Weekly</option>
+                    <option value="monthly">Monthly</option>
+                    <option value="custom">Custom Dates</option>
+                  </select>
+                </div>
+
+                {/* Interval */}
+                <div>
+                  <label className="block text-sm font-medium text-[--foreground] mb-2">
+                    Interval
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="30"
+                    value={bulkConfig.interval}
+                    onChange={(e) => setBulkConfig({
+                      ...bulkConfig,
+                      interval: parseInt(e.target.value) || 1
+                    })}
+                    className="w-full px-3 py-2 border border-[--border] rounded-lg bg-[--background] text-[--foreground]"
+                  />
+                </div>
+
+                {/* Occurrences */}
+                <div>
+                  <label className="block text-sm font-medium text-[--foreground] mb-2">
+                    Number of Copies
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="100"
+                    value={bulkConfig.occurrences}
+                    onChange={(e) => setBulkConfig({
+                      ...bulkConfig,
+                      occurrences: parseInt(e.target.value) || 1
+                    })}
+                    className="w-full px-3 py-2 border border-[--border] rounded-lg bg-[--background] text-[--foreground]"
+                  />
+                </div>
+
+                {/* Start Date */}
+                <div>
+                  <label className="block text-sm font-medium text-[--foreground] mb-2">
+                    Start Date
+                  </label>
+                  <input
+                    type="date"
+                    value={bulkConfig.startDate}
+                    onChange={(e) => setBulkConfig({
+                      ...bulkConfig,
+                      startDate: e.target.value
+                    })}
+                    className="w-full px-3 py-2 border border-[--border] rounded-lg bg-[--background] text-[--foreground]"
+                  />
+                </div>
+              </div>
+
+              {/* Pattern Preview */}
+              <div className="mt-4 p-3 bg-[--accent]/20 border border-[--accent] rounded-lg">
+                <div className="text-sm text-[--foreground]">
+                  <span className="font-medium">Pattern:</span> {formatBulkCopyPattern(bulkConfig)}
+                </div>
+                <div className="text-sm text-[--muted-foreground] mt-1">
+                  Will create {bulkConfig.occurrences} appointment{bulkConfig.occurrences > 1 ? 's' : ''} starting from {bulkConfig.startDate}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Bulk Copy Progress */}
+          {copyMode === 'bulk' && bulkProgress && (
+            <div className="mb-6 p-4 bg-[--muted]/30 border border-[--border] rounded-lg">
+              <h3 className="text-lg font-semibold text-[--foreground] mb-3">
+                Bulk Copy Progress
+              </h3>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-[--foreground]">{bulkProgress.message}</span>
+                  <span className="text-[--muted-foreground]">
+                    {bulkProgress.current}/{bulkProgress.total}
+                  </span>
+                </div>
+                <div className="w-full bg-[--muted] rounded-full h-2">
+                  <div
+                    className={`h-2 rounded-full transition-all duration-300 ${
+                      bulkProgress.status === 'completed' ? 'bg-[--success]' :
+                      bulkProgress.status === 'error' ? 'bg-[--destructive]' :
+                      'bg-[--primary]'
+                    }`}
+                    style={{ width: `${(bulkProgress.current / bulkProgress.total) * 100}%` }}
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Bulk Copy Results */}
+          {copyMode === 'bulk' && bulkResult && (
+            <div className="mb-6 p-4 bg-[--muted]/30 border border-[--border] rounded-lg">
+              <h3 className="text-lg font-semibold text-[--foreground] mb-3">
+                Bulk Copy Results
+              </h3>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-[--success]">{bulkResult.totalCreated}</div>
+                  <div className="text-[--muted-foreground]">Created</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-[--warning]">{bulkResult.totalConflicts}</div>
+                  <div className="text-[--muted-foreground]">Conflicts</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-[--destructive]">{bulkResult.totalErrors}</div>
+                  <div className="text-[--muted-foreground]">Errors</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-[--foreground]">{bulkResult.totalRequested}</div>
+                  <div className="text-[--muted-foreground]">Total</div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Form */}
-          {!isLoadingPatients && !isLoadingStaff && (
+          {!isLoadingPatients && !isLoadingStaff && copyMode === 'single' && (
             <AppointmentForm
               appointment={copyAppointmentData as Appointment}
               patients={patients}
@@ -421,6 +714,27 @@ export function CopyAppointmentModal({
               onCancel={handleCancel}
               isLoading={isSubmitting}
             />
+          )}
+
+          {/* Bulk Copy Submit Button */}
+          {copyMode === 'bulk' && (
+            <div className="flex justify-end space-x-3 mt-6">
+              <button
+                type="button"
+                onClick={handleCancel}
+                className="px-4 py-2 text-[--muted-foreground] hover:text-[--foreground] transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => handleBulkSubmit({})}
+                disabled={isSubmitting}
+                className="px-6 py-2 bg-[--primary] text-white rounded-lg hover:bg-[--primary]/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {isSubmitting ? 'Creating...' : `Create ${bulkConfig.occurrences} Copies`}
+              </button>
+            </div>
           )}
         </div>
       </div>

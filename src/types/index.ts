@@ -25,6 +25,8 @@ export * from './appointmentStaff';
 export * from './email';
 // Export job types from dedicated file
 export * from './job';
+// Export bulk copy types from dedicated file
+export * from './bulkCopy';
 
 
 // Form types

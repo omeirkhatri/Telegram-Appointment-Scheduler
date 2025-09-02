@@ -62,7 +62,7 @@
 - [x] 7.2 Deep clone with new UUIDs
 - [x] 7.3 Conflict check with override option
 - [x] 7.4 Staff reassignment selector
-- [ ] 7.5 Bulk copy (patterns: daily/weekly/custom)
+- [x] 7.5 Bulk copy (patterns: daily/weekly/custom)
 - [ ] 7.6 Copy audit trail
 
 ## 8.0 Testing and Quality Assurance
