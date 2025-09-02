@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { appointmentService } from '@/services';
+import { appointmentService, staffService } from '@/services';
 import { validateAppointmentData } from '@/lib/validations/appointment';
 import { deepClone } from '@/utils/deepClone';
+import { checkCopyConflicts } from '@/lib/copyConflictResolution';
 import type { CreateAppointment, StaffAssignment } from '@/types';
 
 // POST /api/appointments/[id]/copy - Copy an existing appointment
@@ -43,6 +44,35 @@ export async function POST(
       recurring_rule: body.recurring_rule || undefined, // Don't copy recurring rules by default
       google_event_ids: {}, // Clear Google event IDs for new appointment
     };
+
+    // Check for conflicts before creating the appointment
+    const staffAssignments: StaffAssignment[] = body.staff_assignments || [];
+    const allStaff = await staffService.getStaff();
+    const existingAppointments = await appointmentService.getAppointments();
+    
+    const conflictCheck = await checkCopyConflicts(
+      sourceAppointment,
+      {
+        appointment_date: appointmentData.appointment_date,
+        start_time: appointmentData.start_time,
+        duration_minutes: appointmentData.duration_minutes,
+        staff_assignments: staffAssignments,
+      },
+      existingAppointments,
+      allStaff
+    );
+
+    // If there are conflicts and no override is provided, return conflict information
+    if (conflictCheck.hasConflicts && !body.overrideConflicts) {
+      return NextResponse.json({
+        success: false,
+        error: 'Conflicts detected',
+        conflicts: conflictCheck.conflicts,
+        canProceed: conflictCheck.canProceed,
+        requiresOverride: conflictCheck.requiresOverride,
+        overrideOptions: conflictCheck.overrideOptions,
+      }, { status: 409 }); // 409 Conflict
+    }
 
     // Validate the appointment data
     const validationErrors = validateAppointmentData(appointmentData);

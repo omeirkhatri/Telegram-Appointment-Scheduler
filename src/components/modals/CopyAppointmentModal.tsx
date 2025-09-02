@@ -33,11 +33,17 @@ export function CopyAppointmentModal({
 }: CopyAppointmentModalProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [conflicts, setConflicts] = useState<any[]>([]);
+  const [showConflictResolution, setShowConflictResolution] = useState(false);
+  const [overrideConflicts, setOverrideConflicts] = useState(false);
 
   // Reset error state when modal opens
   useEffect(() => {
     if (isOpen) {
       setSubmitError(null);
+      setConflicts([]);
+      setShowConflictResolution(false);
+      setOverrideConflicts(false);
     }
   }, [isOpen]);
 
@@ -51,12 +57,27 @@ export function CopyAppointmentModal({
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(data),
+        body: JSON.stringify({
+          ...data,
+          overrideConflicts: overrideConflicts,
+        }),
       });
 
       const result = await response.json();
 
-      if (!response.ok || !result.success) {
+      if (!response.ok) {
+        // Handle conflict response (409)
+        if (response.status === 409 && result.conflicts) {
+          setConflicts(result.conflicts);
+          setShowConflictResolution(true);
+          setIsSubmitting(false);
+          return;
+        }
+        
+        throw new Error(result.error || 'Failed to copy appointment');
+      }
+
+      if (!result.success) {
         throw new Error(result.error || 'Failed to copy appointment');
       }
 
@@ -148,6 +169,74 @@ export function CopyAppointmentModal({
               error={submitError}
               variant="inline"
             />
+          )}
+
+          {/* Conflict resolution */}
+          {showConflictResolution && conflicts.length > 0 && (
+            <div className="mb-6 p-4 bg-[--warning]/10 border border-[--warning]/20 rounded-lg">
+              <h3 className="text-lg font-semibold text-[--warning] mb-3">
+                ⚠️ Conflicts Detected
+              </h3>
+              <div className="space-y-2 mb-4">
+                {conflicts.map((conflict, index) => (
+                  <div key={index} className="text-sm text-[--foreground]">
+                    <span className="font-medium">
+                      {conflict.severity === 'critical' ? '🔴' : 
+                       conflict.severity === 'high' ? '🟠' : 
+                       conflict.severity === 'medium' ? '🟡' : '🟢'}
+                    </span>
+                    {' '}
+                    {conflict.description}
+                    {conflict.staffName && (
+                      <span className="text-[--muted-foreground] ml-2">
+                        (Staff: {conflict.staffName})
+                      </span>
+                    )}
+                  </div>
+                ))}
+              </div>
+              <div className="flex items-center space-x-4">
+                <label className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    checked={overrideConflicts}
+                    onChange={(e) => setOverrideConflicts(e.target.checked)}
+                    className="rounded border-[--border]"
+                  />
+                  <span className="text-sm text-[--foreground]">
+                    Override conflicts and proceed
+                  </span>
+                </label>
+              </div>
+              <div className="mt-3 flex space-x-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setOverrideConflicts(true);
+                    // Re-submit the form with override
+                    const form = document.querySelector('form');
+                    if (form) {
+                      const formData = new FormData(form);
+                      const data = Object.fromEntries(formData.entries());
+                      handleSubmit(data);
+                    }
+                  }}
+                  className="px-4 py-2 bg-[--warning] text-white rounded-lg hover:bg-[--warning]/90 transition-colors"
+                >
+                  Override & Copy
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowConflictResolution(false);
+                    setConflicts([]);
+                  }}
+                  className="px-4 py-2 bg-[--muted] text-[--foreground] rounded-lg hover:bg-[--accent] transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
           )}
 
           {/* Form */}

@@ -36,12 +36,12 @@ export function deepCloneAppointmentForCopy<T extends Record<string, any>>(
   overrides: Partial<T> = {}
 ): Omit<T, 'id' | 'created_at' | 'updated_at'> {
   const cloned = deepClone(sourceAppointment);
-  
+
   // Remove system-generated fields
   delete cloned.id;
   delete cloned.created_at;
   delete cloned.updated_at;
-  
+
   // Apply overrides
   return { ...cloned, ...overrides };
 }
