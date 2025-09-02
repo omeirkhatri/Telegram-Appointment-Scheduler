@@ -1,21 +1,20 @@
 'use client';
 
-import { useState, useEffect } from 'react';
 import {
-  AlertCircle,
-  CheckCircle,
-  Clock,
-  Loader2,
-  Play,
-  Settings,
-  Square,
-  Calendar,
-  Activity,
-  RefreshCw,
-  Zap,
-  History,
-  BarChart3
+    Activity,
+    AlertCircle,
+    BarChart3,
+    CheckCircle,
+    Clock,
+    History,
+    Loader2,
+    Play,
+    RefreshCw,
+    Settings,
+    Square,
+    Zap
 } from 'lucide-react';
+import { useEffect, useState } from 'react';
 
 interface AutomatedEmailSectionProps {
   className?: string;
@@ -364,7 +363,7 @@ export function AutomatedEmailSection({ className = '' }: AutomatedEmailSectionP
               )}
               <span>Start Scheduler</span>
             </button>
-            
+
             <button
               onClick={() => handleSchedulerControl('stop')}
               disabled={isSaving || !schedulerStatus?.isRunning}
@@ -500,8 +499,8 @@ export function AutomatedEmailSection({ className = '' }: AutomatedEmailSectionP
         {/* Result Message */}
         {result && (
           <div className={`p-4 rounded-lg border ${
-            result.success 
-              ? 'bg-[--success]/10 border-[--success]/20 text-[--success]' 
+            result.success
+              ? 'bg-[--success]/10 border-[--success]/20 text-[--success]'
               : 'bg-[--destructive]/10 border-[--destructive]/20 text-[--destructive]'
           }`}>
             <div className="flex items-center space-x-2">

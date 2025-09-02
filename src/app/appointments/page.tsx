@@ -3,7 +3,7 @@
 import { AppointmentCalendar } from '@/components/calendar';
 import { AppointmentFilters, type AppointmentFilterState } from '@/components/filters';
 import Header from '@/components/layout/Header';
-import { AppointmentContextMenu, AppointmentModal } from '@/components/modals';
+import { AppointmentContextMenu, AppointmentModal, CopyAppointmentModal } from '@/components/modals';
 import { ErrorMessage, SuccessMessage } from '@/components/ui';
 import { useAppointmentsForDateRange, useUpdateAppointment } from '@/hooks/useAppointments';
 import { usePatients } from '@/hooks/usePatients';
@@ -34,6 +34,8 @@ export default function AppointmentsPage() {
     position: { x: number; y: number };
   } | null>(null);
   const [isAppointmentModalOpen, setIsAppointmentModalOpen] = useState(false);
+  const [isCopyModalOpen, setIsCopyModalOpen] = useState(false);
+  const [copySourceAppointment, setCopySourceAppointment] = useState<Appointment | null>(null);
   const [selectedDate, setSelectedDate] = useState<{ start: Date; end: Date } | null>(null);
 
   // Debounced refetch to avoid excessive API calls
@@ -160,10 +162,8 @@ export default function AppointmentsPage() {
   };
 
   const handleCopyAppointment = async (appointment: Appointment) => {
-    // TODO: Open copy modal
-    showNotification('success', `Copy appointment: ${appointment.id}`);
-    // Refresh calendar data after copy
-    await debouncedRefetch();
+    setCopySourceAppointment(appointment);
+    setIsCopyModalOpen(true);
   };
 
   const handleCancelAppointment = async (appointment: Appointment) => {
@@ -198,6 +198,18 @@ export default function AppointmentsPage() {
 
   const handleAppointmentModalSuccess = async () => {
     showNotification('success', 'Appointment created successfully');
+    // Refresh calendar data with debounce
+    await debouncedRefetch();
+  };
+
+  // Copy modal handlers
+  const handleCloseCopyModal = () => {
+    setIsCopyModalOpen(false);
+    setCopySourceAppointment(null);
+  };
+
+  const handleCopyModalSuccess = async () => {
+    showNotification('success', 'Appointment copied successfully');
     // Refresh calendar data with debounce
     await debouncedRefetch();
   };
@@ -502,6 +514,22 @@ export default function AppointmentsPage() {
           patientsError={patientsError}
           staffError={staffError}
         />
+
+        {/* Copy Appointment Modal */}
+        {copySourceAppointment && (
+          <CopyAppointmentModal
+            isOpen={isCopyModalOpen}
+            onClose={handleCloseCopyModal}
+            onSuccess={handleCopyModalSuccess}
+            sourceAppointment={copySourceAppointment}
+            patients={patients}
+            staff={staff}
+            isLoadingPatients={isLoadingPatients}
+            isLoadingStaff={isLoadingStaff}
+            patientsError={patientsError}
+            staffError={staffError}
+          />
+        )}
       </main>
     </div>
   );
