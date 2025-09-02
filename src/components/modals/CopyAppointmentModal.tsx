@@ -2,8 +2,8 @@
 
 import { AppointmentForm } from '@/components/forms';
 import { ErrorMessage, LoadingOverlay } from '@/components/ui';
-import type { Appointment, Patient, Staff } from '@/types';
-import { X } from 'lucide-react';
+import type { Appointment, Patient, Staff, AppointmentStaffWithDetails } from '@/types';
+import { X, Users, UserPlus, UserMinus } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 interface CopyAppointmentModalProps {
@@ -36,16 +36,40 @@ export function CopyAppointmentModal({
   const [conflicts, setConflicts] = useState<any[]>([]);
   const [showConflictResolution, setShowConflictResolution] = useState(false);
   const [overrideConflicts, setOverrideConflicts] = useState(false);
+  const [sourceStaffAssignments, setSourceStaffAssignments] = useState<AppointmentStaffWithDetails[]>([]);
+  const [isLoadingStaffAssignments, setIsLoadingStaffAssignments] = useState(false);
+  const [showStaffReassignment, setShowStaffReassignment] = useState(false);
 
-  // Reset error state when modal opens
+  // Fetch source appointment staff assignments when modal opens
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && sourceAppointment) {
+      fetchSourceStaffAssignments();
       setSubmitError(null);
       setConflicts([]);
       setShowConflictResolution(false);
       setOverrideConflicts(false);
     }
-  }, [isOpen]);
+  }, [isOpen, sourceAppointment]);
+
+  const fetchSourceStaffAssignments = async () => {
+    if (!sourceAppointment) return;
+    
+    setIsLoadingStaffAssignments(true);
+    try {
+      const response = await fetch(`/api/appointments/${sourceAppointment.id}/staff`);
+      const result = await response.json();
+      
+      if (result.success) {
+        setSourceStaffAssignments(result.data.staff_assignments || []);
+      } else {
+        console.error('Failed to fetch staff assignments:', result.error);
+      }
+    } catch (error) {
+      console.error('Error fetching staff assignments:', error);
+    } finally {
+      setIsLoadingStaffAssignments(false);
+    }
+  };
 
   const handleSubmit = async (data: any) => {
     setIsSubmitting(true);
@@ -60,6 +84,11 @@ export function CopyAppointmentModal({
         body: JSON.stringify({
           ...data,
           overrideConflicts: overrideConflicts,
+          staff_assignments: sourceStaffAssignments.map(assignment => ({
+            staff_id: assignment.staff_id,
+            role: assignment.role,
+            is_primary: assignment.is_primary,
+          })),
         }),
       });
 
@@ -73,7 +102,7 @@ export function CopyAppointmentModal({
           setIsSubmitting(false);
           return;
         }
-        
+
         throw new Error(result.error || 'Failed to copy appointment');
       }
 
@@ -181,8 +210,8 @@ export function CopyAppointmentModal({
                 {conflicts.map((conflict, index) => (
                   <div key={index} className="text-sm text-[--foreground]">
                     <span className="font-medium">
-                      {conflict.severity === 'critical' ? '🔴' : 
-                       conflict.severity === 'high' ? '🟠' : 
+                      {conflict.severity === 'critical' ? '🔴' :
+                       conflict.severity === 'high' ? '🟠' :
                        conflict.severity === 'medium' ? '🟡' : '🟢'}
                     </span>
                     {' '}
@@ -195,18 +224,39 @@ export function CopyAppointmentModal({
                   </div>
                 ))}
               </div>
-              <div className="flex items-center space-x-4">
-                <label className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    checked={overrideConflicts}
-                    onChange={(e) => setOverrideConflicts(e.target.checked)}
-                    className="rounded border-[--border]"
-                  />
-                  <span className="text-sm text-[--foreground]">
-                    Override conflicts and proceed
-                  </span>
-                </label>
+              <div className="space-y-3">
+                <div className="flex items-center space-x-4">
+                  <label className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      checked={overrideConflicts}
+                      onChange={(e) => setOverrideConflicts(e.target.checked)}
+                      className="rounded border-[--border]"
+                    />
+                    <span className="text-sm text-[--foreground]">
+                      Override conflicts and proceed
+                    </span>
+                  </label>
+                </div>
+                
+                {/* Staff reassignment options for conflicts */}
+                {conflicts.some(c => c.type === 'staff_unavailable') && (
+                  <div className="p-3 bg-[--accent]/20 border border-[--accent] rounded-lg">
+                    <h4 className="text-sm font-medium text-[--foreground] mb-2">
+                      Staff Reassignment Options
+                    </h4>
+                    <p className="text-xs text-[--muted-foreground] mb-2">
+                      Some staff members are unavailable. You can reassign them or remove them from the appointment.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => setShowStaffReassignment(true)}
+                      className="text-sm text-[--primary] hover:text-[--primary]/80 transition-colors"
+                    >
+                      Modify Staff Assignments
+                    </button>
+                  </div>
+                )}
               </div>
               <div className="mt-3 flex space-x-3">
                 <button
@@ -236,6 +286,128 @@ export function CopyAppointmentModal({
                   Cancel
                 </button>
               </div>
+            </div>
+          )}
+
+          {/* Staff Reassignment Section */}
+          {sourceStaffAssignments.length > 0 && (
+            <div className="mb-6 p-4 bg-[--muted]/30 border border-[--border] rounded-lg">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-lg font-semibold text-[--foreground] flex items-center">
+                  <Users className="w-5 h-5 mr-2" />
+                  Staff Assignments
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => setShowStaffReassignment(!showStaffReassignment)}
+                  className="text-sm text-[--primary] hover:text-[--primary]/80 transition-colors"
+                >
+                  {showStaffReassignment ? 'Hide' : 'Modify'} Assignments
+                </button>
+              </div>
+              
+              {isLoadingStaffAssignments ? (
+                <div className="text-sm text-[--muted-foreground]">Loading staff assignments...</div>
+              ) : (
+                <div className="space-y-2">
+                  {sourceStaffAssignments.map((assignment, index) => (
+                    <div key={assignment.id} className="flex items-center justify-between p-2 bg-[--background] rounded border">
+                      <div className="flex items-center space-x-3">
+                        <div className="flex items-center space-x-2">
+                          <span className={`px-2 py-1 text-xs rounded ${
+                            assignment.role === 'primary' ? 'bg-[--primary] text-white' :
+                            assignment.role === 'assistant' ? 'bg-[--secondary] text-[--secondary-foreground]' :
+                            'bg-[--muted] text-[--muted-foreground]'
+                          }`}>
+                            {assignment.role}
+                          </span>
+                          {assignment.is_primary && (
+                            <span className="px-2 py-1 text-xs bg-[--warning] text-white rounded">
+                              Primary
+                            </span>
+                          )}
+                        </div>
+                        <div>
+                          <div className="font-medium text-[--foreground]">
+                            {assignment.staff?.first_name} {assignment.staff?.last_name}
+                          </div>
+                          <div className="text-sm text-[--muted-foreground]">
+                            {assignment.staff?.staff_type} • {assignment.staff?.specialization}
+                          </div>
+                        </div>
+                      </div>
+                      {showStaffReassignment && (
+                        <div className="flex items-center space-x-2">
+                          <select
+                            className="text-sm border border-[--border] rounded px-2 py-1 bg-[--background]"
+                            defaultValue={assignment.staff_id}
+                            onChange={(e) => {
+                              // Handle staff reassignment
+                              const newAssignments = [...sourceStaffAssignments];
+                              newAssignments[index] = {
+                                ...newAssignments[index],
+                                staff_id: e.target.value,
+                                staff: staff.find(s => s.id === e.target.value) || newAssignments[index].staff
+                              };
+                              setSourceStaffAssignments(newAssignments);
+                            }}
+                          >
+                            <option value={assignment.staff_id}>
+                              Keep: {assignment.staff?.first_name} {assignment.staff?.last_name}
+                            </option>
+                            {staff
+                              .filter(s => s.staff_type === assignment.staff?.staff_type && s.id !== assignment.staff_id)
+                              .map(s => (
+                                <option key={s.id} value={s.id}>
+                                  {s.first_name} {s.last_name}
+                                </option>
+                              ))}
+                          </select>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const newAssignments = sourceStaffAssignments.filter((_, i) => i !== index);
+                              setSourceStaffAssignments(newAssignments);
+                            }}
+                            className="p-1 text-[--destructive] hover:bg-[--destructive]/10 rounded transition-colors"
+                            title="Remove staff assignment"
+                          >
+                            <UserMinus className="w-4 h-4" />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                  
+                  {showStaffReassignment && (
+                    <div className="pt-2 border-t border-[--border]">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          // Add new staff assignment
+                          const newAssignment: AppointmentStaffWithDetails = {
+                            id: `temp-${Date.now()}`,
+                            appointment_id: sourceAppointment.id,
+                            staff_id: '',
+                            role: 'assistant',
+                            is_primary: false,
+                            google_event_id: null,
+                            created_at: new Date().toISOString(),
+                            updated_at: new Date().toISOString(),
+                            appointment: sourceAppointment,
+                            staff: null
+                          };
+                          setSourceStaffAssignments([...sourceStaffAssignments, newAssignment]);
+                        }}
+                        className="flex items-center space-x-2 text-sm text-[--primary] hover:text-[--primary]/80 transition-colors"
+                      >
+                        <UserPlus className="w-4 h-4" />
+                        <span>Add Staff Member</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           )}
 

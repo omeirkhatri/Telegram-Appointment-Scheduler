@@ -1,9 +1,9 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { appointmentService, staffService } from '@/services';
-import { validateAppointmentData } from '@/lib/validations/appointment';
-import { deepClone } from '@/utils/deepClone';
 import { checkCopyConflicts } from '@/lib/copyConflictResolution';
+import { validateAppointmentData } from '@/lib/validations/appointment';
+import { appointmentService, staffService } from '@/services';
 import type { CreateAppointment, StaffAssignment } from '@/types';
+import { deepClone } from '@/utils/deepClone';
+import { NextRequest, NextResponse } from 'next/server';
 
 // POST /api/appointments/[id]/copy - Copy an existing appointment
 export async function POST(
@@ -49,7 +49,7 @@ export async function POST(
     const staffAssignments: StaffAssignment[] = body.staff_assignments || [];
     const allStaff = await staffService.getStaff();
     const existingAppointments = await appointmentService.getAppointments();
-    
+
     const conflictCheck = await checkCopyConflicts(
       sourceAppointment,
       {
