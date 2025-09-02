@@ -59,7 +59,7 @@
 
 ## 7.0 Copy Appointment Feature
 - [x] 7.1 Copy modal with prefilled fields
-- [ ] 7.2 Deep clone with new UUIDs
+- [x] 7.2 Deep clone with new UUIDs
 - [ ] 7.3 Conflict check with override option
 - [ ] 7.4 Staff reassignment selector
 - [ ] 7.5 Bulk copy (patterns: daily/weekly/custom)

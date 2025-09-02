@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { appointmentService } from '@/services';
 import { validateAppointmentData } from '@/lib/validations/appointment';
+import { deepClone } from '@/utils/deepClone';
 import type { CreateAppointment, StaffAssignment } from '@/types';
 
 // POST /api/appointments/[id]/copy - Copy an existing appointment
@@ -24,7 +25,9 @@ export async function POST(
       );
     }
 
-    // Create appointment data for the copy
+    // Use deep clone utility for JSONB fields
+
+    // Create appointment data for the copy with proper deep cloning
     const appointmentData: CreateAppointment = {
       patient_id: body.patient_id || sourceAppointment.patient_id,
       appointment_type: body.appointment_type || sourceAppointment.appointment_type,
@@ -32,7 +35,7 @@ export async function POST(
       start_time: body.start_time || sourceAppointment.start_time,
       duration_minutes: body.duration_minutes || sourceAppointment.duration_minutes,
       status: body.status || 'scheduled', // Reset to scheduled for new appointment
-      custom_fields: body.custom_fields || sourceAppointment.custom_fields || {},
+      custom_fields: body.custom_fields || deepClone(sourceAppointment.custom_fields || {}),
       transportation_type: body.transportation_type || sourceAppointment.transportation_type,
       transportation_method: body.transportation_method || sourceAppointment.transportation_method,
       driver_id: body.driver_id || sourceAppointment.driver_id,
