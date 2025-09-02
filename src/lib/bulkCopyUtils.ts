@@ -1,5 +1,5 @@
-import { addDays, addWeeks, addMonths, format, parseISO, isValid } from 'date-fns';
-import type { BulkCopyConfig, BulkCopyPattern } from '@/types/bulkCopy';
+import type { BulkCopyConfig } from '@/types/bulkCopy';
+import { addDays, addMonths, addWeeks, format, isValid, parseISO } from 'date-fns';
 
 /**
  * Generate dates based on bulk copy pattern
@@ -7,7 +7,7 @@ import type { BulkCopyConfig, BulkCopyPattern } from '@/types/bulkCopy';
 export function generateBulkCopyDates(config: BulkCopyConfig): string[] {
   const dates: string[] = [];
   const startDate = parseISO(config.startDate);
-  
+
   if (!isValid(startDate)) {
     throw new Error('Invalid start date');
   }
@@ -46,7 +46,7 @@ export function generateBulkCopyDates(config: BulkCopyConfig): string[] {
         })
         .filter((date): date is string => date !== null)
         .sort();
-      
+
       dates.push(...validDates.slice(0, config.occurrences));
       break;
 
@@ -121,7 +121,7 @@ export function validateBulkCopyConfig(config: BulkCopyConfig): string[] {
 export function getDefaultBulkCopyConfig(): BulkCopyConfig {
   const today = new Date();
   const nextWeek = addDays(today, 7);
-  
+
   return {
     pattern: 'daily',
     interval: 1,
@@ -156,7 +156,7 @@ export function calculateBulkCopyEndDate(config: BulkCopyConfig): string | null 
   try {
     const dates = generateBulkCopyDates(config);
     if (dates.length === 0) return null;
-    
+
     const lastDate = dates[dates.length - 1];
     return lastDate;
   } catch {

@@ -1,11 +1,11 @@
-import {
-  generateBulkCopyDates,
-  validateBulkCopyConfig,
-  getDefaultBulkCopyConfig,
-  formatBulkCopyPattern,
-  calculateBulkCopyEndDate,
-} from './bulkCopyUtils';
 import type { BulkCopyConfig } from '@/types/bulkCopy';
+import {
+    calculateBulkCopyEndDate,
+    formatBulkCopyPattern,
+    generateBulkCopyDates,
+    getDefaultBulkCopyConfig,
+    validateBulkCopyConfig,
+} from './bulkCopyUtils';
 
 describe('bulkCopyUtils', () => {
   describe('generateBulkCopyDates', () => {
@@ -208,7 +208,7 @@ describe('bulkCopyUtils', () => {
   describe('getDefaultBulkCopyConfig', () => {
     it('should return valid default configuration', () => {
       const config = getDefaultBulkCopyConfig();
-      
+
       expect(config.pattern).toBe('daily');
       expect(config.interval).toBe(1);
       expect(config.occurrences).toBe(5);

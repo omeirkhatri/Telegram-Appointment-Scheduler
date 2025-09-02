@@ -1,6 +1,6 @@
-import { POST } from './route';
-import { NextRequest } from 'next/server';
 import type { BulkCopyRequest } from '@/types/bulkCopy';
+import { NextRequest } from 'next/server';
+import { POST } from './route';
 
 // Mock the services
 jest.mock('@/services', () => ({
@@ -33,10 +33,10 @@ jest.mock('@/utils/deepClone', () => ({
   deepClone: jest.fn((obj) => ({ ...obj })),
 }));
 
-import { appointmentService, staffService } from '@/services';
+import { generateBulkCopyDates, validateBulkCopyConfig } from '@/lib/bulkCopyUtils';
 import { checkCopyConflicts } from '@/lib/copyConflictResolution';
 import { validateAppointmentData } from '@/lib/validations/appointment';
-import { generateBulkCopyDates, validateBulkCopyConfig } from '@/lib/bulkCopyUtils';
+import { appointmentService, staffService } from '@/services';
 
 describe('/api/appointments/[id]/bulk-copy', () => {
   const mockAppointment = {
@@ -71,7 +71,7 @@ describe('/api/appointments/[id]/bulk-copy', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    
+
     // Default mocks
     (appointmentService.getAppointment as jest.Mock).mockResolvedValue(mockAppointment);
     (staffService.getStaff as jest.Mock).mockResolvedValue(mockStaff);

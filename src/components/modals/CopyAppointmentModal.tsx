@@ -2,10 +2,10 @@
 
 import { AppointmentForm } from '@/components/forms';
 import { ErrorMessage, LoadingOverlay } from '@/components/ui';
+import { formatBulkCopyPattern, generateBulkCopyDates, getDefaultBulkCopyConfig, validateBulkCopyConfig } from '@/lib/bulkCopyUtils';
 import type { Appointment, AppointmentStaffWithDetails, Patient, Staff } from '@/types';
-import type { BulkCopyConfig, BulkCopyResult, BulkCopyProgress } from '@/types/bulkCopy';
-import { generateBulkCopyDates, validateBulkCopyConfig, getDefaultBulkCopyConfig, formatBulkCopyPattern } from '@/lib/bulkCopyUtils';
-import { UserMinus, UserPlus, Users, X, Copy, Calendar, Settings } from 'lucide-react';
+import type { BulkCopyConfig, BulkCopyProgress, BulkCopyResult } from '@/types/bulkCopy';
+import { Calendar, Copy, Settings, UserMinus, UserPlus, Users, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 interface CopyAppointmentModalProps {
@@ -41,7 +41,7 @@ export function CopyAppointmentModal({
   const [sourceStaffAssignments, setSourceStaffAssignments] = useState<AppointmentStaffWithDetails[]>([]);
   const [isLoadingStaffAssignments, setIsLoadingStaffAssignments] = useState(false);
   const [showStaffReassignment, setShowStaffReassignment] = useState(false);
-  
+
   // Bulk copy state
   const [copyMode, setCopyMode] = useState<'single' | 'bulk'>('single');
   const [bulkConfig, setBulkConfig] = useState<BulkCopyConfig>(getDefaultBulkCopyConfig());
@@ -154,7 +154,7 @@ export function CopyAppointmentModal({
     try {
       // Generate dates to show progress
       const targetDates = generateBulkCopyDates(bulkConfig);
-      
+
       setBulkProgress({
         current: 0,
         total: targetDates.length,
@@ -562,7 +562,7 @@ export function CopyAppointmentModal({
                 <Settings className="w-5 h-5 mr-2" />
                 Bulk Copy Configuration
               </h3>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Pattern Selection */}
                 <div>
