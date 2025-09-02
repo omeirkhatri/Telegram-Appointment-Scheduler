@@ -43,13 +43,7 @@
 - [x] 5.3 Duration resize (with min/max by type) (✅ Added appointment type-specific duration constraints with validation)
 - [x] 5.4 Color coding by appointment type (✅ Centralized color system with consistent mapping across components)
 - [x] 5.5 Filters: staff, type, date range, status (✅ Comprehensive filter system with collapsible UI, staff selection, appointment type checkboxes, status filters, and date range picker)
-- [x] 5.6 Context menu on events (Edit, Copy, Cancel, Open in GCal) (✅ Right-click context menu with appointment info header and action buttons)
-- [x] 5.7 Appointment creation modal launcher
-- [x] 5.8 Real-time UI sync after edits
-
-## 6.0 Daily Email System
-- [x] 6.1 SMTP config + secure env
-- [x] 6.2 HTML agenda template (responsive)
+- [x] 5.6 Context menu on events (Edit, Copy, Cancel, Open in GCal) (✅ Right-click context menu with appointment info header and action buttons)y6.2 HTML agenda template (responsive)
 - [x] 6.3 Aggregation by staff (Asia/Dubai, 06:00)
 - [x] 6.4 Job scheduler (cron)
 - [x] 6.5 Delivery logging + retries
@@ -63,7 +57,7 @@
 - [x] 7.3 Conflict check with override option
 - [x] 7.4 Staff reassignment selector
 - [x] 7.5 Bulk copy (patterns: daily/weekly/custom)
-- [ ] 7.6 Copy audit trail
+- [x] 7.6 Copy audit trail
 
 ## 8.0 Testing and Quality Assurance
 - [ ] 8.1 Unit tests for utils

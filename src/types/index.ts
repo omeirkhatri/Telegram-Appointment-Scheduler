@@ -27,6 +27,8 @@ export * from './email';
 export * from './job';
 // Export bulk copy types from dedicated file
 export * from './bulkCopy';
+// Export audit trail types from dedicated file
+export * from './auditTrail';
 
 
 // Form types

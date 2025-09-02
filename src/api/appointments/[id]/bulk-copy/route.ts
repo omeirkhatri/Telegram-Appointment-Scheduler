@@ -1,6 +1,6 @@
 import { checkCopyConflicts } from '@/lib/copyConflictResolution';
 import { validateAppointmentData } from '@/lib/validations/appointment';
-import { appointmentService, staffService } from '@/services';
+import { appointmentService, staffService, auditTrailService } from '@/services';
 import type { CreateAppointment, StaffAssignment } from '@/types';
 import type { BulkCopyRequest, BulkCopyResult } from '@/types/bulkCopy';
 import { generateBulkCopyDates, validateBulkCopyConfig } from '@/lib/bulkCopyUtils';
@@ -12,6 +12,8 @@ export async function POST(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  let auditTrailId: string | null = null;
+  
   try {
     const appointmentId = params.id;
     const body: BulkCopyRequest = await request.json();
@@ -40,6 +42,19 @@ export async function POST(
         { status: 404 }
       );
     }
+
+    // Start audit trail logging
+    auditTrailId = await auditTrailService.logCopyOperationStart('bulk_copy', appointmentId, {
+      user_id: body.user_id,
+      copy_config: body.config,
+      staff_assignments: body.staffAssignments,
+      override_conflicts: body.overrideConflicts,
+      metadata: {
+        user_agent: request.headers.get('user-agent'),
+        ip_address: request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip'),
+      },
+      notes: body.notes,
+    });
 
     // Generate dates for bulk copy
     const targetDates = generateBulkCopyDates(body.config);
@@ -164,21 +179,60 @@ export async function POST(
     // Determine overall success
     result.success = result.totalCreated > 0;
 
+    // Log bulk copy operation completion
+    if (auditTrailId) {
+      await auditTrailService.logCopyOperationComplete(auditTrailId, {
+        total_requested: result.totalRequested,
+        total_created: result.totalCreated,
+        total_conflicts: result.totalConflicts,
+        total_errors: result.totalErrors,
+        created_appointment_ids: result.createdAppointments.map(apt => apt.id),
+        conflict_details: result.conflicts,
+        error_details: result.errors,
+      });
+    }
+
     // Return appropriate status code
     const statusCode = result.success ? 200 : 400;
 
     return NextResponse.json({
       success: result.success,
-      data: result,
+      data: {
+        ...result,
+        audit_trail_id: auditTrailId,
+      },
       message: `Bulk copy completed: ${result.totalCreated}/${result.totalRequested} appointments created`
     }, { status: statusCode });
 
   } catch (error) {
     console.error('Bulk copy error:', error);
+    
+    // Log failed bulk copy operation
+    if (auditTrailId) {
+      try {
+        await auditTrailService.logCopyOperationComplete(auditTrailId, {
+          total_requested: 0,
+          total_created: 0,
+          total_conflicts: 0,
+          total_errors: 1,
+          created_appointment_ids: [],
+          conflict_details: [],
+          error_details: [{
+            date: 'unknown',
+            error: error instanceof Error ? error.message : 'Unknown error',
+          }],
+          notes: 'Bulk copy operation failed with exception',
+        });
+      } catch (auditError) {
+        console.error('Error logging audit trail:', auditError);
+      }
+    }
+
     return NextResponse.json(
       {
         success: false,
-        error: error instanceof Error ? error.message : 'Failed to perform bulk copy'
+        error: error instanceof Error ? error.message : 'Failed to perform bulk copy',
+        audit_trail_id: auditTrailId,
       },
       { status: 500 }
     );

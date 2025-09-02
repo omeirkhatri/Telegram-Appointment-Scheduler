@@ -1,6 +1,7 @@
 export { default as apiService } from './api';
 export { default as appointmentService } from './appointmentService';
 export { default as appointmentStaffService } from './appointmentStaffService';
+export { auditTrailService } from './auditTrailService';
 export { emailDeliveryService } from './emailDeliveryService';
 export { emailService } from './emailService';
 export { default as googleCalendarService } from './googleCalendarService';

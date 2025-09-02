@@ -1,0 +1,1 @@
+export { AppointmentAuditTrail } from './AppointmentAuditTrail';

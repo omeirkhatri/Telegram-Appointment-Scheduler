@@ -2,10 +2,11 @@
 
 import { AppointmentForm } from '@/components/forms';
 import { ErrorMessage, LoadingOverlay } from '@/components/ui';
+import { AppointmentAuditTrail } from '@/components/audit';
 import { formatBulkCopyPattern, generateBulkCopyDates, getDefaultBulkCopyConfig, validateBulkCopyConfig } from '@/lib/bulkCopyUtils';
 import type { Appointment, AppointmentStaffWithDetails, Patient, Staff } from '@/types';
 import type { BulkCopyConfig, BulkCopyProgress, BulkCopyResult } from '@/types/bulkCopy';
-import { Calendar, Copy, Settings, UserMinus, UserPlus, Users, X } from 'lucide-react';
+import { Calendar, Copy, Settings, UserMinus, UserPlus, Users, X, FileText } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 interface CopyAppointmentModalProps {
@@ -48,6 +49,9 @@ export function CopyAppointmentModal({
   const [bulkProgress, setBulkProgress] = useState<BulkCopyProgress | null>(null);
   const [bulkResult, setBulkResult] = useState<BulkCopyResult | null>(null);
   const [showBulkConfig, setShowBulkConfig] = useState(false);
+  
+  // Audit trail state
+  const [showAuditTrail, setShowAuditTrail] = useState(false);
 
   // Fetch source appointment staff assignments when modal opens
   useEffect(() => {
@@ -263,12 +267,21 @@ export function CopyAppointmentModal({
               <span className="font-medium">Source:</span> {sourceAppointment.appointment_type.replace('_', ' ')} on {sourceAppointment.appointment_date}
             </div>
           </div>
-          <button
-            onClick={handleCancel}
-            className="p-2 text-[--muted-foreground] hover:text-[--foreground] hover:bg-[--accent] rounded-lg transition-colors"
-          >
-            <X className="w-5 h-5" />
-          </button>
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={() => setShowAuditTrail(true)}
+              className="p-2 text-[--muted-foreground] hover:text-[--foreground] hover:bg-[--accent] rounded-lg transition-colors"
+              title="View Copy History"
+            >
+              <FileText className="w-5 h-5" />
+            </button>
+            <button
+              onClick={handleCancel}
+              className="p-2 text-[--muted-foreground] hover:text-[--foreground] hover:bg-[--accent] rounded-lg transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
         {/* Copy Mode Selection */}
@@ -738,6 +751,13 @@ export function CopyAppointmentModal({
           )}
         </div>
       </div>
+
+      {/* Audit Trail Modal */}
+      <AppointmentAuditTrail
+        appointmentId={sourceAppointment.id}
+        isOpen={showAuditTrail}
+        onClose={() => setShowAuditTrail(false)}
+      />
     </div>
   );
 }

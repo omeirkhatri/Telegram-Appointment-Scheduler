@@ -1,6 +1,6 @@
 import { checkCopyConflicts } from '@/lib/copyConflictResolution';
 import { validateAppointmentData } from '@/lib/validations/appointment';
-import { appointmentService, staffService } from '@/services';
+import { appointmentService, staffService, auditTrailService } from '@/services';
 import type { CreateAppointment, StaffAssignment } from '@/types';
 import { deepClone } from '@/utils/deepClone';
 import { NextRequest, NextResponse } from 'next/server';
@@ -10,6 +10,8 @@ export async function POST(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  let auditTrailId: string | null = null;
+  
   try {
     const appointmentId = params.id;
     const body = await request.json();
@@ -25,6 +27,18 @@ export async function POST(
         { status: 404 }
       );
     }
+
+    // Start audit trail logging
+    auditTrailId = await auditTrailService.logCopyOperationStart('single_copy', appointmentId, {
+      user_id: body.user_id,
+      staff_assignments: body.staff_assignments,
+      override_conflicts: body.overrideConflicts,
+      metadata: {
+        user_agent: request.headers.get('user-agent'),
+        ip_address: request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip'),
+      },
+      notes: body.notes,
+    });
 
     // Use deep clone utility for JSONB fields
 
@@ -129,22 +143,59 @@ export async function POST(
       }
     }
 
+    // Log successful copy operation
+    if (auditTrailId) {
+      await auditTrailService.logCopyOperationComplete(auditTrailId, {
+        total_requested: 1,
+        total_created: 1,
+        total_conflicts: 0,
+        total_errors: 0,
+        created_appointment_ids: [newAppointment.id],
+        conflict_details: [],
+        error_details: [],
+      });
+    }
+
     return NextResponse.json({
       success: true,
       data: {
         appointment: newAppointment,
-        assignedStaff
+        assignedStaff,
+        audit_trail_id: auditTrailId,
       },
       message: 'Appointment copied successfully'
     });
 
   } catch (error) {
     console.error('Error copying appointment:', error);
+    
+    // Log failed copy operation
+    if (auditTrailId) {
+      try {
+        await auditTrailService.logCopyOperationComplete(auditTrailId, {
+          total_requested: 1,
+          total_created: 0,
+          total_conflicts: 0,
+          total_errors: 1,
+          created_appointment_ids: [],
+          conflict_details: [],
+          error_details: [{
+            date: body.appointment_date || 'unknown',
+            error: error instanceof Error ? error.message : 'Unknown error',
+          }],
+          notes: 'Copy operation failed',
+        });
+      } catch (auditError) {
+        console.error('Error logging audit trail:', auditError);
+      }
+    }
+
     return NextResponse.json(
       {
         success: false,
         error: 'Failed to copy appointment',
-        details: error instanceof Error ? error.message : 'Unknown error'
+        details: error instanceof Error ? error.message : 'Unknown error',
+        audit_trail_id: auditTrailId,
       },
       { status: 500 }
     );
