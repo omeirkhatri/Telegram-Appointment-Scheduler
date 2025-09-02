@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
 import { useStaff } from '@/hooks/useStaff';
-import { Mail, Send, User, Calendar, AlertCircle, CheckCircle, Loader2 } from 'lucide-react';
+import { AlertCircle, Calendar, CheckCircle, Loader2, Mail, Send, User } from 'lucide-react';
+import { useEffect, useState } from 'react';
 
 interface EmailTestSectionProps {
   className?: string;
@@ -28,9 +28,9 @@ export function EmailTestSection({ className = '' }: EmailTestSectionProps) {
   });
 
   // Filter staff to only those with email notifications enabled
-  const eligibleStaff = staff.filter(member => 
-    member.email_notifications_enabled && 
-    member.email && 
+  const eligibleStaff = staff.filter(member =>
+    member.email_notifications_enabled &&
+    member.email &&
     member.email.trim() !== ''
   );
 
@@ -218,7 +218,7 @@ export function EmailTestSection({ className = '' }: EmailTestSectionProps) {
             <Calendar className="w-4 h-4" />
             <span>Preview Agenda</span>
           </button>
-          
+
           <button
             onClick={handleSendTestAgenda}
             disabled={!selectedStaffId || isLoading}
@@ -236,8 +236,8 @@ export function EmailTestSection({ className = '' }: EmailTestSectionProps) {
         {/* Test Result */}
         {testResult && (
           <div className={`p-4 rounded-lg border ${
-            testResult.success 
-              ? 'bg-[--success]/10 border-[--success]/20 text-[--success]' 
+            testResult.success
+              ? 'bg-[--success]/10 border-[--success]/20 text-[--success]'
               : 'bg-[--destructive]/10 border-[--destructive]/20 text-[--destructive]'
           }`}>
             <div className="flex items-center space-x-2">
@@ -275,7 +275,7 @@ export function EmailTestSection({ className = '' }: EmailTestSectionProps) {
               </div>
               <div className="p-6 overflow-y-auto max-h-[60vh]">
                 <div className="prose prose-sm max-w-none">
-                  <div 
+                  <div
                     className="text-[--foreground]"
                     dangerouslySetInnerHTML={{ __html: previewData.agenda?.html || 'No agenda content available' }}
                   />

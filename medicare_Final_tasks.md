@@ -54,7 +54,7 @@
 - [x] 6.4 Job scheduler (cron)
 - [x] 6.5 Delivery logging + retries
 - [x] 6.6 "Send test agenda" button
-- [ ] 6.7 Staff preference management
+- [x] 6.7 Staff preference management
 - [ ] 6.8 Automated generation + sending
 
 ## 7.0 Copy Appointment Feature

@@ -1,7 +1,7 @@
 'use client';
 
 import Header from '@/components/layout/Header';
-import { EmailTestSection } from '@/components/email';
+import { EmailTestSection, StaffPreferencesSection } from '@/components/email';
 import {
     Bell,
     Database,
@@ -169,6 +169,9 @@ export default function SettingsPage() {
 
             {/* Email Testing Section */}
             <EmailTestSection />
+
+            {/* Staff Preferences Section */}
+            <StaffPreferencesSection />
           </div>
 
           {/* Quick Actions & System Info */}
