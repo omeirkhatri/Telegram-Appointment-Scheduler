@@ -5,7 +5,7 @@ import { NextRequest, NextResponse } from 'next/server';
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    
+
     const startDate = searchParams.get('start_date');
     const endDate = searchParams.get('end_date');
     const operationType = searchParams.get('operation_type') as 'single_copy' | 'bulk_copy' | null;
@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
     // Validate date format
     const startDateObj = new Date(startDate);
     const endDateObj = new Date(endDate);
-    
+
     if (isNaN(startDateObj.getTime()) || isNaN(endDateObj.getTime())) {
       return NextResponse.json(
         {

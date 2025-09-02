@@ -24,34 +24,34 @@ CREATE TABLE appointment_copy_audit_trail (
     source_appointment_id UUID NOT NULL REFERENCES appointments(id) ON DELETE CASCADE,
     user_id TEXT, -- User who performed the operation (admin identifier)
     operation_status copy_operation_status_enum DEFAULT 'pending',
-    
+
     -- Operation configuration
     copy_config JSONB DEFAULT '{}', -- For bulk copy: pattern, interval, occurrences, etc.
     staff_assignments JSONB DEFAULT '[]', -- Staff assignments for the copy operation
     override_conflicts BOOLEAN DEFAULT FALSE,
-    
+
     -- Results tracking
     total_requested INTEGER DEFAULT 0,
     total_created INTEGER DEFAULT 0,
     total_conflicts INTEGER DEFAULT 0,
     total_errors INTEGER DEFAULT 0,
-    
+
     -- Target appointments created
     created_appointment_ids JSONB DEFAULT '[]', -- Array of created appointment IDs
-    
+
     -- Conflict and error details
     conflict_details JSONB DEFAULT '[]', -- Array of conflict information
     error_details JSONB DEFAULT '[]', -- Array of error information
-    
+
     -- Timestamps
     started_at TIMESTAMPTZ DEFAULT NOW(),
     completed_at TIMESTAMPTZ,
     duration_ms INTEGER, -- Operation duration in milliseconds
-    
+
     -- Additional metadata
     metadata JSONB DEFAULT '{}', -- Additional operation metadata
     notes TEXT, -- User notes or system notes about the operation
-    
+
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -63,20 +63,20 @@ CREATE TABLE appointment_copy_audit_details (
     target_appointment_id UUID REFERENCES appointments(id) ON DELETE SET NULL,
     target_date DATE NOT NULL,
     target_time TIME NOT NULL,
-    
+
     -- Copy operation details
     operation_status copy_operation_status_enum DEFAULT 'pending',
     conflict_detected BOOLEAN DEFAULT FALSE,
     error_occurred BOOLEAN DEFAULT FALSE,
-    
+
     -- Details
     conflict_reason TEXT,
     error_message TEXT,
     error_code TEXT,
-    
+
     -- Staff assignment details
     assigned_staff JSONB DEFAULT '[]', -- Staff assigned to this specific copy
-    
+
     -- Timestamps
     processed_at TIMESTAMPTZ DEFAULT NOW(),
     created_at TIMESTAMPTZ DEFAULT NOW()
@@ -146,16 +146,16 @@ RETURNS TRIGGER AS $$
 BEGIN
     -- Update statistics for the date and operation type
     INSERT INTO appointment_copy_statistics (
-        date, 
-        operation_type, 
-        total_operations, 
-        successful_operations, 
-        failed_operations, 
+        date,
+        operation_type,
+        total_operations,
+        successful_operations,
+        failed_operations,
         partially_completed_operations,
-        total_appointments_created, 
-        total_conflicts, 
-        total_errors, 
-        average_operation_duration_ms, 
+        total_appointments_created,
+        total_conflicts,
+        total_errors,
+        average_operation_duration_ms,
         success_rate
     )
     SELECT

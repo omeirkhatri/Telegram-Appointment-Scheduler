@@ -1,12 +1,12 @@
 'use client';
 
+import { AppointmentAuditTrail } from '@/components/audit';
 import { AppointmentForm } from '@/components/forms';
 import { ErrorMessage, LoadingOverlay } from '@/components/ui';
-import { AppointmentAuditTrail } from '@/components/audit';
 import { formatBulkCopyPattern, generateBulkCopyDates, getDefaultBulkCopyConfig, validateBulkCopyConfig } from '@/lib/bulkCopyUtils';
 import type { Appointment, AppointmentStaffWithDetails, Patient, Staff } from '@/types';
 import type { BulkCopyConfig, BulkCopyProgress, BulkCopyResult } from '@/types/bulkCopy';
-import { Calendar, Copy, Settings, UserMinus, UserPlus, Users, X, FileText } from 'lucide-react';
+import { Calendar, Copy, FileText, Settings, UserMinus, UserPlus, Users, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 interface CopyAppointmentModalProps {
@@ -49,7 +49,7 @@ export function CopyAppointmentModal({
   const [bulkProgress, setBulkProgress] = useState<BulkCopyProgress | null>(null);
   const [bulkResult, setBulkResult] = useState<BulkCopyResult | null>(null);
   const [showBulkConfig, setShowBulkConfig] = useState(false);
-  
+
   // Audit trail state
   const [showAuditTrail, setShowAuditTrail] = useState(false);
 

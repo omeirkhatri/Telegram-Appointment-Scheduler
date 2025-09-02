@@ -1,17 +1,17 @@
 import { supabase } from '@/lib/supabase';
 import type {
-  AppointmentCopyAuditTrail,
-  AppointmentCopyAuditDetail,
-  AppointmentCopyStatistics,
-  CreateAuditTrailRequest,
-  UpdateAuditTrailRequest,
-  CreateAuditDetailRequest,
-  GetAuditTrailRequest,
-  GetAuditTrailResponse,
-  GetAuditStatisticsRequest,
-  GetAuditStatisticsResponse,
-  AuditTrailOperationResult,
-  IAuditTrailService,
+    AppointmentCopyAuditDetail,
+    AppointmentCopyAuditTrail,
+    AppointmentCopyStatistics,
+    AuditTrailOperationResult,
+    CreateAuditDetailRequest,
+    CreateAuditTrailRequest,
+    GetAuditStatisticsRequest,
+    GetAuditStatisticsResponse,
+    GetAuditTrailRequest,
+    GetAuditTrailResponse,
+    IAuditTrailService,
+    UpdateAuditTrailRequest,
 } from '@/types/auditTrail';
 
 export class AuditTrailService implements IAuditTrailService {
@@ -390,7 +390,7 @@ export class AuditTrailService implements IAuditTrailService {
     }
   ): Promise<string> {
     const operationId = this.generateOperationId();
-    
+
     const result = await this.createAuditTrail({
       operation_id: operationId,
       operation_type: operationType,
@@ -433,7 +433,7 @@ export class AuditTrailService implements IAuditTrailService {
     }
   ): Promise<void> {
     const completedAt = new Date().toISOString();
-    
+
     // Get the audit trail to calculate duration
     const auditTrail = await this.getAuditTrailById(auditTrailId);
     const durationMs = auditTrail ? this.calculateDuration(auditTrail.started_at, completedAt) : 0;

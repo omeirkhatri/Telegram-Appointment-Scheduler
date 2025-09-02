@@ -11,7 +11,7 @@ export interface AppointmentCopyAuditTrail {
   source_appointment_id: string;
   user_id?: string;
   operation_status: CopyOperationStatus;
-  
+
   // Operation configuration
   copy_config: Record<string, any>;
   staff_assignments: Array<{
@@ -20,16 +20,16 @@ export interface AppointmentCopyAuditTrail {
     is_primary: boolean;
   }>;
   override_conflicts: boolean;
-  
+
   // Results tracking
   total_requested: number;
   total_created: number;
   total_conflicts: number;
   total_errors: number;
-  
+
   // Target appointments created
   created_appointment_ids: string[];
-  
+
   // Conflict and error details
   conflict_details: Array<{
     date: string;
@@ -39,16 +39,16 @@ export interface AppointmentCopyAuditTrail {
     date: string;
     error: string;
   }>;
-  
+
   // Timestamps
   started_at: string;
   completed_at?: string;
   duration_ms?: number;
-  
+
   // Additional metadata
   metadata: Record<string, any>;
   notes?: string;
-  
+
   created_at: string;
   updated_at: string;
 }
@@ -60,24 +60,24 @@ export interface AppointmentCopyAuditDetail {
   target_appointment_id?: string;
   target_date: string;
   target_time: string;
-  
+
   // Copy operation details
   operation_status: CopyOperationStatus;
   conflict_detected: boolean;
   error_occurred: boolean;
-  
+
   // Details
   conflict_reason?: string;
   error_message?: string;
   error_code?: string;
-  
+
   // Staff assignment details
   assigned_staff: Array<{
     staff_id: string;
     role: string;
     is_primary: boolean;
   }>;
-  
+
   // Timestamps
   processed_at: string;
   created_at: string;
@@ -208,22 +208,22 @@ export interface AuditTrailOperationResult {
 export interface IAuditTrailService {
   // Create audit trail record
   createAuditTrail(request: CreateAuditTrailRequest): Promise<AuditTrailOperationResult>;
-  
+
   // Update audit trail record
   updateAuditTrail(audit_trail_id: string, request: UpdateAuditTrailRequest): Promise<AuditTrailOperationResult>;
-  
+
   // Create audit detail record
   createAuditDetail(request: CreateAuditDetailRequest): Promise<AuditTrailOperationResult>;
-  
+
   // Get audit trail for an appointment
   getAuditTrail(request: GetAuditTrailRequest): Promise<GetAuditTrailResponse>;
-  
+
   // Get audit statistics
   getAuditStatistics(request: GetAuditStatisticsRequest): Promise<GetAuditStatisticsResponse>;
-  
+
   // Get audit trail by ID
   getAuditTrailById(audit_trail_id: string): Promise<AppointmentCopyAuditTrail | null>;
-  
+
   // Get audit details for an audit trail
   getAuditDetails(audit_trail_id: string): Promise<AppointmentCopyAuditDetail[]>;
 }

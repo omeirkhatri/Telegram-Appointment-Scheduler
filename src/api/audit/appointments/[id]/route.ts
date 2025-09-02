@@ -9,7 +9,7 @@ export async function GET(
   try {
     const appointmentId = params.id;
     const { searchParams } = new URL(request.url);
-    
+
     const limit = parseInt(searchParams.get('limit') || '50');
     const offset = parseInt(searchParams.get('offset') || '0');
 

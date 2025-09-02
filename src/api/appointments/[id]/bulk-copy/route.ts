@@ -1,9 +1,9 @@
+import { generateBulkCopyDates, validateBulkCopyConfig } from '@/lib/bulkCopyUtils';
 import { checkCopyConflicts } from '@/lib/copyConflictResolution';
 import { validateAppointmentData } from '@/lib/validations/appointment';
-import { appointmentService, staffService, auditTrailService } from '@/services';
+import { appointmentService, auditTrailService, staffService } from '@/services';
 import type { CreateAppointment, StaffAssignment } from '@/types';
 import type { BulkCopyRequest, BulkCopyResult } from '@/types/bulkCopy';
-import { generateBulkCopyDates, validateBulkCopyConfig } from '@/lib/bulkCopyUtils';
 import { deepClone } from '@/utils/deepClone';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -13,7 +13,7 @@ export async function POST(
   { params }: { params: { id: string } }
 ) {
   let auditTrailId: string | null = null;
-  
+
   try {
     const appointmentId = params.id;
     const body: BulkCopyRequest = await request.json();
@@ -206,7 +206,7 @@ export async function POST(
 
   } catch (error) {
     console.error('Bulk copy error:', error);
-    
+
     // Log failed bulk copy operation
     if (auditTrailId) {
       try {

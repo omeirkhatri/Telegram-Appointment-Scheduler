@@ -2,7 +2,7 @@
 
 import { ErrorMessage, LoadingOverlay } from '@/components/ui';
 import type { AppointmentCopyAuditTrail } from '@/types/auditTrail';
-import { Calendar, Clock, Copy, FileText, Users, X, AlertTriangle, CheckCircle, XCircle } from 'lucide-react';
+import { AlertTriangle, CheckCircle, Clock, FileText, X, XCircle } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 interface AppointmentAuditTrailProps {
@@ -188,7 +188,7 @@ export function AppointmentAuditTrail({
                   <div className="text-sm text-[--muted-foreground] mb-4">
                     Showing {auditTrail.audit_trail.length} of {auditTrail.total_count} operations
                   </div>
-                  
+
                   {auditTrail.audit_trail.map((item) => (
                     <div
                       key={item.id}

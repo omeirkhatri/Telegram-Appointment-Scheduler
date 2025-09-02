@@ -1,5 +1,5 @@
+import type { CreateAuditDetailRequest, CreateAuditTrailRequest, UpdateAuditTrailRequest } from '@/types/auditTrail';
 import { AuditTrailService } from './auditTrailService';
-import type { CreateAuditTrailRequest, UpdateAuditTrailRequest, CreateAuditDetailRequest } from '@/types/auditTrail';
 
 // Mock Supabase
 jest.mock('@/lib/supabase', () => ({
@@ -54,7 +54,7 @@ describe('AuditTrailService', () => {
       };
 
       const mockResponse = { id: 'audit-trail-1' };
-      
+
       // Mock the Supabase chain
       const mockSingle = jest.fn().mockResolvedValue({ data: mockResponse, error: null });
       const mockSelect = jest.fn().mockReturnValue({ single: mockSingle });
@@ -281,8 +281,8 @@ describe('AuditTrailService', () => {
 
       const { supabase } = require('@/lib/supabase');
       supabase.from
-        .mockReturnValueOnce({ 
-          select: jest.fn().mockReturnValue({ 
+        .mockReturnValueOnce({
+          select: jest.fn().mockReturnValue({
             eq: jest.fn().mockReturnValue({ single: mockSingle })
           })
         }) // For getAuditTrailById
