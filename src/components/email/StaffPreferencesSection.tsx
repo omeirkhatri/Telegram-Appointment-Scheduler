@@ -1,19 +1,18 @@
 'use client';
 
-import { useState, useEffect } from 'react';
 import { useStaff } from '@/hooks/useStaff';
-import { 
-  AlertCircle, 
-  CheckCircle, 
-  Loader2, 
-  Mail, 
-  Settings, 
-  Users,
-  Clock,
-  Globe,
-  Save,
-  RefreshCw
+import {
+    AlertCircle,
+    CheckCircle,
+    Clock,
+    Loader2,
+    Mail,
+    RefreshCw,
+    Save,
+    Settings,
+    Users
 } from 'lucide-react';
+import { useEffect, useState } from 'react';
 
 interface StaffPreferencesSectionProps {
   className?: string;
@@ -203,7 +202,7 @@ export function StaffPreferencesSection({ className = '' }: StaffPreferencesSect
       setSelectedStaffIds([]);
       setBulkUpdate({});
       setShowBulkUpdate(false);
-      
+
       // Refresh staff data
       refreshStaff();
     } catch (error) {
@@ -385,7 +384,7 @@ export function StaffPreferencesSection({ className = '' }: StaffPreferencesSect
         {showBulkUpdate && (
           <div className="bg-[--muted] border border-[--border] rounded-lg p-4 space-y-4">
             <h4 className="text-md font-semibold text-[--foreground]">Bulk Update Preferences</h4>
-            
+
             {/* Staff Selection for Bulk Update */}
             <div>
               <label className="block text-sm font-medium text-[--foreground] mb-2">
@@ -519,8 +518,8 @@ export function StaffPreferencesSection({ className = '' }: StaffPreferencesSect
         {/* Result Message */}
         {result && (
           <div className={`p-4 rounded-lg border ${
-            result.success 
-              ? 'bg-[--success]/10 border-[--success]/20 text-[--success]' 
+            result.success
+              ? 'bg-[--success]/10 border-[--success]/20 text-[--success]'
               : 'bg-[--destructive]/10 border-[--destructive]/20 text-[--destructive]'
           }`}>
             <div className="flex items-center space-x-2">
