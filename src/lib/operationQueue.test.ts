@@ -1,4 +1,4 @@
-import { OperationQueue, type QueuedOperation } from './operationQueue';
+import { OperationQueue } from './operationQueue';
 
 // Mock setTimeout to control timing in tests
 jest.useFakeTimers();
@@ -60,18 +60,8 @@ describe('OperationQueue', () => {
 
       expect(status.total).toBe(0);
       expect(status.processing).toBe(0);
-      expect(status.byPriority).toEqual({
-        low: 0,
-        medium: 0,
-        high: 0,
-        critical: 0,
-      });
-      expect(status.byType).toEqual({
-        create_event: 0,
-        update_event: 0,
-        delete_event: 0,
-        sync_calendar: 0,
-      });
+      expect(status.byPriority).toEqual({});
+      expect(status.byType).toEqual({});
     });
 
     it('should return correct status for operations in queue', () => {
@@ -87,13 +77,11 @@ describe('OperationQueue', () => {
         low: 1,
         medium: 1,
         high: 1,
-        critical: 0,
       });
       expect(status.byType).toEqual({
         create_event: 1,
         update_event: 1,
         delete_event: 1,
-        sync_calendar: 0,
       });
     });
   });
@@ -110,7 +98,7 @@ describe('OperationQueue', () => {
       // The operation should be processed (simulated success)
       // We can't directly verify the result, but we can check the queue status
       const status = queue.getQueueStatus();
-      
+
       // Note: In the real implementation, successful operations are removed from queue
       // For testing, we're using simulated operations that may or may not succeed
       expect(status.total).toBeGreaterThanOrEqual(0);

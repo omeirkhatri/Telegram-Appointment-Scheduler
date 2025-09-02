@@ -1,9 +1,9 @@
-import { NextRequest, NextResponse } from 'next/server';
 import { appointmentService } from '@/services/appointmentService';
 import { appointmentStaffService } from '@/services/appointmentStaffService';
-import { staffService } from '@/services/staffService';
 import { googleCalendarService } from '@/services/googleCalendarService';
-import type { UpdateAppointment, StaffAssignment } from '@/types';
+import { staffService } from '@/services/staffService';
+import type { StaffAssignment, UpdateAppointment } from '@/types';
+import { NextRequest, NextResponse } from 'next/server';
 
 // GET /api/appointments/[id] - Get a single appointment by ID with staff assignments
 export async function GET(
@@ -12,12 +12,12 @@ export async function GET(
 ) {
   try {
     const appointment = await appointmentService.getAppointment(params.id);
-    
+
     if (!appointment) {
       return NextResponse.json(
-        { 
-          success: false, 
-          error: 'Appointment not found' 
+        {
+          success: false,
+          error: 'Appointment not found'
         },
         { status: 404 }
       );
@@ -26,8 +26,8 @@ export async function GET(
     // Get staff assignments for this appointment
     const staffAssignments = await appointmentStaffService.getStaffForAppointment(params.id);
 
-    return NextResponse.json({ 
-      success: true, 
+    return NextResponse.json({
+      success: true,
       data: {
         appointment,
         staff_assignments: staffAssignments
@@ -36,9 +36,9 @@ export async function GET(
   } catch (error) {
     console.error('Error fetching appointment:', error);
     return NextResponse.json(
-      { 
-        success: false, 
-        error: error instanceof Error ? error.message : 'Failed to fetch appointment' 
+      {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to fetch appointment'
       },
       { status: 500 }
     );
@@ -52,14 +52,14 @@ export async function PUT(
 ) {
   try {
     const body = await request.json();
-    
+
     // Check if appointment exists
     const existingAppointment = await appointmentService.getAppointment(params.id);
     if (!existingAppointment) {
       return NextResponse.json(
-        { 
-          success: false, 
-          error: 'Appointment not found' 
+        {
+          success: false,
+          error: 'Appointment not found'
         },
         { status: 404 }
       );
@@ -93,10 +93,10 @@ export async function PUT(
     const validationErrors = validateAppointmentUpdateData(updateData);
     if (validationErrors.length > 0) {
       return NextResponse.json(
-        { 
-          success: false, 
-          error: 'Validation failed', 
-          details: validationErrors 
+        {
+          success: false,
+          error: 'Validation failed',
+          details: validationErrors
         },
         { status: 400 }
       );
@@ -116,15 +116,15 @@ export async function PUT(
       // Assign new staff if provided
       if (body.staff_assignments.length > 0) {
         const staffAssignments: StaffAssignment[] = body.staff_assignments;
-        
+
         // Validate staff assignments
         const staffValidationErrors = await validateStaffAssignments(staffAssignments, updatedAppointment);
         if (staffValidationErrors.length > 0) {
           return NextResponse.json(
-            { 
-              success: false, 
-              error: 'Staff assignment validation failed', 
-              details: staffValidationErrors 
+            {
+              success: false,
+              error: 'Staff assignment validation failed',
+              details: staffValidationErrors
             },
             { status: 400 }
           );
@@ -145,8 +145,8 @@ export async function PUT(
     const finalAppointment = await appointmentService.getAppointment(params.id);
     const staffForAppointment = await appointmentStaffService.getStaffForAppointment(params.id);
 
-    return NextResponse.json({ 
-      success: true, 
+    return NextResponse.json({
+      success: true,
       data: {
         appointment: finalAppointment,
         staff_assignments: staffForAppointment
@@ -156,9 +156,9 @@ export async function PUT(
   } catch (error) {
     console.error('Error updating appointment:', error);
     return NextResponse.json(
-      { 
-        success: false, 
-        error: error instanceof Error ? error.message : 'Failed to update appointment' 
+      {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to update appointment'
       },
       { status: 500 }
     );
@@ -175,9 +175,9 @@ export async function DELETE(
     const appointment = await appointmentService.getAppointment(params.id);
     if (!appointment) {
       return NextResponse.json(
-        { 
-          success: false, 
-          error: 'Appointment not found' 
+        {
+          success: false,
+          error: 'Appointment not found'
         },
         { status: 404 }
       );
@@ -192,16 +192,16 @@ export async function DELETE(
     // Delete appointment
     await appointmentService.deleteAppointment(params.id);
 
-    return NextResponse.json({ 
-      success: true, 
-      message: 'Appointment deleted successfully' 
+    return NextResponse.json({
+      success: true,
+      message: 'Appointment deleted successfully'
     });
   } catch (error) {
     console.error('Error deleting appointment:', error);
     return NextResponse.json(
-      { 
-        success: false, 
-        error: error instanceof Error ? error.message : 'Failed to delete appointment' 
+      {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to delete appointment'
       },
       { status: 500 }
     );
@@ -245,7 +245,7 @@ function validateAppointmentUpdateData(data: Partial<UpdateAppointment>): string
 
 // Helper function to validate staff assignments
 async function validateStaffAssignments(
-  staffAssignments: StaffAssignment[], 
+  staffAssignments: StaffAssignment[],
   appointment: any
 ): Promise<string[]> {
   const errors: string[] = [];
@@ -294,7 +294,7 @@ async function validateStaffAssignments(
           getAppointmentEndTime(appointment.start_time, appointment.duration_minutes),
           appointment.appointment_date
         );
-        
+
         if (!isAvailable) {
           errors.push(`Staff member ${staff.first_name} ${staff.last_name} has conflicting appointments`);
         }

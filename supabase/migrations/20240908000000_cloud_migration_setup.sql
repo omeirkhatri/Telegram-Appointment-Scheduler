@@ -36,10 +36,10 @@ BEGIN
         -- Enable enhanced security features
         ALTER SYSTEM SET log_statement = 'all';
         ALTER SYSTEM SET log_min_duration_statement = 1000;
-        
+
         -- Set up connection limits for cloud
         ALTER SYSTEM SET max_connections = 100;
-        
+
         -- Enable SSL in cloud
         ALTER SYSTEM SET ssl = on;
     ELSE
@@ -47,10 +47,10 @@ BEGIN
         -- More permissive settings for development
         ALTER SYSTEM SET log_statement = 'none';
         ALTER SYSTEM SET log_min_duration_statement = -1;
-        
+
         -- Higher connection limits for local development
         ALTER SYSTEM SET max_connections = 200;
-        
+
         -- Disable SSL for local development
         ALTER SYSTEM SET ssl = off;
     END IF;
@@ -181,7 +181,7 @@ BEGIN
         IF check_record.status = 'PASSED' THEN
             passed_count := passed_count + 1;
         END IF;
-        
+
         report := report || check_record.check_name || ': ' || check_record.status || E'\n';
         report := report || '  ' || check_record.message || E'\n';
     END LOOP;
@@ -196,7 +196,7 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- Create a view for easy access to migration status
 CREATE OR REPLACE VIEW migration_status AS
-SELECT 
+SELECT
     check_name,
     status,
     message,
@@ -218,7 +218,7 @@ BEGIN
     -- 2. Recreate them
     -- 3. Re-run all migrations
     -- 4. Re-seed data
-    
+
     RAISE NOTICE 'Database reset function called (development only)';
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;

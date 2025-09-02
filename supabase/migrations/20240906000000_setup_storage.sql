@@ -10,7 +10,7 @@ VALUES (
     10485760, -- 10MB file size limit
     ARRAY[
         'image/jpeg',
-        'image/jpg', 
+        'image/jpg',
         'image/png',
         'image/gif',
         'application/pdf',
@@ -60,15 +60,15 @@ DECLARE
 BEGIN
     -- Extract file extension
     file_extension := LOWER(SUBSTRING(filename FROM '\.([^.]*)$'));
-    
+
     -- Generate secure filename with timestamp and UUID
-    secure_filename := patient_id::TEXT || '_' || 
+    secure_filename := patient_id::TEXT || '_' ||
                       EXTRACT(EPOCH FROM NOW())::TEXT || '_' ||
                       gen_random_uuid()::TEXT || '.' || file_extension;
-    
+
     -- Create file path in the id-documents folder
     file_path := 'id-documents/' || secure_filename;
-    
+
     RETURN file_path;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
@@ -86,29 +86,29 @@ BEGIN
     IF bucket_id != 'patient-documents' THEN
         RETURN false;
     END IF;
-    
+
     -- Check if file is in the correct folder
     IF NOT (file_path LIKE 'id-documents/%') THEN
         RETURN false;
     END IF;
-    
+
     -- Check file size (10MB limit)
     IF file_size > 10485760 THEN
         RETURN false;
     END IF;
-    
+
     -- Check mime type
     IF mime_type NOT IN (
         'image/jpeg',
         'image/jpg',
-        'image/png', 
+        'image/png',
         'image/gif',
         'application/pdf',
         'image/webp'
     ) THEN
         RETURN false;
     END IF;
-    
+
     RETURN true;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
@@ -124,22 +124,22 @@ BEGIN
     IF NEW.bucket_id != 'patient-documents' THEN
         RETURN NEW;
     END IF;
-    
+
     -- Extract patient ID from filename (format: patient_id_timestamp_uuid.extension)
     file_path_parts := string_to_array(NEW.name, '/');
     IF array_length(file_path_parts, 1) >= 2 THEN
         -- Extract patient ID from the filename part
         patient_uuid := (string_to_array(file_path_parts[2], '_'))[1]::UUID;
-        
+
         -- Update patient record with document URL
-        UPDATE patients 
-        SET 
+        UPDATE patients
+        SET
             id_document_url = NEW.id,
             id_document_filename = file_path_parts[2],
             updated_at = NOW()
         WHERE id = patient_uuid;
     END IF;
-    
+
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
@@ -155,10 +155,10 @@ CREATE OR REPLACE FUNCTION cleanup_patient_documents()
 RETURNS TRIGGER AS $$
 BEGIN
     -- Delete all documents associated with the deleted patient
-    DELETE FROM storage.objects 
-    WHERE bucket_id = 'patient-documents' 
+    DELETE FROM storage.objects
+    WHERE bucket_id = 'patient-documents'
     AND name LIKE 'id-documents/' || OLD.id::TEXT || '_%';
-    
+
     RETURN OLD;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;

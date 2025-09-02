@@ -3,7 +3,7 @@
  * Provides persistent retry mechanism for failed operations
  */
 
-import { retryWithBackoff, RETRY_CONFIGS, type RetryResult } from './retryUtils';
+import { RETRY_CONFIGS, retryWithBackoff } from './retryUtils';
 
 export interface QueuedOperation {
   id: string;
@@ -108,7 +108,7 @@ export class OperationQueue {
   private getRetryDelay(operation: QueuedOperation): number {
     const baseDelay = RETRY_CONFIGS.write.baseDelay;
     const multiplier = Math.pow(2, operation.attempts);
-    
+
     // Higher priority operations get shorter delays
     const priorityMultiplier = {
       critical: 0.5,
@@ -167,9 +167,9 @@ export class OperationQueue {
 
     try {
       console.log(`Processing operation ${operationId} (attempt ${operation.attempts}/${operation.maxAttempts})`);
-      
+
       const result = await this.executeOperation(operation);
-      
+
       if (result.success) {
         console.log(`Operation ${operationId} completed successfully`);
         this.removeOperation(operationId);
@@ -227,7 +227,7 @@ export class OperationQueue {
     if (Math.random() < 0.3) { // 30% failure rate for testing
       throw new Error('Simulated API failure');
     }
-    
+
     return { eventId: `event_${Date.now()}` };
   }
 
@@ -238,7 +238,7 @@ export class OperationQueue {
     if (Math.random() < 0.2) { // 20% failure rate for testing
       throw new Error('Simulated update failure');
     }
-    
+
     return { updated: true };
   }
 
@@ -249,7 +249,7 @@ export class OperationQueue {
     if (Math.random() < 0.1) { // 10% failure rate for testing
       throw new Error('Simulated delete failure');
     }
-    
+
     return { deleted: true };
   }
 
@@ -260,7 +260,7 @@ export class OperationQueue {
     if (Math.random() < 0.15) { // 15% failure rate for testing
       throw new Error('Simulated sync failure');
     }
-    
+
     return { synced: true };
   }
 
@@ -269,7 +269,7 @@ export class OperationQueue {
    */
   private removeOperation(operationId: string): void {
     this.queue.delete(operationId);
-    
+
     // Clear timeout
     const timeout = this.retryIntervals.get(operationId);
     if (timeout) {
@@ -285,10 +285,10 @@ export class OperationQueue {
     // Process high priority operations immediately
     setInterval(() => {
       const highPriorityOps = Array.from(this.queue.values())
-        .filter(op => (op.priority === 'high' || op.priority === 'critical') && 
-                     op.nextRetry <= new Date() && 
+        .filter(op => (op.priority === 'high' || op.priority === 'critical') &&
+                     op.nextRetry <= new Date() &&
                      !this.processing.has(op.id));
-      
+
       highPriorityOps.forEach(op => {
         this.processOperation(op.id);
       });
@@ -297,10 +297,10 @@ export class OperationQueue {
     // Process medium/low priority operations less frequently
     setInterval(() => {
       const mediumPriorityOps = Array.from(this.queue.values())
-        .filter(op => op.priority === 'medium' && 
-                     op.nextRetry <= new Date() && 
+        .filter(op => op.priority === 'medium' &&
+                     op.nextRetry <= new Date() &&
                      !this.processing.has(op.id));
-      
+
       mediumPriorityOps.forEach(op => {
         this.processOperation(op.id);
       });
@@ -308,10 +308,10 @@ export class OperationQueue {
 
     setInterval(() => {
       const lowPriorityOps = Array.from(this.queue.values())
-        .filter(op => op.priority === 'low' && 
-                     op.nextRetry <= new Date() && 
+        .filter(op => op.priority === 'low' &&
+                     op.nextRetry <= new Date() &&
                      !this.processing.has(op.id));
-      
+
       lowPriorityOps.forEach(op => {
         this.processOperation(op.id);
       });
@@ -328,7 +328,7 @@ export class OperationQueue {
     byType: Record<QueuedOperation['type'], number>;
   } {
     const operations = Array.from(this.queue.values());
-    
+
     const byPriority = operations.reduce((acc, op) => {
       acc[op.priority] = (acc[op.priority] || 0) + 1;
       return acc;
@@ -353,7 +353,7 @@ export class OperationQueue {
   clear(): void {
     this.queue.clear();
     this.processing.clear();
-    
+
     // Clear all timeouts
     this.retryIntervals.forEach(timeout => clearTimeout(timeout));
     this.retryIntervals.clear();

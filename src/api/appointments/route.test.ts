@@ -1,9 +1,9 @@
-import { NextRequest } from 'next/server';
-import { GET, POST } from './route';
 import { appointmentService } from '@/services/appointmentService';
 import { appointmentStaffService } from '@/services/appointmentStaffService';
-import { staffService } from '@/services/staffService';
 import { googleCalendarService } from '@/services/googleCalendarService';
+import { staffService } from '@/services/staffService';
+import { NextRequest } from 'next/server';
+import { GET, POST } from './route';
 
 // Mock the services
 jest.mock('@/services/appointmentService');

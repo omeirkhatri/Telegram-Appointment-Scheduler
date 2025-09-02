@@ -1,12 +1,11 @@
 import {
-  detectConflicts,
-  resolveConflicts,
-  validateAppointmentForSync,
-  detectDuplicateEvents,
-  getConflictResolutionStrategy,
-  type CalendarEvent,
-  type ConflictInfo,
-  type ConflictResolution,
+    detectConflicts,
+    detectDuplicateEvents,
+    getConflictResolutionStrategy,
+    resolveConflicts,
+    validateAppointmentForSync,
+    type CalendarEvent,
+    type ConflictInfo
 } from './conflictResolution';
 
 describe('conflictResolution', () => {
@@ -62,7 +61,7 @@ describe('conflictResolution', () => {
 
       const conflicts = detectConflicts(mockAppointment, conflictingEvent, mockStaff);
 
-      expect(conflicts).toHaveLength(2); // Time conflict + duration conflict
+      expect(conflicts).toHaveLength(1); // Only time conflict (duration is the same)
       expect(conflicts.some(c => c.type === 'time_conflict')).toBe(true);
     });
 

@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
 import { useAppointments } from '@/hooks';
 import type { AppointmentFilters } from '@/types';
+import React, { useEffect, useState } from 'react';
 
 interface AppointmentSearchFormProps {
   onSearch: (filters: AppointmentFilters) => void;
@@ -109,9 +109,9 @@ function AppointmentSearchForm({ onSearch, onReset, isLoading }: AppointmentSear
           </label>
           <select
             value={filters.has_recurring_rule ? 'true' : filters.has_recurring_rule === false ? 'false' : ''}
-            onChange={(e) => setFilters(prev => ({ 
-              ...prev, 
-              has_recurring_rule: e.target.value === 'true' ? true : e.target.value === 'false' ? false : undefined 
+            onChange={(e) => setFilters(prev => ({
+              ...prev,
+              has_recurring_rule: e.target.value === 'true' ? true : e.target.value === 'false' ? false : undefined
             }))}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
@@ -217,15 +217,16 @@ export function AppointmentSearch({ onAppointmentSelect, showFilters = true, cla
   };
 
   const getAppointmentTypeColor = (type: string) => {
-    const colors: Record<string, string> = {
+    // Use centralized color system
+    const colorMap: Record<string, string> = {
       doctor_on_call: 'bg-blue-100 text-blue-800',
       lab_test: 'bg-green-100 text-green-800',
       teleconsultation: 'bg-purple-100 text-purple-800',
       physiotherapy: 'bg-yellow-100 text-yellow-800',
-      caregiver: 'bg-indigo-100 text-indigo-800',
-      iv_therapy: 'bg-red-100 text-red-800',
+      caregiver: 'bg-red-100 text-red-800',
+      iv_therapy: 'bg-cyan-100 text-cyan-800',
     };
-    return colors[type] || 'bg-gray-100 text-gray-800';
+    return colorMap[type] || 'bg-gray-100 text-gray-800';
   };
 
   const getStatusColor = (status: string) => {
@@ -421,8 +422,8 @@ export function AppointmentSearch({ onAppointmentSelect, showFilters = true, cla
                     <td className="px-6 py-4 whitespace-nowrap">
                       {appointment.transportation_type ? (
                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                          appointment.transportation_type === 'driver' 
-                            ? 'bg-green-100 text-green-800' 
+                          appointment.transportation_type === 'driver'
+                            ? 'bg-green-100 text-green-800'
                             : 'bg-blue-100 text-blue-800'
                         }`}>
                           {appointment.transportation_type.replace('_', ' ')}

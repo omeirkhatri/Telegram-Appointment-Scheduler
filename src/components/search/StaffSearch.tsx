@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
 import { useStaff } from '@/hooks';
 import type { StaffFilters } from '@/types';
+import React, { useEffect, useState } from 'react';
 
 interface StaffSearchFormProps {
   onSearch: (filters: StaffFilters) => void;
@@ -114,9 +114,9 @@ function StaffSearchForm({ onSearch, onReset, isLoading }: StaffSearchFormProps)
           </label>
           <select
             value={filters.has_google_calendar ? 'true' : filters.has_google_calendar === false ? 'false' : ''}
-            onChange={(e) => setFilters(prev => ({ 
-              ...prev, 
-              has_google_calendar: e.target.value === 'true' ? true : e.target.value === 'false' ? false : undefined 
+            onChange={(e) => setFilters(prev => ({
+              ...prev,
+              has_google_calendar: e.target.value === 'true' ? true : e.target.value === 'false' ? false : undefined
             }))}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
@@ -234,8 +234,8 @@ export function StaffSearch({ onStaffSelect, showFilters = true, className = '' 
   };
 
   const getStatusColor = (status: string) => {
-    return status === 'active' 
-      ? 'bg-green-100 text-green-800' 
+    return status === 'active'
+      ? 'bg-green-100 text-green-800'
       : 'bg-red-100 text-red-800';
   };
 

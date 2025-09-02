@@ -1,9 +1,9 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { usePatients } from '@/hooks';
 import { PatientSearchForm } from '@/components/forms';
+import { usePatients } from '@/hooks';
 import type { PatientFilters } from '@/types';
+import { useEffect, useState } from 'react';
 
 interface PatientSearchProps {
   onPatientSelect?: (patient: any) => void;

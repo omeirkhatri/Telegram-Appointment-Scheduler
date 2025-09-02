@@ -1,11 +1,4 @@
 import { z } from 'zod';
-import { 
-  StaffType, 
-  StaffStatus, 
-  AppointmentType, 
-  AppointmentStatus, 
-  TransportationType 
-} from '@/types/supabase';
 
 // Base validation schemas
 export const uuidSchema = z.string().uuid();

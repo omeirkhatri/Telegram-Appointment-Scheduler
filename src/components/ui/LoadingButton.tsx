@@ -22,7 +22,7 @@ const sizeClasses = {
   lg: 'px-6 py-3 text-base',
 };
 
-export function LoadingButton({ 
+export function LoadingButton({
   isLoading = false,
   loadingText,
   children,
@@ -30,10 +30,10 @@ export function LoadingButton({
   size = 'md',
   disabled,
   className = '',
-  ...props 
+  ...props
 }: LoadingButtonProps) {
   const baseClasses = 'inline-flex items-center justify-center font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200';
-  
+
   return (
     <button
       disabled={disabled || isLoading}

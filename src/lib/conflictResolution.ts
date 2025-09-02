@@ -3,8 +3,8 @@
  * Handles conflicts between appointments and Google Calendar events
  */
 
-import type { Appointment } from '@/types/appointment';
 import type { Staff } from '@/types';
+import type { Appointment } from '@/types/appointment';
 
 export interface CalendarEvent {
   id: string;
@@ -64,7 +64,7 @@ export function detectConflicts(
   const eventEnd = new Date(calendarEvent.end.dateTime);
 
   const timeDiff = Math.abs(appointmentStart.getTime() - eventStart.getTime());
-  const durationDiff = Math.abs((appointmentEnd.getTime() - appointmentStart.getTime()) - 
+  const durationDiff = Math.abs((appointmentEnd.getTime() - appointmentStart.getTime()) -
                                (eventEnd.getTime() - eventStart.getTime()));
 
   // Time conflict if start time differs by more than 5 minutes
@@ -112,7 +112,7 @@ export function detectConflicts(
  */
 function getExpectedEventSummary(appointment: Appointment, staff: Staff): string {
   const patientName = appointment.patient_name || 'Unknown Patient';
-  
+
   switch (staff.staff_type) {
     case 'driver':
       return `🚗 Driver Assignment - ${patientName}`;
@@ -196,7 +196,7 @@ export function detectDuplicateEvents(
   const duplicateEvents = events.filter(event => {
     const eventStart = new Date(event.start.dateTime);
     const eventEnd = new Date(event.end.dateTime);
-    
+
     // Check for overlap
     return eventStart < appointmentEnd && eventEnd > appointmentStart;
   });

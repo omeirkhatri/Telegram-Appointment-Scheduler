@@ -38,7 +38,7 @@ describe('StorageService', () => {
     it('should reject invalid file types', () => {
       const invalidFile = new File([''], 'test.txt', { type: 'text/plain' });
       const result = storageService.validateFile(invalidFile);
-      
+
       expect(result.isValid).toBe(false);
       expect(result.error).toContain('Invalid file type');
     });
@@ -46,7 +46,7 @@ describe('StorageService', () => {
     it('should reject files larger than 10MB', () => {
       const largeFile = new File(['x'.repeat(11 * 1024 * 1024)], 'large.jpg', { type: 'image/jpeg' });
       const result = storageService.validateFile(largeFile);
-      
+
       expect(result.isValid).toBe(false);
       expect(result.error).toContain('File size too large');
     });
@@ -54,7 +54,7 @@ describe('StorageService', () => {
     it('should accept files smaller than 10MB', () => {
       const smallFile = new File(['x'.repeat(5 * 1024 * 1024)], 'small.jpg', { type: 'image/jpeg' });
       const result = storageService.validateFile(smallFile);
-      
+
       expect(result.isValid).toBe(true);
       expect(result.error).toBeUndefined();
     });

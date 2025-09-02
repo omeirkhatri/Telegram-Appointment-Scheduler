@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useCallback, useState } from 'react';
 
 interface LoadingState {
   isLoading: boolean;
@@ -33,7 +33,7 @@ export function useLoadingState(): UseLoadingStateReturn {
   }, []);
 
   const withLoading = useCallback(async <T>(
-    asyncFn: () => Promise<T>, 
+    asyncFn: () => Promise<T>,
     message?: string
   ): Promise<T> => {
     startLoading(message);

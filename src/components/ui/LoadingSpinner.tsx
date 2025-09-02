@@ -1,4 +1,3 @@
-import React from 'react';
 
 interface LoadingSpinnerProps {
   size?: 'sm' | 'md' | 'lg' | 'xl';
@@ -20,13 +19,13 @@ const colorClasses = {
   gray: 'border-gray-400',
 };
 
-export function LoadingSpinner({ 
-  size = 'md', 
-  color = 'primary', 
-  className = '' 
+export function LoadingSpinner({
+  size = 'md',
+  color = 'primary',
+  className = ''
 }: LoadingSpinnerProps) {
   return (
-    <div 
+    <div
       className={`animate-spin rounded-full border-2 border-gray-200 border-t-current ${sizeClasses[size]} ${colorClasses[color]} ${className}`}
       role="status"
       aria-label="Loading"

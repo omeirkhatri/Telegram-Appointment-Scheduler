@@ -1,3 +1,4 @@
+import { validateDurationForType } from '@/utils/appointmentTypes';
 import { z } from 'zod';
 
 // Base appointment form validation schema
@@ -6,11 +7,11 @@ export const appointmentFormSchema = z.object({
     .string()
     .min(1, 'Patient is required')
     .uuid('Invalid patient ID'),
-  
+
   appointment_type: z.enum(['doctor_on_call', 'lab_test', 'teleconsultation', 'physiotherapy', 'caregiver', 'iv_therapy'], {
     required_error: 'Appointment type is required',
   }),
-  
+
   appointment_date: z
     .string()
     .min(1, 'Appointment date is required')
@@ -20,34 +21,48 @@ export const appointmentFormSchema = z.object({
       today.setHours(0, 0, 0, 0);
       return appointmentDate >= today;
     }, 'Appointment date must be today or in the future'),
-  
+
   start_time: z
     .string()
     .min(1, 'Start time is required')
     .regex(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/, 'Invalid time format (HH:MM)'),
-  
+
   duration_minutes: z
     .number()
     .min(1, 'Duration must be at least 1 minute')
-    .max(1440, 'Duration cannot exceed 24 hours'),
-  
+    .max(1440, 'Duration cannot exceed 24 hours')
+    .refine((duration, ctx) => {
+      const appointmentType = ctx.parent?.appointment_type;
+      if (appointmentType) {
+        const validation = validateDurationForType(appointmentType, duration);
+        if (!validation.isValid) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: validation.error || 'Invalid duration for appointment type',
+          });
+          return false;
+        }
+      }
+      return true;
+    }),
+
   status: z.enum(['scheduled', 'confirmed', 'completed', 'cancelled']).default('scheduled'),
-  
+
   transportation_type: z.enum(['driver', 'self_transport']).optional(),
-  
+
   transportation_method: z.string().optional(),
-  
+
   driver_id: z.string().uuid('Invalid driver ID').optional(),
-  
+
   notes: z
     .string()
     .max(1000, 'Notes must be less than 1000 characters')
     .optional()
     .or(z.literal('')),
-  
+
   // Custom fields based on appointment type
   custom_fields: z.record(z.unknown()).optional(),
-  
+
   // Recurring rule
   recurring_rule: z.object({
     frequency: z.enum(['daily', 'weekly', 'monthly', 'yearly']),
@@ -58,7 +73,7 @@ export const appointmentFormSchema = z.object({
     day_of_month: z.number().min(1).max(31).optional(),
     month_of_year: z.number().min(1).max(12).optional(),
   }).optional(),
-  
+
   // Staff assignments
   staff_assignments: z.array(z.object({
     staff_id: z.string().uuid('Invalid staff ID'),

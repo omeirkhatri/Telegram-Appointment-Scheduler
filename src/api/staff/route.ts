@@ -1,52 +1,52 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { staffService } from '@/services/staffService';
 import { googleCalendarService } from '@/services/googleCalendarService';
+import { staffService } from '@/services/staffService';
 import type { CreateStaff, StaffFilters } from '@/types';
+import { NextRequest, NextResponse } from 'next/server';
 
 // GET /api/staff - Get all staff with optional filtering
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    
+
     // Parse filters from query parameters
     const filters: StaffFilters = {};
-    
+
     if (searchParams.has('first_name')) {
       filters.first_name = searchParams.get('first_name')!;
     }
-    
+
     if (searchParams.has('last_name')) {
       filters.last_name = searchParams.get('last_name')!;
     }
-    
+
     if (searchParams.has('staff_type')) {
       filters.staff_type = searchParams.get('staff_type') as any;
     }
-    
+
     if (searchParams.has('status')) {
       filters.status = searchParams.get('status') as any;
     }
-    
+
     if (searchParams.has('has_google_calendar')) {
       filters.has_google_calendar = searchParams.get('has_google_calendar') === 'true';
     }
-    
+
     if (searchParams.has('available_on_day')) {
       filters.available_on_day = parseInt(searchParams.get('available_on_day')!);
     }
 
     const staff = await staffService.getStaff(filters);
-    
-    return NextResponse.json({ 
-      success: true, 
-      data: staff 
+
+    return NextResponse.json({
+      success: true,
+      data: staff
     });
   } catch (error) {
     console.error('Error fetching staff:', error);
     return NextResponse.json(
-      { 
-        success: false, 
-        error: error instanceof Error ? error.message : 'Failed to fetch staff' 
+      {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to fetch staff'
       },
       { status: 500 }
     );
@@ -57,7 +57,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    
+
     // Extract staff data
     const staffData: CreateStaff = {
       first_name: body.first_name,
@@ -78,10 +78,10 @@ export async function POST(request: NextRequest) {
     const validationErrors = validateStaffData(staffData);
     if (validationErrors.length > 0) {
       return NextResponse.json(
-        { 
-          success: false, 
-          error: 'Validation failed', 
-          details: validationErrors 
+        {
+          success: false,
+          error: 'Validation failed',
+          details: validationErrors
         },
         { status: 400 }
       );
@@ -92,9 +92,9 @@ export async function POST(request: NextRequest) {
       const isValidFormat = googleCalendarService.validateCalendarId(staffData.google_calendar_id);
       if (!isValidFormat) {
         return NextResponse.json(
-          { 
-            success: false, 
-            error: 'Invalid Google Calendar ID format' 
+          {
+            success: false,
+            error: 'Invalid Google Calendar ID format'
           },
           { status: 400 }
         );
@@ -104,9 +104,9 @@ export async function POST(request: NextRequest) {
       const isConnected = await googleCalendarService.testCalendarConnection(staffData.google_calendar_id);
       if (!isConnected) {
         return NextResponse.json(
-          { 
-            success: false, 
-            error: 'Unable to connect to Google Calendar. Please check the calendar ID and permissions.' 
+          {
+            success: false,
+            error: 'Unable to connect to Google Calendar. Please check the calendar ID and permissions.'
           },
           { status: 400 }
         );
@@ -116,17 +116,17 @@ export async function POST(request: NextRequest) {
     // Create staff member
     const staff = await staffService.createStaff(staffData);
 
-    return NextResponse.json({ 
-      success: true, 
+    return NextResponse.json({
+      success: true,
       data: staff,
       message: 'Staff member created successfully'
     }, { status: 201 });
   } catch (error) {
     console.error('Error creating staff member:', error);
     return NextResponse.json(
-      { 
-        success: false, 
-        error: error instanceof Error ? error.message : 'Failed to create staff member' 
+      {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to create staff member'
       },
       { status: 500 }
     );

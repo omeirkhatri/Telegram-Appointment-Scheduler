@@ -1,10 +1,10 @@
 'use client';
 
-import React, { useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
 import { staffFormSchema, type StaffFormData } from '@/lib/validations/staff';
 import type { Staff } from '@/types';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useState } from 'react';
+import { useForm } from 'react-hook-form';
 
 interface StaffFormProps {
   staff?: Staff;
@@ -101,7 +101,7 @@ export function StaffForm({ staff, onSubmit, onCancel, isLoading = false }: Staf
     const newDays = currentDays.includes(day)
       ? currentDays.filter(d => d !== day)
       : [...currentDays, day];
-    
+
     setValue('available_days', newDays);
     trigger('available_days');
   };
@@ -121,7 +121,7 @@ export function StaffForm({ staff, onSubmit, onCancel, isLoading = false }: Staf
       {/* Basic Information */}
       <div className="bg-white p-6 rounded-lg shadow-sm border">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">Basic Information</h3>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label htmlFor="first_name" className="block text-sm font-medium text-gray-700 mb-1">
@@ -204,7 +204,7 @@ export function StaffForm({ staff, onSubmit, onCancel, isLoading = false }: Staf
       {/* Contact Information */}
       <div className="bg-white p-6 rounded-lg shadow-sm border">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">Contact Information</h3>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-1">
@@ -281,7 +281,7 @@ export function StaffForm({ staff, onSubmit, onCancel, isLoading = false }: Staf
       {/* Working Schedule */}
       <div className="bg-white p-6 rounded-lg shadow-sm border">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">Working Schedule</h3>
-        
+
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -346,7 +346,7 @@ export function StaffForm({ staff, onSubmit, onCancel, isLoading = false }: Staf
       {/* Status and Preferences */}
       <div className="bg-white p-6 rounded-lg shadow-sm border">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">Status and Preferences</h3>
-        
+
         <div className="space-y-4">
           <div>
             <label htmlFor="status" className="block text-sm font-medium text-gray-700 mb-1">

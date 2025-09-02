@@ -1,8 +1,8 @@
 // Loading components
-export { LoadingSpinner } from './LoadingSpinner';
+export { LoadingButton } from './LoadingButton';
 export { LoadingOverlay } from './LoadingOverlay';
 export { LoadingPage } from './LoadingPage';
-export { LoadingButton } from './LoadingButton';
+export { LoadingSpinner } from './LoadingSpinner';
 
 // Error handling components
 export { ErrorBoundary } from './ErrorBoundary';

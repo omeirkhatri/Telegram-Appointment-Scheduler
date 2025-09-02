@@ -1,7 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server';
 import { patientService } from '@/services/patientService';
 import { storageService } from '@/services/storage';
 import type { UpdatePatient } from '@/types';
+import { NextRequest, NextResponse } from 'next/server';
 
 // GET /api/patients/[id] - Get a single patient by ID
 export async function GET(
@@ -10,12 +10,12 @@ export async function GET(
 ) {
   try {
     const patient = await patientService.getPatient(params.id);
-    
+
     if (!patient) {
       return NextResponse.json(
-        { 
-          success: false, 
-          error: 'Patient not found' 
+        {
+          success: false,
+          error: 'Patient not found'
         },
         { status: 404 }
       );
@@ -29,16 +29,16 @@ export async function GET(
       }
     }
 
-    return NextResponse.json({ 
-      success: true, 
-      data: patient 
+    return NextResponse.json({
+      success: true,
+      data: patient
     });
   } catch (error) {
     console.error('Error fetching patient:', error);
     return NextResponse.json(
-      { 
-        success: false, 
-        error: error instanceof Error ? error.message : 'Failed to fetch patient' 
+      {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to fetch patient'
       },
       { status: 500 }
     );
@@ -52,7 +52,7 @@ export async function PUT(
 ) {
   try {
     const formData = await request.formData();
-    
+
     // Extract patient data
     const updateData: Partial<UpdatePatient> = {
       name: formData.get('name') as string,
@@ -78,10 +78,10 @@ export async function PUT(
     const validationErrors = validatePatientUpdateData(updateData);
     if (validationErrors.length > 0) {
       return NextResponse.json(
-        { 
-          success: false, 
-          error: 'Validation failed', 
-          details: validationErrors 
+        {
+          success: false,
+          error: 'Validation failed',
+          details: validationErrors
         },
         { status: 400 }
       );
@@ -94,9 +94,9 @@ export async function PUT(
       const currentPatient = await patientService.getPatient(params.id);
       if (!currentPatient) {
         return NextResponse.json(
-          { 
-            success: false, 
-            error: 'Patient not found' 
+          {
+            success: false,
+            error: 'Patient not found'
           },
           { status: 404 }
         );
@@ -123,8 +123,8 @@ export async function PUT(
         updateData.id_document_filename = idDocument.name;
       } else {
         return NextResponse.json(
-          { 
-            success: false, 
+          {
+            success: false,
             error: 'Failed to upload ID document',
             uploadError: uploadResult.error
           },
@@ -136,17 +136,17 @@ export async function PUT(
     // Update patient
     const updatedPatient = await patientService.updatePatient(params.id, updateData);
 
-    return NextResponse.json({ 
-      success: true, 
+    return NextResponse.json({
+      success: true,
       data: updatedPatient,
       message: 'Patient updated successfully'
     });
   } catch (error) {
     console.error('Error updating patient:', error);
     return NextResponse.json(
-      { 
-        success: false, 
-        error: error instanceof Error ? error.message : 'Failed to update patient' 
+      {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to update patient'
       },
       { status: 500 }
     );
@@ -163,9 +163,9 @@ export async function DELETE(
     const currentPatient = await patientService.getPatient(params.id);
     if (!currentPatient) {
       return NextResponse.json(
-        { 
-          success: false, 
-          error: 'Patient not found' 
+        {
+          success: false,
+          error: 'Patient not found'
         },
         { status: 404 }
       );
@@ -179,16 +179,16 @@ export async function DELETE(
     // Delete patient
     await patientService.deletePatient(params.id);
 
-    return NextResponse.json({ 
-      success: true, 
-      message: 'Patient deleted successfully' 
+    return NextResponse.json({
+      success: true,
+      message: 'Patient deleted successfully'
     });
   } catch (error) {
     console.error('Error deleting patient:', error);
     return NextResponse.json(
-      { 
-        success: false, 
-        error: error instanceof Error ? error.message : 'Failed to delete patient' 
+      {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to delete patient'
       },
       { status: 500 }
     );

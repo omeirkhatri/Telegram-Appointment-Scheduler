@@ -1,10 +1,10 @@
 'use client';
 
-import React, { useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
 import { patientFormSchema, type PatientFormData } from '@/lib/validations/patient';
 import type { Patient } from '@/types';
+import { zodResolver } from '@hookform/resolvers/zod';
+import React, { useState } from 'react';
+import { useForm } from 'react-hook-form';
 
 interface PatientFormProps {
   patient?: Patient;
@@ -96,7 +96,7 @@ export function PatientForm({ patient, onSubmit, onCancel, isLoading = false }: 
       {/* Basic Information */}
       <div className="bg-white p-6 rounded-lg shadow-sm border">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">Basic Information</h3>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
@@ -139,7 +139,7 @@ export function PatientForm({ patient, onSubmit, onCancel, isLoading = false }: 
       {/* Address Information */}
       <div className="bg-white p-6 rounded-lg shadow-sm border">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">Address Information</h3>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label htmlFor="flat_villa_no" className="block text-sm font-medium text-gray-700 mb-1">
@@ -236,7 +236,7 @@ export function PatientForm({ patient, onSubmit, onCancel, isLoading = false }: 
       {/* Medical Information */}
       <div className="bg-white p-6 rounded-lg shadow-sm border">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">Medical Information</h3>
-        
+
         <div className="space-y-4">
           <div>
             <label htmlFor="medical_notes" className="block text-sm font-medium text-gray-700 mb-1">
@@ -279,7 +279,7 @@ export function PatientForm({ patient, onSubmit, onCancel, isLoading = false }: 
       {/* Transportation Preferences */}
       <div className="bg-white p-6 rounded-lg shadow-sm border">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">Transportation Preferences</h3>
-        
+
         <div>
           <label htmlFor="preferred_transport" className="block text-sm font-medium text-gray-700 mb-1">
             Preferred Transportation Method
@@ -307,7 +307,7 @@ export function PatientForm({ patient, onSubmit, onCancel, isLoading = false }: 
       {/* ID Document Upload */}
       <div className="bg-white p-6 rounded-lg shadow-sm border">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">ID Document</h3>
-        
+
         <div>
           <label htmlFor="id_document" className="block text-sm font-medium text-gray-700 mb-1">
             Upload ID Document

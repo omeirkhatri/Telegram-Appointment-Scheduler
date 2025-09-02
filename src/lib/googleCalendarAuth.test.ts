@@ -17,7 +17,7 @@ describe('GoogleCalendarAuth', () => {
     delete process.env.GOOGLE_CALENDAR_PRIVATE_KEY;
     delete process.env.GOOGLE_CALENDAR_PROJECT_ID;
     delete process.env.GOOGLE_CALENDAR_API_KEY;
-    
+
     // Reset singleton instance for fresh test
     (GoogleCalendarAuth as any).instance = undefined;
     auth = GoogleCalendarAuth.getInstance();
@@ -48,7 +48,7 @@ describe('GoogleCalendarAuth', () => {
   describe('initializeApiKey', () => {
     it('should initialize with valid API key', () => {
       process.env.GOOGLE_CALENDAR_API_KEY = mockEnv.GOOGLE_CALENDAR_API_KEY;
-      
+
       expect(() => auth.initializeApiKey()).not.toThrow();
       expect(auth.hasApiKeyAuth()).toBe(true);
     });
@@ -69,7 +69,7 @@ describe('GoogleCalendarAuth', () => {
 
     it('should throw error when only some credentials are provided', async () => {
       process.env.GOOGLE_CALENDAR_SERVICE_ACCOUNT_EMAIL = mockEnv.GOOGLE_CALENDAR_SERVICE_ACCOUNT_EMAIL;
-      
+
       await expect(auth.initializeServiceAccount()).rejects.toThrow(
         'Google Calendar service account credentials not configured'
       );
@@ -79,7 +79,7 @@ describe('GoogleCalendarAuth', () => {
   describe('getAuthStatus', () => {
     it('should return correct authentication status', () => {
       const status = auth.getAuthStatus();
-      
+
       expect(status).toHaveProperty('hasServiceAccount');
       expect(status).toHaveProperty('hasApiKey');
       expect(status).toHaveProperty('isInitialized');
@@ -93,7 +93,7 @@ describe('GoogleCalendarAuth', () => {
     it('should return API key when available', () => {
       process.env.GOOGLE_CALENDAR_API_KEY = mockEnv.GOOGLE_CALENDAR_API_KEY;
       auth.initializeApiKey();
-      
+
       expect(auth.getApiKey()).toBe(mockEnv.GOOGLE_CALENDAR_API_KEY);
     });
 

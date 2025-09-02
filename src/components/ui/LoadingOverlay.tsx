@@ -1,4 +1,3 @@
-import React from 'react';
 import { LoadingSpinner } from './LoadingSpinner';
 
 interface LoadingOverlayProps {
@@ -8,11 +7,11 @@ interface LoadingOverlayProps {
   className?: string;
 }
 
-export function LoadingOverlay({ 
-  isLoading, 
-  message = 'Loading...', 
+export function LoadingOverlay({
+  isLoading,
+  message = 'Loading...',
   spinnerSize = 'lg',
-  className = '' 
+  className = ''
 }: LoadingOverlayProps) {
   if (!isLoading) return null;
 

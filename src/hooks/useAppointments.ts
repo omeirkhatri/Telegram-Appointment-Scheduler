@@ -1,156 +1,125 @@
-import type {
-    Appointment,
-    AppointmentFilters,
-    CreateAppointment,
-    StaffAssignment,
-    UpdateAppointment
-} from '@/types';
+import type { Appointment, CalendarEvent } from '@/types';
+import { getAppointmentTypeDisplayName } from '@/types/appointment';
+import { getAppointmentTypeColor, validateDurationForType } from '@/utils/appointmentTypes';
 import { useCallback, useEffect, useState } from 'react';
 
 interface UseAppointmentsOptions {
-  initialFilters?: AppointmentFilters;
-  autoFetch?: boolean;
+  dateFrom?: string;
+  dateTo?: string;
+  staffId?: string;
+  appointmentType?: string;
+  status?: string;
 }
 
 interface UseAppointmentsReturn {
-  // Data
+  events: CalendarEvent[];
   appointments: Appointment[];
-  appointment: Appointment | null;
-  staffAssignments: any[];
   isLoading: boolean;
   error: string | null;
-
-  // Pagination
-  totalCount: number;
-  currentPage: number;
-  pageSize: number;
-
-  // Filters and search
-  filters: AppointmentFilters;
-  searchTerm: string;
-
-  // CRUD operations
-  createAppointment: (data: CreateAppointment) => Promise<Appointment>;
-  updateAppointment: (id: string, data: UpdateAppointment) => Promise<Appointment>;
-  deleteAppointment: (id: string) => Promise<void>;
-  getAppointment: (id: string) => Promise<Appointment>;
-
-  // Data fetching
-  fetchAppointments: (filters?: AppointmentFilters) => Promise<void>;
-  fetchAppointment: (id: string) => Promise<void>;
-  searchAppointments: (term: string) => Promise<void>;
-
-  // Staff assignment operations
-  assignStaffToAppointment: (appointmentId: string, assignments: StaffAssignment[]) => Promise<void>;
-  removeStaffFromAppointment: (appointmentId: string) => Promise<void>;
-  getAppointmentStaff: (appointmentId: string) => Promise<any[]>;
-
-  // Filter management
-  setFilters: (filters: AppointmentFilters) => void;
-  clearFilters: () => void;
-  setSearchTerm: (term: string) => void;
-
-  // Pagination
-  setPage: (page: number) => void;
-  setPageSize: (size: number) => void;
-
-  // State management
-  refresh: () => void;
-  clearError: () => void;
+  refetch: () => Promise<void>;
 }
 
-export function useAppointments(options: UseAppointmentsOptions = {}): UseAppointmentsReturn {
-  const { initialFilters = {}, autoFetch = true } = options;
+// Use centralized color mapping from utils
 
-  // State
+export function useAppointments(options: UseAppointmentsOptions = {}): UseAppointmentsReturn {
+  const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
-  const [appointment, setAppointment] = useState<Appointment | null>(null);
-  const [staffAssignments, setStaffAssignments] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Pagination
-  const [totalCount, setTotalCount] = useState(0);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(20);
-
-  // Filters and search
-  const [filters, setFilters] = useState<AppointmentFilters>(initialFilters);
-  const [searchTerm, setSearchTerm] = useState('');
-
-  // Fetch appointments with filters
-  const fetchAppointments = useCallback(async (newFilters?: AppointmentFilters) => {
+  const fetchAppointments = useCallback(async () => {
     setIsLoading(true);
     setError(null);
 
     try {
-      const queryParams = new URLSearchParams();
+      // Build query parameters
+      const params = new URLSearchParams();
 
-      // Add filters
-      const activeFilters = newFilters || filters;
-      Object.entries(activeFilters).forEach(([key, value]) => {
-        if (value !== undefined && value !== null && value !== '') {
-          queryParams.append(key, String(value));
-        }
-      });
+      if (options.dateFrom) params.append('date_from', options.dateFrom);
+      if (options.dateTo) params.append('date_to', options.dateTo);
+      if (options.staffId) params.append('staff_id', options.staffId);
+      if (options.appointmentType) params.append('appointment_type', options.appointmentType);
+      if (options.status) params.append('status', options.status);
 
-      // Add pagination
-      queryParams.append('page', currentPage.toString());
-      queryParams.append('limit', pageSize.toString());
+      const response = await fetch(`/api/appointments?${params.toString()}`);
 
-      const response = await fetch(`/api/appointments?${queryParams.toString()}`);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch appointments: ${response.statusText}`);
+      }
+
       const data = await response.json();
 
       if (!data.success) {
         throw new Error(data.error || 'Failed to fetch appointments');
       }
 
-      setAppointments(data.data || []);
-      setTotalCount(data.total || 0);
+      const fetchedAppointments: Appointment[] = data.data || [];
+      setAppointments(fetchedAppointments);
+
+      // Transform appointments to calendar events
+      const calendarEvents: CalendarEvent[] = fetchedAppointments.map((appointment) => {
+        const startDateTime = new Date(`${appointment.appointment_date}T${appointment.start_time}`);
+        const endDateTime = new Date(startDateTime.getTime() + appointment.duration_minutes * 60000);
+
+        return {
+          id: appointment.id,
+          title: getAppointmentTypeDisplayName(appointment.appointment_type),
+          start: startDateTime,
+          end: endDateTime,
+          allDay: false,
+          color: getAppointmentTypeColor(appointment.appointment_type, 'primary'),
+          appointment: appointment,
+        };
+      });
+
+      setEvents(calendarEvents);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch appointments');
+      const errorMessage = err instanceof Error ? err.message : 'An error occurred while fetching appointments';
+      setError(errorMessage);
+      console.error('Error fetching appointments:', err);
     } finally {
       setIsLoading(false);
     }
-  }, [filters, currentPage, pageSize]);
+  }, [options.dateFrom, options.dateTo, options.staffId, options.appointmentType, options.status]);
 
-  // Fetch single appointment
-  const fetchAppointment = useCallback(async (id: string) => {
-    setIsLoading(true);
-    setError(null);
+  useEffect(() => {
+    fetchAppointments();
+  }, [fetchAppointments]);
 
-    try {
-      const response = await fetch(`/api/appointments/${id}`);
-      const data = await response.json();
+  return {
+    events,
+    appointments,
+    isLoading,
+    error,
+    refetch: fetchAppointments,
+  };
+}
 
-      if (!data.success) {
-        throw new Error(data.error || 'Failed to fetch appointment');
-      }
+// Hook for fetching appointments for a specific date range (useful for calendar views)
+export function useAppointmentsForDateRange(startDate: Date, endDate: Date, filters?: Omit<UseAppointmentsOptions, 'dateFrom' | 'dateTo'>) {
+  const dateFrom = startDate.toISOString().split('T')[0];
+  const dateTo = endDate.toISOString().split('T')[0];
 
-      setAppointment(data.data.appointment);
-      setStaffAssignments(data.data.staff_assignments || []);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch appointment');
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+  return useAppointments({
+    ...filters,
+    dateFrom,
+    dateTo,
+  });
+}
 
-  // Get appointment (returns data directly)
-  const getAppointment = useCallback(async (id: string): Promise<Appointment> => {
-    const response = await fetch(`/api/appointments/${id}`);
-    const data = await response.json();
+// Hook for fetching today's appointments
+export function useTodaysAppointments(filters?: Omit<UseAppointmentsOptions, 'dateFrom' | 'dateTo'>) {
+  const today = new Date();
+  return useAppointmentsForDateRange(today, today, filters);
+}
 
-    if (!data.success) {
-      throw new Error(data.error || 'Failed to fetch appointment');
-    }
+// Hook for creating appointments
+export function useCreateAppointment() {
+  const [isCreating, setIsCreating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-    return data.data.appointment;
-  }, []);
-
-  // Create appointment
-  const createAppointment = useCallback(async (appointmentData: CreateAppointment): Promise<Appointment> => {
-    setIsLoading(true);
+  const createAppointment = useCallback(async (appointmentData: any) => {
+    setIsCreating(true);
     setError(null);
 
     try {
@@ -164,35 +133,71 @@ export function useAppointments(options: UseAppointmentsOptions = {}): UseAppoin
 
       const data = await response.json();
 
-      if (!data.success) {
+      if (!response.ok || !data.success) {
         throw new Error(data.error || 'Failed to create appointment');
       }
 
-      // Refresh the appointments list
-      await fetchAppointments();
-
-      return data.data.appointment;
+      return data.data;
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create appointment');
+      const errorMessage = err instanceof Error ? err.message : 'An error occurred while creating appointment';
+      setError(errorMessage);
       throw err;
     } finally {
-      setIsLoading(false);
+      setIsCreating(false);
     }
-  }, [fetchAppointments]);
+  }, []);
 
-  // Update appointment
-  const updateAppointment = useCallback(async (id: string, appointmentData: UpdateAppointment): Promise<Appointment> => {
-    setIsLoading(true);
+  return {
+    createAppointment,
+    isCreating,
+    error,
+  };
+}
+
+// Hook for updating appointment time/date (for drag-and-drop rescheduling)
+export function useUpdateAppointment() {
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const updateAppointmentTime = useCallback(async (
+    appointmentId: string,
+    newStart: Date,
+    newEnd: Date,
+    appointmentType?: string
+  ) => {
+    setIsUpdating(true);
     setError(null);
 
     try {
-      const response = await fetch(`/api/appointments/${id}`, {
+      // Format the new date and time
+      const appointmentDate = newStart.toISOString().split('T')[0];
+      const startTime = newStart.toTimeString().slice(0, 5); // HH:MM format
+      const durationMinutes = Math.round((newEnd.getTime() - newStart.getTime()) / (1000 * 60));
+
+      // Validate duration against appointment type constraints if type is provided
+      if (appointmentType) {
+        const validation = validateDurationForType(appointmentType as any, durationMinutes);
+        if (!validation.isValid) {
+          throw new Error(validation.error);
+        }
+      }
+
+      const response = await fetch(`/api/appointments/${appointmentId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(appointmentData),
+        body: JSON.stringify({
+          appointment_date: appointmentDate,
+          start_time: startTime,
+          duration_minutes: durationMinutes,
+        }),
       });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || `Failed to update appointment: ${response.statusText}`);
+      }
 
       const data = await response.json();
 
@@ -200,254 +205,19 @@ export function useAppointments(options: UseAppointmentsOptions = {}): UseAppoin
         throw new Error(data.error || 'Failed to update appointment');
       }
 
-      // Update local state
-      setAppointments(prev => prev.map(a => a.id === id ? data.data.appointment : a));
-      if (appointment?.id === id) {
-        setAppointment(data.data.appointment);
-        setStaffAssignments(data.data.staff_assignments || []);
-      }
-
-      return data.data.appointment;
+      return data.data;
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to update appointment');
+      const errorMessage = err instanceof Error ? err.message : 'An error occurred while updating appointment';
+      setError(errorMessage);
       throw err;
     } finally {
-      setIsLoading(false);
-    }
-  }, [appointment]);
-
-  // Delete appointment
-  const deleteAppointment = useCallback(async (id: string): Promise<void> => {
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      const response = await fetch(`/api/appointments/${id}`, {
-        method: 'DELETE',
-      });
-
-      const data = await response.json();
-
-      if (!data.success) {
-        throw new Error(data.error || 'Failed to delete appointment');
-      }
-
-      // Update local state
-      setAppointments(prev => prev.filter(a => a.id !== id));
-      if (appointment?.id === id) {
-        setAppointment(null);
-        setStaffAssignments([]);
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to delete appointment');
-      throw err;
-    } finally {
-      setIsLoading(false);
-    }
-  }, [appointment]);
-
-  // Search appointments
-  const searchAppointments = useCallback(async (term: string) => {
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      const queryParams = new URLSearchParams();
-      queryParams.append('q', term);
-
-      const response = await fetch(`/api/appointments/search?${queryParams.toString()}`);
-      const data = await response.json();
-
-      if (!data.success) {
-        throw new Error(data.error || 'Failed to search appointments');
-      }
-
-      setAppointments(data.data || []);
-      setTotalCount(data.count || 0);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to search appointments');
-    } finally {
-      setIsLoading(false);
+      setIsUpdating(false);
     }
   }, []);
-
-  // Assign staff to appointment
-  const assignStaffToAppointment = useCallback(async (appointmentId: string, assignments: StaffAssignment[]): Promise<void> => {
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      const response = await fetch(`/api/appointments/${appointmentId}/staff`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ staff_assignments: assignments }),
-      });
-
-      const data = await response.json();
-
-      if (!data.success) {
-        throw new Error(data.error || 'Failed to assign staff to appointment');
-      }
-
-      // Update local state
-      setStaffAssignments(data.data.staff_assignments || []);
-      if (appointment?.id === appointmentId) {
-        setAppointment(prev => prev ? { ...prev, staff_assignments: data.data.staff_assignments } : null);
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to assign staff to appointment');
-      throw err;
-    } finally {
-      setIsLoading(false);
-    }
-  }, [appointment]);
-
-  // Remove staff from appointment
-  const removeStaffFromAppointment = useCallback(async (appointmentId: string): Promise<void> => {
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      const response = await fetch(`/api/appointments/${appointmentId}/staff`, {
-        method: 'DELETE',
-      });
-
-      const data = await response.json();
-
-      if (!data.success) {
-        throw new Error(data.error || 'Failed to remove staff from appointment');
-      }
-
-      // Update local state
-      setStaffAssignments([]);
-      if (appointment?.id === appointmentId) {
-        setAppointment(prev => prev ? { ...prev, staff_assignments: [] } : null);
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to remove staff from appointment');
-      throw err;
-    } finally {
-      setIsLoading(false);
-    }
-  }, [appointment]);
-
-  // Get appointment staff
-  const getAppointmentStaff = useCallback(async (appointmentId: string): Promise<any[]> => {
-    try {
-      const response = await fetch(`/api/appointments/${appointmentId}/staff`);
-      const data = await response.json();
-
-      if (!data.success) {
-        throw new Error(data.error || 'Failed to fetch appointment staff');
-      }
-
-      return data.data.staff_assignments || [];
-    } catch (err) {
-      throw new Error(err instanceof Error ? err.message : 'Failed to fetch appointment staff');
-    }
-  }, []);
-
-  // Update filters
-  const updateFilters = useCallback((newFilters: AppointmentFilters) => {
-    setFilters(newFilters);
-    setCurrentPage(1); // Reset to first page when filters change
-  }, []);
-
-  // Clear filters
-  const clearFilters = useCallback(() => {
-    setFilters(initialFilters);
-    setSearchTerm('');
-    setCurrentPage(1);
-  }, [initialFilters]);
-
-  // Update search term
-  const updateSearchTerm = useCallback((term: string) => {
-    setSearchTerm(term);
-    setCurrentPage(1); // Reset to first page when search changes
-  }, []);
-
-  // Update page
-  const updatePage = useCallback((page: number) => {
-    setCurrentPage(page);
-  }, []);
-
-  // Update page size
-  const updatePageSize = useCallback((size: number) => {
-    setPageSize(size);
-    setCurrentPage(1); // Reset to first page when page size changes
-  }, []);
-
-  // Refresh data
-  const refresh = useCallback(() => {
-    if (searchTerm) {
-      searchAppointments(searchTerm);
-    } else {
-      fetchAppointments();
-    }
-  }, [searchTerm, searchAppointments, fetchAppointments]);
-
-  // Clear error
-  const clearError = useCallback(() => {
-    setError(null);
-  }, []);
-
-  // Auto-fetch on mount and when dependencies change
-  useEffect(() => {
-    if (autoFetch) {
-      if (searchTerm) {
-        searchAppointments(searchTerm);
-      } else {
-        fetchAppointments();
-      }
-    }
-  }, [autoFetch, searchTerm, currentPage, pageSize, fetchAppointments, searchAppointments]);
 
   return {
-    // Data
-    appointments,
-    appointment,
-    staffAssignments,
-    isLoading,
+    updateAppointmentTime,
+    isUpdating,
     error,
-
-    // Pagination
-    totalCount,
-    currentPage,
-    pageSize,
-
-    // Filters and search
-    filters,
-    searchTerm,
-
-    // CRUD operations
-    createAppointment,
-    updateAppointment,
-    deleteAppointment,
-    getAppointment,
-
-    // Data fetching
-    fetchAppointments,
-    fetchAppointment,
-    searchAppointments,
-
-    // Staff assignment operations
-    assignStaffToAppointment,
-    removeStaffFromAppointment,
-    getAppointmentStaff,
-
-    // Filter management
-    setFilters: updateFilters,
-    clearFilters,
-    setSearchTerm: updateSearchTerm,
-
-    // Pagination
-    setPage: updatePage,
-    setPageSize: updatePageSize,
-
-    // State management
-    refresh,
-    clearError,
   };
 }

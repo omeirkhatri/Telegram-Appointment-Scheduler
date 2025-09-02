@@ -1,6 +1,6 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
-import { config } from './env';
 import { Database } from '../types/supabase';
+import { config } from './env';
 
 // Enhanced Supabase client with better error handling
 export const supabase = createClient<Database>(
@@ -33,7 +33,7 @@ export const getServiceRoleClient = (): SupabaseClient<Database> => {
   if (typeof window !== 'undefined') {
     throw new Error('Service role client cannot be used in browser');
   }
-  
+
   if (!config.supabase.serviceRoleKey) {
     throw new Error('SUPABASE_SERVICE_ROLE_KEY is not configured');
   }
@@ -107,13 +107,13 @@ export async function executeQuery<T>(
   } = {}
 ): Promise<T> {
   const { retryable = true, maxAttempts = RETRY_CONFIG.maxAttempts } = options;
-  
+
   let lastError: any;
-  
+
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
       const { data, error } = await queryFn();
-      
+
       if (error) {
         throw new SupabaseError(
           error.message || 'Database operation failed',
@@ -123,32 +123,32 @@ export async function executeQuery<T>(
           retryable && attempt < maxAttempts
         );
       }
-      
+
       if (data === null) {
         throw new SupabaseError('No data returned from query', undefined, undefined, undefined, false);
       }
-      
+
       return data;
-      
+
     } catch (error) {
       lastError = error;
-      
+
       // Don't retry non-retryable errors
       if (error instanceof SupabaseError && !error.retryable) {
         throw error;
       }
-      
+
       // Don't retry on last attempt
       if (attempt === maxAttempts) {
         break;
       }
-      
+
       // Wait before retry
       const delay = calculateDelay(attempt);
       await new Promise(resolve => setTimeout(resolve, delay));
     }
   }
-  
+
   // If we get here, all retries failed
   throw new SupabaseError(
     `Operation failed after ${maxAttempts} attempts: ${lastError?.message || 'Unknown error'}`,
@@ -170,5 +170,5 @@ export async function checkConnection(): Promise<boolean> {
 }
 
 // Export types for convenience
-export type { Database } from '../types/supabase';
 export type { SupabaseClient } from '@supabase/supabase-js';
+export type { Database } from '../types/supabase';

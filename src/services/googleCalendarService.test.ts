@@ -1,5 +1,5 @@
-import { GoogleCalendarService } from './googleCalendarService';
 import { googleCalendarAuth } from '@/lib/googleCalendarAuth';
+import { GoogleCalendarService } from './googleCalendarService';
 
 // Mock the googleapis library
 jest.mock('googleapis', () => ({
@@ -45,7 +45,7 @@ describe('GoogleCalendarService', () => {
   beforeEach(() => {
     // Reset all mocks
     jest.clearAllMocks();
-    
+
     // Setup mock calendar client
     mockCalendarClient = {
       events: {
@@ -80,7 +80,7 @@ describe('GoogleCalendarService', () => {
   describe('validateCalendarId', () => {
     it('should delegate to authentication module', () => {
       service.validateCalendarId('test@example.com');
-      
+
       expect(googleCalendarAuth.validateCalendarId).toHaveBeenCalledWith('test@example.com');
     });
   });
@@ -88,16 +88,16 @@ describe('GoogleCalendarService', () => {
   describe('testCalendarConnection', () => {
     it('should test calendar access', async () => {
       const result = await service.testCalendarConnection('test@example.com');
-      
+
       expect(googleCalendarAuth.testCalendarAccess).toHaveBeenCalledWith('test@example.com');
       expect(result).toBe(true);
     });
 
     it('should handle errors gracefully', async () => {
       (googleCalendarAuth.testCalendarAccess as jest.Mock).mockRejectedValue(new Error('Test error'));
-      
+
       const result = await service.testCalendarConnection('test@example.com');
-      
+
       expect(result).toBe(false);
     });
   });
@@ -110,7 +110,7 @@ describe('GoogleCalendarService', () => {
       });
 
       const result = await service.getCalendarEvents('test@example.com', '2024-01-01T00:00:00Z', '2024-01-02T00:00:00Z');
-      
+
       expect(mockCalendarClient.events.list).toHaveBeenCalledWith({
         calendarId: 'test@example.com',
         timeMin: '2024-01-01T00:00:00Z',
@@ -124,7 +124,7 @@ describe('GoogleCalendarService', () => {
 
     it('should handle errors', async () => {
       mockCalendarClient.events.list.mockRejectedValue(new Error('API Error'));
-      
+
       await expect(service.getCalendarEvents('test@example.com', '2024-01-01T00:00:00Z', '2024-01-02T00:00:00Z'))
         .rejects.toThrow('API Error');
     });
@@ -144,7 +144,7 @@ describe('GoogleCalendarService', () => {
       });
 
       const result = await service.createCalendarEvent('test@example.com', eventData);
-      
+
       expect(mockCalendarClient.events.insert).toHaveBeenCalledWith({
         calendarId: 'test@example.com',
         requestBody: eventData,
@@ -164,7 +164,7 @@ describe('GoogleCalendarService', () => {
       mockCalendarClient.events.patch.mockResolvedValue({});
 
       await service.updateCalendarEvent('test@example.com', 'event-123', eventData);
-      
+
       expect(mockCalendarClient.events.patch).toHaveBeenCalledWith({
         calendarId: 'test@example.com',
         eventId: 'event-123',
@@ -179,7 +179,7 @@ describe('GoogleCalendarService', () => {
       mockCalendarClient.events.delete.mockResolvedValue({});
 
       await service.deleteCalendarEvent('test@example.com', 'event-123');
-      
+
       expect(mockCalendarClient.events.delete).toHaveBeenCalledWith({
         calendarId: 'test@example.com',
         eventId: 'event-123',
@@ -191,7 +191,7 @@ describe('GoogleCalendarService', () => {
   describe('getAuthStatus', () => {
     it('should return authentication status', () => {
       const status = service.getAuthStatus();
-      
+
       expect(status).toHaveProperty('hasServiceAccount');
       expect(status).toHaveProperty('hasApiKey');
       expect(status).toHaveProperty('isInitialized');
@@ -201,7 +201,7 @@ describe('GoogleCalendarService', () => {
   describe('refreshAuth', () => {
     it('should refresh authentication token', async () => {
       await service.refreshAuth();
-      
+
       expect(googleCalendarAuth.refreshToken).toHaveBeenCalled();
     });
   });
@@ -212,7 +212,7 @@ describe('GoogleCalendarService', () => {
       (googleCalendarAuth.getCalendarList as jest.Mock).mockResolvedValue(mockCalendars);
 
       const result = await service.getAvailableCalendars();
-      
+
       expect(googleCalendarAuth.getCalendarList).toHaveBeenCalled();
       expect(result).toEqual(mockCalendars);
     });

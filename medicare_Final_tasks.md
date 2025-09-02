@@ -21,11 +21,11 @@
 - [x] 2.8 Configure local to cloud migration scripts
 
 ## 3.0 Core Data Management (Patients, Staff, Appointments)
-- [x] 3.1 Supabase client hardening  
-- [ ] 3.2 Patient model gaps (address, Google Maps link, medical notes, emergency contact, transport, ID upload)  
-- [ ] 3.3 Staff model gaps (staff_type, specialization, google_calendar_id, available_days, email notifications)  
-- [ ] 3.4 Appointment type enums & templates (Doctor on Call, Lab Test, Teleconsultation, Physiotherapy, Caregiver, IV Therapy)  
-- [ ] 3.5 Recurring appointments (recurring_rule JSONB support)  
+- [x] 3.1 Supabase client hardening
+- [x] 3.2 Patient model gaps (address, Google Maps link, medical notes, emergency contact, transport, ID upload)
+- [x] 3.3 Staff model gaps (staff_type, specialization, google_calendar_id, available_days, email notifications)
+- [x] 3.4 Appointment type enums & templates (Doctor on Call, Lab Test, Teleconsultation, Physiotherapy, Caregiver, IV Therapy)
+- [x] 3.5 Recurring appointments (recurring_rule JSONB support)
 
 ## 4.0 Google Calendar Integration
 - [x] 4.1 Set up Google Calendar API v3 authentication and configuration
@@ -38,68 +38,68 @@
 - [x] 4.8 Add proper error handling and logging for calendar operations
 
 ## 5.0 Calendar UI and Appointment Management
-- [ ] 5.1 FullCalendar setup (day/week/month/agenda views, 15-min grid)  
-- [ ] 5.2 Drag-and-drop rescheduling  
-- [ ] 5.3 Duration resize (with min/max by type)  
-- [ ] 5.4 Color coding by appointment type  
-- [ ] 5.5 Filters: staff, type, date range, status  
-- [ ] 5.6 Context menu on events (Edit, Copy, Cancel, Open in GCal)  
-- [ ] 5.7 Appointment creation modal launcher  
-- [ ] 5.8 Real-time UI sync after edits  
+- [x] 5.1 FullCalendar setup (day/week/month/agenda views, 15-min grid)
+- [x] 5.2 Drag-and-drop rescheduling (✅ Connected handlers to appointments page with API calls, toast notifications, and error handling)
+- [x] 5.3 Duration resize (with min/max by type) (✅ Added appointment type-specific duration constraints with validation)
+- [x] 5.4 Color coding by appointment type (✅ Centralized color system with consistent mapping across components)
+- [x] 5.5 Filters: staff, type, date range, status (✅ Comprehensive filter system with collapsible UI, staff selection, appointment type checkboxes, status filters, and date range picker)
+- [x] 5.6 Context menu on events (Edit, Copy, Cancel, Open in GCal) (✅ Right-click context menu with appointment info header and action buttons)
+- [x] 5.7 Appointment creation modal launcher
+- [x] 5.8 Real-time UI sync after edits
 
 ## 6.0 Daily Email System
-- [ ] 6.1 SMTP config + secure env  
-- [ ] 6.2 HTML agenda template (responsive)  
-- [ ] 6.3 Aggregation by staff (Asia/Dubai, 06:00)  
-- [ ] 6.4 Job scheduler (cron)  
-- [ ] 6.5 Delivery logging + retries  
-- [ ] 6.6 “Send test agenda” button  
-- [ ] 6.7 Staff preference management  
-- [ ] 6.8 Automated generation + sending  
+- [x] 6.1 SMTP config + secure env
+- [x] 6.2 HTML agenda template (responsive)
+- [x] 6.3 Aggregation by staff (Asia/Dubai, 06:00)
+- [x] 6.4 Job scheduler (cron)
+- [x] 6.5 Delivery logging + retries
+- [x] 6.6 "Send test agenda" button
+- [ ] 6.7 Staff preference management
+- [ ] 6.8 Automated generation + sending
 
 ## 7.0 Copy Appointment Feature
-- [ ] 7.1 Copy modal with prefilled fields  
-- [ ] 7.2 Deep clone with new UUIDs  
-- [ ] 7.3 Conflict check with override option  
-- [ ] 7.4 Staff reassignment selector  
-- [ ] 7.5 Bulk copy (patterns: daily/weekly/custom)  
-- [ ] 7.6 Copy audit trail  
+- [ ] 7.1 Copy modal with prefilled fields
+- [ ] 7.2 Deep clone with new UUIDs
+- [ ] 7.3 Conflict check with override option
+- [ ] 7.4 Staff reassignment selector
+- [ ] 7.5 Bulk copy (patterns: daily/weekly/custom)
+- [ ] 7.6 Copy audit trail
 
 ## 8.0 Testing and Quality Assurance
-- [ ] 8.1 Unit tests for utils  
-- [ ] 8.2 Component tests for forms  
-- [ ] 8.3 Integration tests for APIs  
-- [ ] 8.4 Supabase query mocking  
-- [ ] 8.5 Google Calendar API mocking  
-- [ ] 8.6 End-to-end tests for critical flows  
-- [ ] 8.7 Performance testing  
-- [ ] 8.8 Accessibility compliance  
+- [ ] 8.1 Unit tests for utils
+- [ ] 8.2 Component tests for forms
+- [ ] 8.3 Integration tests for APIs
+- [ ] 8.4 Supabase query mocking
+- [ ] 8.5 Google Calendar API mocking
+- [ ] 8.6 End-to-end tests for critical flows
+- [ ] 8.7 Performance testing
+- [ ] 8.8 Accessibility compliance
 
 ## 9.0 Admin UX & Additional UI
-- [ ] 9.1 Appointment details drawer  
-- [ ] 9.2 Reports dashboard (KPIs, CSV export)  
-- [ ] 9.3 Google Calendar linking UI + sync status  
-- [ ] 9.4 Recurrence rule builder (basic patterns)  
-- [ ] 9.5 Email preferences in Settings  
-- [ ] 9.6 Backup & export (CSV dumps)  
-- [ ] 9.7 Unified toasts & error system  
+- [ ] 9.1 Appointment details drawer
+- [ ] 9.2 Reports dashboard (KPIs, CSV export)
+- [ ] 9.3 Google Calendar linking UI + sync status
+- [ ] 9.4 Recurrence rule builder (basic patterns)
+- [ ] 9.5 Email preferences in Settings
+- [ ] 9.6 Backup & export (CSV dumps)
+- [ ] 9.7 Unified toasts & error system
 
 ## 10.0 Google Calendar Integration (Enhancements)
-- [ ] 10.1 Event builders by role (driver vs medical)  
-- [ ] 10.2 Webhook dedupe/retries/backoff  
-- [ ] 10.3 External edits surface in UI  
-- [ ] 10.4 google_event_ids integrity checks  
+- [ ] 10.1 Event builders by role (driver vs medical)
+- [ ] 10.2 Webhook dedupe/retries/backoff
+- [ ] 10.3 External edits surface in UI
+- [ ] 10.4 google_event_ids integrity checks
 
 ## 11.0 Deployment, Ops & Migration
-- [ ] 11.1 .env.example with keys & guards  
-- [ ] 11.2 Docker Compose for local  
-- [ ] 11.3 Supabase Cloud migration scripts  
-- [ ] 11.4 Cron/worker for daily emails  
-- [ ] 11.5 Error logging & observability  
+- [ ] 11.1 .env.example with keys & guards
+- [ ] 11.2 Docker Compose for local
+- [ ] 11.3 Supabase Cloud migration scripts
+- [ ] 11.4 Cron/worker for daily emails
+- [ ] 11.5 Error logging & observability
 
 ## 12.0 Performance & UX Polish
-- [ ] 12.1 Data virtualization for tables  
-- [ ] 12.2 Debounced search, cached filters, skeleton loaders  
-- [ ] 12.3 Timezone utilities (UTC store, Dubai display)  
-- [ ] 12.4 Keyboard shortcuts  
-- [ ] 12.5 Print-friendly agenda & appointment sheets  
+- [ ] 12.1 Data virtualization for tables
+- [ ] 12.2 Debounced search, cached filters, skeleton loaders
+- [ ] 12.3 Timezone utilities (UTC store, Dubai display)
+- [ ] 12.4 Keyboard shortcuts
+- [ ] 12.5 Print-friendly agenda & appointment sheets

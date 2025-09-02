@@ -106,7 +106,7 @@ import { googleCalendarAuth } from '@/lib/googleCalendarAuth';
 try {
   await googleCalendarAuth.initializeServiceAccount();
   console.log('Service account authentication successful');
-  
+
   // Test calendar access
   const hasAccess = await googleCalendarAuth.testCalendarAccess('primary');
   console.log('Calendar access:', hasAccess);

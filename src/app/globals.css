@@ -1,123 +1,121 @@
-@import 'tailwindcss';
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* FullCalendar CSS */
+@import '@fullcalendar/core/main.css';
+@import '@fullcalendar/daygrid/main.css';
+@import '@fullcalendar/timegrid/main.css';
+@import '@fullcalendar/list/main.css';
+
+/* CSS Reset */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
 
 :root {
+  /* Base colors */
   --background: #ffffff;
-  --foreground: #171717;
-  --primary: #0ea5e9;
+  --foreground: #0f172a;
+  --card: #ffffff;
+  --card-foreground: #0f172a;
+  --popover: #ffffff;
+  --popover-foreground: #0f172a;
+  --primary: #2563eb;
   --primary-foreground: #ffffff;
-  --secondary: #64748b;
-  --secondary-foreground: #ffffff;
+  --secondary: #f1f5f9;
+  --secondary-foreground: #0f172a;
+  --muted: #f8fafc;
+  --muted-foreground: #64748b;
+  --accent: #f1f5f9;
+  --accent-foreground: #0f172a;
+  --destructive: #dc2626;
+  --destructive-foreground: #ffffff;
+  --border: #e2e8f0;
+  --input: #e2e8f0;
+  --ring: #2563eb;
+  --radius: 0.5rem;
+
+  /* Healthcare-specific colors */
   --success: #22c55e;
   --warning: #f59e0b;
   --error: #ef4444;
-  --medical-blue: #2563eb;
-  --medical-green: #059669;
-  --medical-red: #dc2626;
+  --medical-blue: #3b82f6;
+  --medical-green: #10b981;
+  --medical-purple: #8b5cf6;
+  --medical-orange: #f97316;
+  --medical-red: #ef4444;
+  --medical-yellow: #eab308;
+  --medical-gray: #6b7280;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-primary: var(--primary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-secondary: var(--secondary);
-  --color-secondary-foreground: var(--secondary-foreground);
-  --color-success: var(--success);
-  --color-warning: var(--warning);
-  --color-error: var(--error);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+.dark {
+  /* Base colors */
+  --background: #0f172a;
+  --foreground: #f8fafc;
+  --card: #1e293b;
+  --card-foreground: #f8fafc;
+  --popover: #1e293b;
+  --popover-foreground: #f8fafc;
+  --primary: #3b82f6;
+  --primary-foreground: #ffffff;
+  --secondary: #334155;
+  --secondary-foreground: #f8fafc;
+  --muted: #1e293b;
+  --muted-foreground: #94a3b8;
+  --accent: #334155;
+  --accent-foreground: #f8fafc;
+  --destructive: #ef4444;
+  --destructive-foreground: #ffffff;
+  --border: #475569;
+  --input: #475569;
+  --ring: #3b82f6;
+  --radius: 0.5rem;
+
+  /* Healthcare-specific colors */
+  --success: #22c55e;
+  --warning: #f59e0b;
+  --error: #ef4444;
+  --medical-blue: #60a5fa;
+  --medical-green: #34d399;
+  --medical-purple: #a78bfa;
+  --medical-orange: #fb923c;
+  --medical-red: #f87171;
+  --medical-yellow: #fbbf24;
+  --medical-gray: #9ca3af;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-    --secondary: #94a3b8;
-    --secondary-foreground: #0f172a;
-  }
+* {
+  border-color: var(--border);
 }
 
-/* Healthcare-specific base styles */
 body {
-  background: var(--background);
+  background-color: var(--background);
   color: var(--foreground);
-  font-family: var(--font-geist-sans), system-ui, sans-serif;
-  line-height: 1.6;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
 }
 
-/* Custom scrollbar for healthcare UI */
+/* Custom scrollbar */
 ::-webkit-scrollbar {
   width: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #f1f5f9;
+  background: var(--muted);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
+  background: var(--muted-foreground);
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
-}
-
-/* Focus styles for accessibility */
-*:focus {
-  outline: 2px solid var(--primary);
-  outline-offset: 2px;
-}
-
-/* Healthcare-specific utility classes */
-.medical-card {
-  @apply bg-white rounded-xl shadow-lg border border-gray-100 p-6;
-}
-
-.medical-button {
-  @apply px-4 py-2 rounded-lg font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2;
-}
-
-.medical-button-primary {
-  @apply medical-button bg-primary-600 text-white hover:bg-primary-700 focus:ring-primary-500;
-}
-
-.medical-button-secondary {
-  @apply medical-button bg-secondary-100 text-secondary-700 hover:bg-secondary-200 focus:ring-secondary-500;
-}
-
-.medical-button-success {
-  @apply medical-button bg-success-600 text-white hover:bg-success-700 focus:ring-success-500;
-}
-
-.medical-button-warning {
-  @apply medical-button bg-warning-600 text-white hover:bg-warning-700 focus:ring-warning-500;
-}
-
-.medical-button-error {
-  @apply medical-button bg-error-600 text-white hover:bg-error-700 focus:ring-error-500;
-}
-
-/* Status indicators */
-.status-indicator {
-  @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
-}
-
-.status-active {
-  @apply status-indicator bg-success-100 text-success-800;
-}
-
-.status-pending {
-  @apply status-indicator bg-warning-100 text-warning-800;
-}
-
-.status-cancelled {
-  @apply status-indicator bg-error-100 text-error-800;
-}
-
-.status-completed {
-  @apply status-indicator bg-primary-100 text-primary-800;
+  background: var(--foreground);
 }

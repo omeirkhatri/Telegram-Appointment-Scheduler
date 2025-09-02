@@ -578,14 +578,14 @@ async function handleDeletedEvents(currentEventIds: Set<string>, staff: any) {
   try {
     // Get all appointments for this staff member that have Google Calendar event IDs
     const appointments = await appointmentService.getAppointmentsByStaff(staff.id);
-    
+
     for (const appointment of appointments) {
       if (!appointment.google_event_ids || !appointment.google_event_ids[staff.id]) {
         continue;
       }
 
       const eventId = appointment.google_event_ids[staff.id];
-      
+
       // If the event ID is not in the current events, it was deleted
       if (!currentEventIds.has(eventId)) {
         await handleAppointmentEventDeletion(appointment, eventId, staff);

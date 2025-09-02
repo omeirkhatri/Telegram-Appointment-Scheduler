@@ -191,7 +191,7 @@ export class WebhookService {
 
       for (const staff of staffMembers) {
         const webhookInfo = await this.getWebhookInfo(staff.id);
-        
+
         statuses.push({
           staffId: staff.id,
           staffName: `${staff.first_name} ${staff.last_name}`,
@@ -262,7 +262,7 @@ export class WebhookService {
     // In a real implementation, this would store in a database table
     // For now, we'll just log it
     console.log(`Storing webhook info: staff=${staffId}, webhook=${webhookId}, calendar=${calendarId}`);
-    
+
     // Example database structure:
     // webhooks: {
     //   id: string;

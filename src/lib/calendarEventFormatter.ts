@@ -4,7 +4,7 @@ import type { Patient } from '@/types/patient';
 import { getPatientFullAddress } from '@/types/patient';
 import type { Staff, StaffType } from '@/types/staff';
 import { getStaffFullName } from '@/types/staff';
-import { formatDate, formatTime, formatAppointmentTimeRange } from '@/utils/date';
+import { formatDate } from '@/utils/date';
 
 // Google Calendar Event Formatter
 export class CalendarEventFormatter {
@@ -325,7 +325,7 @@ export class CalendarEventFormatter {
     // Format datetime with timezone
     const startDateTime = formatForGoogleCalendar(appointment.appointment_date, appointment.start_time);
     const endDateTime = formatForGoogleCalendar(
-      appointment.appointment_date, 
+      appointment.appointment_date,
       this.getEndTime(appointment.start_time, appointment.duration_minutes)
     );
 

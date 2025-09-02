@@ -1,18 +1,14 @@
 import {
-  format,
-  parseISO,
-  isValid,
-  addDays,
-  subDays,
-  startOfWeek,
-  endOfWeek,
-  addMinutes,
-  differenceInMinutes,
-  isSameDay,
-  isSameHour,
-  isSameMinute,
+    addDays,
+    addMinutes,
+    endOfWeek,
+    format,
+    isSameDay,
+    isValid,
+    parseISO,
+    startOfWeek,
+    subDays
 } from 'date-fns';
-import { config } from '@/lib/env';
 
 // Timezone configuration
 export const TZ = 'Asia/Dubai'; // Fixed timezone for the application
@@ -135,10 +131,10 @@ export function formatAppointmentTimeRange(
 ): string {
   const startUTC = getAppointmentStartTimeUTC(appointmentDate, startTime);
   const endUTC = getAppointmentEndTimeUTC(appointmentDate, startTime, durationMinutes);
-  
+
   const startDisplay = format(toLocal(startUTC), TIME_FMT);
   const endDisplay = format(toLocal(endUTC), TIME_FMT);
-  
+
   return `${startDisplay} - ${endDisplay}`;
 }
 
@@ -157,7 +153,7 @@ export function appointmentsOverlap(
   const end1 = getAppointmentEndTimeUTC(date1, startTime1, duration1);
   const start2 = getAppointmentStartTimeUTC(date2, startTime2);
   const end2 = getAppointmentEndTimeUTC(date2, startTime2, duration2);
-  
+
   return start1 < end2 && start2 < end1;
 }
 
@@ -172,20 +168,20 @@ export function getWorkingHoursInTimezone(
   const today = new Date();
   const startDate = new Date(today);
   const endDate = new Date(today);
-  
+
   const [startHours, startMinutes] = startTime.split(':').map(Number);
   const [endHours, endMinutes] = endTime.split(':').map(Number);
-  
+
   startDate.setHours(startHours, startMinutes, 0, 0);
   endDate.setHours(endHours, endMinutes, 0, 0);
-  
+
   if (timezone === TZ) {
     return {
       start: toUTC(startDate),
       end: toUTC(endDate)
     };
   }
-  
+
   return {
     start: startDate,
     end: endDate
@@ -203,11 +199,11 @@ export function isWithinWorkingHours(
   const [timeHours, timeMinutes] = time.split(':').map(Number);
   const [startHours, startMinutes] = startTime.split(':').map(Number);
   const [endHours, endMinutes] = endTime.split(':').map(Number);
-  
+
   const timeMinutesTotal = timeHours * 60 + timeMinutes;
   const startMinutesTotal = startHours * 60 + startMinutes;
   const endMinutesTotal = endHours * 60 + endMinutes;
-  
+
   return timeMinutesTotal >= startMinutesTotal && timeMinutesTotal <= endMinutesTotal;
 }
 
@@ -225,17 +221,17 @@ export function getTimezoneOffset(): number {
 export function formatForGoogleCalendar(date: Date | string, time: string): string {
   const dateObj = typeof date === 'string' ? parseISO(date) : date;
   const [hours, minutes] = time.split(':').map(Number);
-  
+
   const localDate = new Date(dateObj);
   localDate.setHours(hours, minutes, 0, 0);
-  
+
   // Format as ISO string with Asia/Dubai timezone offset
   const year = localDate.getFullYear();
   const month = String(localDate.getMonth() + 1).padStart(2, '0');
   const day = String(localDate.getDate()).padStart(2, '0');
   const hour = String(hours).padStart(2, '0');
   const minute = String(minutes).padStart(2, '0');
-  
+
   return `${year}-${month}-${day}T${hour}:${minute}:00+04:00`;
 }
 

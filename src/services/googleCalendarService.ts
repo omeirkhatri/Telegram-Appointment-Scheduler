@@ -1,14 +1,14 @@
 import { CalendarEventFormatter } from '@/lib/calendarEventFormatter';
-import { googleCalendarAuth } from '@/lib/googleCalendarAuth';
-import { retryWithBackoff, RETRY_CONFIGS, isRetryableError } from '@/lib/retryUtils';
-import { 
-  detectConflicts, 
-  resolveConflicts, 
-  validateAppointmentForSync,
-  type CalendarEvent,
-  type ConflictInfo 
+import {
+    detectConflicts,
+    resolveConflicts,
+    validateAppointmentForSync,
+    type CalendarEvent,
+    type ConflictInfo
 } from '@/lib/conflictResolution';
+import { googleCalendarAuth } from '@/lib/googleCalendarAuth';
 import { operationQueue } from '@/lib/operationQueue';
+import { RETRY_CONFIGS, isRetryableError, retryWithBackoff } from '@/lib/retryUtils';
 import type { Staff } from '@/types';
 import type { Appointment } from '@/types/appointment';
 import { getAppointmentEndTime, getAppointmentTypeDisplayName } from '@/types/appointment';
@@ -133,7 +133,7 @@ export class GoogleCalendarService {
 
     if (!result.success) {
       console.error('Failed to create calendar event after retries:', result.error);
-      
+
       // If it's a retryable error and we have staff info, queue the operation
       if (isRetryableError(result.error) && staffId) {
         const operationId = operationQueue.addOperation('create_event', {
@@ -205,7 +205,7 @@ export class GoogleCalendarService {
 
     if (!result.success) {
       console.error('Failed to update calendar event after retries:', result.error);
-      
+
       // If it's a retryable error and we have staff info, queue the operation
       if (isRetryableError(result.error) && staffId) {
         const operationId = operationQueue.addOperation('update_event', {
@@ -230,7 +230,7 @@ export class GoogleCalendarService {
 
   // Delete calendar event with retry logic and conflict resolution
   async deleteCalendarEvent(
-    calendarId: string, 
+    calendarId: string,
     eventId: string,
     options: {
       appointmentId?: string;
@@ -269,7 +269,7 @@ export class GoogleCalendarService {
 
     if (!result.success) {
       console.error('Failed to delete calendar event after retries:', result.error);
-      
+
       // If it's a retryable error and we have staff info, queue the operation
       if (isRetryableError(result.error) && staffId) {
         const operationId = operationQueue.addOperation('delete_event', {
@@ -635,7 +635,7 @@ export class GoogleCalendarService {
     if (eventData.start && eventData.end) {
       const startTime = new Date(eventData.start.dateTime);
       const endTime = new Date(eventData.end.dateTime);
-      
+
       if (startTime >= endTime) {
         errors.push('Event end time must be after start time');
       }
@@ -652,7 +652,7 @@ export class GoogleCalendarService {
   ): Promise<ConflictInfo[]> {
     // Find the corresponding calendar event for this appointment
     const eventId = appointment.google_event_ids?.[staff.id];
-    const calendarEvent = eventId 
+    const calendarEvent = eventId
       ? calendarEvents.find(event => event.id === eventId) || null
       : null;
 
@@ -682,7 +682,7 @@ export class GoogleCalendarService {
     requiresManualReview: boolean;
   }> {
     const conflicts = await this.checkAppointmentConflicts(appointment, staff, calendarEvents);
-    
+
     if (conflicts.length === 0) {
       return {
         resolved: true,
@@ -695,7 +695,7 @@ export class GoogleCalendarService {
     // Check if any conflicts require manual review
     const criticalConflicts = conflicts.filter(c => c.severity === 'critical');
     const timeConflicts = conflicts.filter(c => c.type === 'time_conflict');
-    
+
     if (criticalConflicts.length > 0 || timeConflicts.length > 0) {
       return {
         resolved: false,
@@ -707,7 +707,7 @@ export class GoogleCalendarService {
 
     // Try to resolve conflicts automatically
     const eventId = appointment.google_event_ids?.[staff.id];
-    const calendarEvent = eventId 
+    const calendarEvent = eventId
       ? calendarEvents.find(event => event.id === eventId) || null
       : null;
 
@@ -766,7 +766,7 @@ export class GoogleCalendarService {
 
       // Perform the sync based on resolution
       const eventId = appointment.google_event_ids?.[staff.id];
-      
+
       if (conflictResult.action === 'create_event' || !eventId) {
         // Create new event
         const newEventId = await this.createAppointmentEvent(
@@ -821,7 +821,7 @@ export class GoogleCalendarService {
 
     } catch (error) {
       console.error('Failed to sync appointment with calendar:', error);
-      
+
       // Queue the operation for retry
       if (staff.id) {
         operationQueue.addOperation('sync_calendar', {

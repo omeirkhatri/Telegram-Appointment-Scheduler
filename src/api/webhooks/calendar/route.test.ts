@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import { POST, GET } from './route';
+import { GET, POST } from './route';
 
 // Mock the services
 jest.mock('@/services/appointmentService');
@@ -66,7 +66,7 @@ jest.doMock('@/lib/retryUtils', () => mockRetryUtils);
 describe('Calendar Webhook Route', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    
+
     // Set up default mock responses
     mockStaffService.getStaffByCalendarId.mockResolvedValue({
       id: 'staff-1',
@@ -305,9 +305,9 @@ describe('Calendar Webhook Route', () => {
 
       mockGoogleCalendarService.getCalendarEvents.mockResolvedValue([mockEvent]);
       mockAppointmentService.getAppointmentsByStaff.mockResolvedValue([]);
-      mockRetryUtils.retryWithBackoff.mockResolvedValue({ 
-        success: false, 
-        error: new Error('Processing failed') 
+      mockRetryUtils.retryWithBackoff.mockResolvedValue({
+        success: false,
+        error: new Error('Processing failed')
       });
 
       const request = new NextRequest('http://localhost:3000/api/webhooks/calendar', {

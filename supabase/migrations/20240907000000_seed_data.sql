@@ -16,7 +16,7 @@ INSERT INTO patients (
     preferred_transport,
     created_at,
     updated_at
-) VALUES 
+) VALUES
 (
     '550e8400-e29b-41d4-a716-446655440001',
     'Ahmed Al Mansouri',
@@ -110,7 +110,7 @@ INSERT INTO staff (
     email_notifications_enabled,
     created_at,
     updated_at
-) VALUES 
+) VALUES
 (
     '660e8400-e29b-41d4-a716-446655440001',
     'Dr. Sarah',
@@ -264,7 +264,7 @@ INSERT INTO appointments (
     notes,
     created_at,
     updated_at
-) VALUES 
+) VALUES
 (
     '770e8400-e29b-41d4-a716-446655440001',
     '550e8400-e29b-41d4-a716-446655440001',
@@ -371,7 +371,7 @@ INSERT INTO appointment_staff (
     is_primary,
     created_at,
     updated_at
-) VALUES 
+) VALUES
 -- Doctor on Call appointment
 (
     '880e8400-e29b-41d4-a716-446655440001',
@@ -468,7 +468,7 @@ INSERT INTO appointments (
     recurring_rule,
     created_at,
     updated_at
-) VALUES 
+) VALUES
 (
     '770e8400-e29b-41d4-a716-446655440007',
     '550e8400-e29b-41d4-a716-446655440003',
@@ -513,7 +513,7 @@ INSERT INTO appointment_staff (
     is_primary,
     created_at,
     updated_at
-) VALUES 
+) VALUES
 (
     '880e8400-e29b-41d4-a716-446655440009',
     '770e8400-e29b-41d4-a716-446655440007',

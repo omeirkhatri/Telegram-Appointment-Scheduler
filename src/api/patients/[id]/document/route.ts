@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server';
 import { patientService } from '@/services/patientService';
 import { storageService } from '@/services/storage';
+import { NextRequest, NextResponse } from 'next/server';
 
 // POST /api/patients/[id]/document - Upload ID document for a patient
 export async function POST(
@@ -12,9 +12,9 @@ export async function POST(
     const patient = await patientService.getPatient(params.id);
     if (!patient) {
       return NextResponse.json(
-        { 
-          success: false, 
-          error: 'Patient not found' 
+        {
+          success: false,
+          error: 'Patient not found'
         },
         { status: 404 }
       );
@@ -25,9 +25,9 @@ export async function POST(
 
     if (!file || file.size === 0) {
       return NextResponse.json(
-        { 
-          success: false, 
-          error: 'No file provided' 
+        {
+          success: false,
+          error: 'No file provided'
         },
         { status: 400 }
       );
@@ -37,9 +37,9 @@ export async function POST(
     const validation = storageService.validateFile(file);
     if (!validation.isValid) {
       return NextResponse.json(
-        { 
-          success: false, 
-          error: validation.error 
+        {
+          success: false,
+          error: validation.error
         },
         { status: 400 }
       );
@@ -50,9 +50,9 @@ export async function POST(
 
     if (!uploadResult.success) {
       return NextResponse.json(
-        { 
-          success: false, 
-          error: uploadResult.error 
+        {
+          success: false,
+          error: uploadResult.error
         },
         { status: 500 }
       );
@@ -67,8 +67,8 @@ export async function POST(
     // Get signed URL for immediate access
     const documentUrl = await storageService.getDocumentUrl(uploadResult.filePath!);
 
-    return NextResponse.json({ 
-      success: true, 
+    return NextResponse.json({
+      success: true,
       data: {
         filePath: uploadResult.filePath,
         fileName: file.name,
@@ -80,9 +80,9 @@ export async function POST(
   } catch (error) {
     console.error('Error uploading document:', error);
     return NextResponse.json(
-      { 
-        success: false, 
-        error: error instanceof Error ? error.message : 'Failed to upload document' 
+      {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to upload document'
       },
       { status: 500 }
     );
@@ -99,9 +99,9 @@ export async function DELETE(
     const patient = await patientService.getPatient(params.id);
     if (!patient) {
       return NextResponse.json(
-        { 
-          success: false, 
-          error: 'Patient not found' 
+        {
+          success: false,
+          error: 'Patient not found'
         },
         { status: 404 }
       );
@@ -109,9 +109,9 @@ export async function DELETE(
 
     if (!patient.id_document_url) {
       return NextResponse.json(
-        { 
-          success: false, 
-          error: 'No ID document found for this patient' 
+        {
+          success: false,
+          error: 'No ID document found for this patient'
         },
         { status: 404 }
       );
@@ -122,9 +122,9 @@ export async function DELETE(
 
     if (!deleteSuccess) {
       return NextResponse.json(
-        { 
-          success: false, 
-          error: 'Failed to delete document from storage' 
+        {
+          success: false,
+          error: 'Failed to delete document from storage'
         },
         { status: 500 }
       );
@@ -136,16 +136,16 @@ export async function DELETE(
       id_document_filename: null,
     });
 
-    return NextResponse.json({ 
-      success: true, 
-      message: 'ID document deleted successfully' 
+    return NextResponse.json({
+      success: true,
+      message: 'ID document deleted successfully'
     });
   } catch (error) {
     console.error('Error deleting document:', error);
     return NextResponse.json(
-      { 
-        success: false, 
-        error: error instanceof Error ? error.message : 'Failed to delete document' 
+      {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to delete document'
       },
       { status: 500 }
     );
@@ -162,9 +162,9 @@ export async function GET(
     const patient = await patientService.getPatient(params.id);
     if (!patient) {
       return NextResponse.json(
-        { 
-          success: false, 
-          error: 'Patient not found' 
+        {
+          success: false,
+          error: 'Patient not found'
         },
         { status: 404 }
       );
@@ -172,9 +172,9 @@ export async function GET(
 
     if (!patient.id_document_url) {
       return NextResponse.json(
-        { 
-          success: false, 
-          error: 'No ID document found for this patient' 
+        {
+          success: false,
+          error: 'No ID document found for this patient'
         },
         { status: 404 }
       );
@@ -185,16 +185,16 @@ export async function GET(
 
     if (!documentUrl) {
       return NextResponse.json(
-        { 
-          success: false, 
-          error: 'Failed to generate document URL' 
+        {
+          success: false,
+          error: 'Failed to generate document URL'
         },
         { status: 500 }
       );
     }
 
-    return NextResponse.json({ 
-      success: true, 
+    return NextResponse.json({
+      success: true,
       data: {
         documentUrl,
         fileName: patient.id_document_filename,
@@ -204,9 +204,9 @@ export async function GET(
   } catch (error) {
     console.error('Error getting document URL:', error);
     return NextResponse.json(
-      { 
-        success: false, 
-        error: error instanceof Error ? error.message : 'Failed to get document URL' 
+      {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to get document URL'
       },
       { status: 500 }
     );

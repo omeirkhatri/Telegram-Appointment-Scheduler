@@ -1,7 +1,7 @@
+import { googleCalendarService } from '@/services/googleCalendarService';
+import { staffService } from '@/services/staffService';
 import { NextRequest } from 'next/server';
 import { GET, POST } from './route';
-import { staffService } from '@/services/staffService';
-import { googleCalendarService } from '@/services/googleCalendarService';
 
 // Mock the services
 jest.mock('@/services/staffService');

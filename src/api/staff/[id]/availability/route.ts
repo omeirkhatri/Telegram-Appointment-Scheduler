@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { staffService } from '@/services/staffService';
 import { googleCalendarService } from '@/services/googleCalendarService';
+import { staffService } from '@/services/staffService';
+import { NextRequest, NextResponse } from 'next/server';
 
 // GET /api/staff/[id]/availability - Check staff availability
 export async function GET(
@@ -9,7 +9,7 @@ export async function GET(
 ) {
   try {
     const { searchParams } = new URL(request.url);
-    
+
     const time = searchParams.get('time'); // HH:MM format
     const day = searchParams.get('day'); // 1-7 (Monday-Sunday)
     const date = searchParams.get('date'); // YYYY-MM-DD format
@@ -20,9 +20,9 @@ export async function GET(
     const staff = await staffService.getStaffMember(params.id);
     if (!staff) {
       return NextResponse.json(
-        { 
-          success: false, 
-          error: 'Staff member not found' 
+        {
+          success: false,
+          error: 'Staff member not found'
         },
         { status: 404 }
       );
@@ -40,9 +40,9 @@ export async function GET(
     if (staff.status !== 'active') {
       availability.isAvailable = false;
       availability.reason = 'Staff member is not active';
-      return NextResponse.json({ 
-        success: true, 
-        data: availability 
+      return NextResponse.json({
+        success: true,
+        data: availability
       });
     }
 
@@ -57,7 +57,7 @@ export async function GET(
       const dayNum = parseInt(day);
       const isAvailable = await staffService.isStaffAvailableAtTime(params.id, time, dayNum);
       availability.isAvailable = isAvailable;
-      
+
       if (!isAvailable) {
         if (!staff.available_days.includes(dayNum)) {
           availability.reason = 'Staff member does not work on this day';
@@ -100,7 +100,7 @@ export async function GET(
                 endTime,
                 date
               );
-              
+
               if (!calendarAvailable) {
                 isAvailable = false;
                 reason = 'Staff member has conflicting appointments';
@@ -120,16 +120,16 @@ export async function GET(
       }
     }
 
-    return NextResponse.json({ 
-      success: true, 
-      data: availability 
+    return NextResponse.json({
+      success: true,
+      data: availability
     });
   } catch (error) {
     console.error('Error checking staff availability:', error);
     return NextResponse.json(
-      { 
-        success: false, 
-        error: error instanceof Error ? error.message : 'Failed to check staff availability' 
+      {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to check staff availability'
       },
       { status: 500 }
     );

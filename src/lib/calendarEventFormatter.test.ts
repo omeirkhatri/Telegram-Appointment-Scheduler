@@ -1,7 +1,7 @@
-import { CalendarEventFormatter } from './calendarEventFormatter';
 import type { Appointment } from '@/types/appointment';
 import type { Patient } from '@/types/patient';
 import type { Staff } from '@/types/staff';
+import { CalendarEventFormatter } from './calendarEventFormatter';
 
 // Mock data for testing
 const mockPatient: Patient = {

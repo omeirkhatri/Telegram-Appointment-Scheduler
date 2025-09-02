@@ -1,32 +1,32 @@
 import {
-  toUTC,
-  toLocal,
-  formatDateInTimezone,
-  nowInTimezone,
-  timeStringToUTC,
-  utcToTimeString,
-  dateStringToUTC,
-  utcToDateString,
-  getAppointmentStartTimeUTC,
-  getAppointmentEndTimeUTC,
-  formatAppointmentTimeRange,
-  appointmentsOverlap,
-  getWorkingHoursInTimezone,
-  isWithinWorkingHours,
-  getTimezoneOffset,
-  formatForGoogleCalendar,
-  formatDate,
-  formatTime,
-  formatDateTime,
-  now,
-  isToday,
-  isPast,
-  isFuture,
-  TZ,
-  UTC_TZ,
-  DATE_FMT,
-  TIME_FMT,
-  DATETIME_FMT,
+    appointmentsOverlap,
+    DATE_FMT,
+    dateStringToUTC,
+    DATETIME_FMT,
+    formatAppointmentTimeRange,
+    formatDate,
+    formatDateInTimezone,
+    formatDateTime,
+    formatForGoogleCalendar,
+    formatTime,
+    getAppointmentEndTimeUTC,
+    getAppointmentStartTimeUTC,
+    getTimezoneOffset,
+    getWorkingHoursInTimezone,
+    isFuture,
+    isPast,
+    isToday,
+    isWithinWorkingHours,
+    now,
+    nowInTimezone,
+    TIME_FMT,
+    timeStringToUTC,
+    toLocal,
+    toUTC,
+    TZ,
+    UTC_TZ,
+    utcToDateString,
+    utcToTimeString,
 } from './date';
 
 describe('Timezone Date Utilities', () => {
@@ -48,7 +48,7 @@ describe('Timezone Date Utilities', () => {
     it('should convert Asia/Dubai time to UTC', () => {
       const dubaiDate = new Date('2024-01-15T10:30:00+04:00');
       const utcDate = toUTC(dubaiDate);
-      
+
       // Should be 4 hours earlier in UTC
       expect(utcDate.getUTCHours()).toBe(6); // 10:30 - 4 hours = 06:30 UTC
     });
@@ -63,7 +63,7 @@ describe('Timezone Date Utilities', () => {
     it('should convert UTC time to Asia/Dubai timezone', () => {
       const utcDate = new Date('2024-01-15T06:30:00.000Z');
       const localDate = toLocal(utcDate);
-      
+
       // Should be 4 hours later in Dubai
       expect(localDate.getHours()).toBe(10); // 06:30 + 4 hours = 10:30 Dubai
     });
@@ -157,7 +157,7 @@ describe('Timezone Date Utilities', () => {
     it('should get appointment end time in UTC', () => {
       const startUTC = getAppointmentStartTimeUTC('2024-01-15', '10:30');
       const endUTC = getAppointmentEndTimeUTC('2024-01-15', '10:30', 60);
-      
+
       expect(endUTC).toBeInstanceOf(Date);
       expect(endUTC.getTime()).toBe(startUTC.getTime() + 60 * 60000); // 60 minutes later
     });
@@ -341,11 +341,11 @@ describe('Timezone Date Utilities', () => {
     it('should maintain consistency in round-trip conversions', () => {
       const originalDate = '2024-01-15';
       const originalTime = '10:30';
-      
+
       const utcDate = dateStringToUTC(originalDate, originalTime);
       const convertedDate = utcToDateString(utcDate);
       const convertedTime = utcToTimeString(utcDate);
-      
+
       expect(convertedDate).toBe(originalDate);
       expect(convertedTime).toBe(originalTime);
     });
@@ -354,13 +354,13 @@ describe('Timezone Date Utilities', () => {
       const appointmentDate = '2024-01-15';
       const startTime = '10:30';
       const duration = 60;
-      
+
       const startUTC = getAppointmentStartTimeUTC(appointmentDate, startTime);
       const endUTC = getAppointmentEndTimeUTC(appointmentDate, startTime, duration);
-      
+
       const timeRange = formatAppointmentTimeRange(appointmentDate, startTime, duration);
       const googleCalendarFormat = formatForGoogleCalendar(appointmentDate, startTime);
-      
+
       expect(startUTC).toBeInstanceOf(Date);
       expect(endUTC).toBeInstanceOf(Date);
       expect(timeRange).toBe('10:30 - 11:30');
@@ -368,4 +368,3 @@ describe('Timezone Date Utilities', () => {
     });
   });
 });
-

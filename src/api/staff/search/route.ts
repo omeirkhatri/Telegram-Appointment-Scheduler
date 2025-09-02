@@ -1,19 +1,19 @@
-import { NextRequest, NextResponse } from 'next/server';
 import { staffService } from '@/services/staffService';
+import { NextRequest, NextResponse } from 'next/server';
 
 // GET /api/staff/search - Search staff with advanced filtering
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    
+
     const searchTerm = searchParams.get('q') || '';
     const staffType = searchParams.get('staff_type') || '';
     const status = searchParams.get('status') || '';
     const hasGoogleCalendar = searchParams.get('has_google_calendar');
     const availableOnDay = searchParams.get('available_on_day');
-    
+
     let staff;
-    
+
     if (searchTerm) {
       // Use search functionality
       staff = await staffService.searchStaff(searchTerm);
@@ -44,17 +44,17 @@ export async function GET(request: NextRequest) {
       staff = await staffService.getStaff(filters);
     }
 
-    return NextResponse.json({ 
-      success: true, 
+    return NextResponse.json({
+      success: true,
       data: staff,
       count: staff.length
     });
   } catch (error) {
     console.error('Error searching staff:', error);
     return NextResponse.json(
-      { 
-        success: false, 
-        error: error instanceof Error ? error.message : 'Failed to search staff' 
+      {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to search staff'
       },
       { status: 500 }
     );

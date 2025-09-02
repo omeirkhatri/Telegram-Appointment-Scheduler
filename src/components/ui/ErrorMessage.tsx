@@ -1,4 +1,3 @@
-import React from 'react';
 
 interface ErrorMessageProps {
   error: string | Error | null;
@@ -9,13 +8,13 @@ interface ErrorMessageProps {
   className?: string;
 }
 
-export function ErrorMessage({ 
-  error, 
+export function ErrorMessage({
+  error,
   title = 'Error',
   onRetry,
   onDismiss,
   variant = 'card',
-  className = '' 
+  className = ''
 }: ErrorMessageProps) {
   if (!error) return null;
 
@@ -47,8 +46,8 @@ export function ErrorMessage({
               <button
                 onClick={onRetry}
                 className={`text-sm font-medium ${
-                  variant === 'banner' 
-                    ? 'text-white hover:text-red-100' 
+                  variant === 'banner'
+                    ? 'text-white hover:text-red-100'
                     : 'text-red-800 hover:text-red-900'
                 }`}
               >
@@ -59,8 +58,8 @@ export function ErrorMessage({
               <button
                 onClick={onDismiss}
                 className={`text-sm font-medium ${
-                  variant === 'banner' 
-                    ? 'text-white hover:text-red-100' 
+                  variant === 'banner'
+                    ? 'text-white hover:text-red-100'
                     : 'text-red-800 hover:text-red-900'
                 }`}
               >

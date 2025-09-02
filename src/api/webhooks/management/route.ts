@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server';
 import { webhookService } from '@/services/webhookService';
+import { NextRequest, NextResponse } from 'next/server';
 
 /**
  * GET /api/webhooks/management - Get webhook status for all staff
@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
       // Get webhook status for specific staff member
       const status = await webhookService.getWebhookStatusForAllStaff();
       const staffStatus = status.find(s => s.staffId === staffId);
-      
+
       if (!staffStatus) {
         return NextResponse.json(
           { error: 'Staff member not found' },
@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
     } else {
       // Get webhook status for all staff members
       const statuses = await webhookService.getWebhookStatusForAllStaff();
-      
+
       return NextResponse.json({
         success: true,
         data: statuses

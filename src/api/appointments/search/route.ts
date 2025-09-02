@@ -1,11 +1,11 @@
-import { NextRequest, NextResponse } from 'next/server';
 import { appointmentService } from '@/services/appointmentService';
+import { NextRequest, NextResponse } from 'next/server';
 
 // GET /api/appointments/search - Search appointments with advanced filtering
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    
+
     const patientId = searchParams.get('patient_id') || '';
     const appointmentType = searchParams.get('appointment_type') || '';
     const status = searchParams.get('status') || '';
@@ -13,9 +13,9 @@ export async function GET(request: NextRequest) {
     const dateTo = searchParams.get('date_to') || '';
     const driverId = searchParams.get('driver_id') || '';
     const hasRecurringRule = searchParams.get('has_recurring_rule');
-    
+
     let appointments;
-    
+
     if (patientId) {
       // Get appointments by patient
       appointments = await appointmentService.getAppointmentsByPatient(patientId);
@@ -55,17 +55,17 @@ export async function GET(request: NextRequest) {
       appointments = await appointmentService.getAppointments(filters);
     }
 
-    return NextResponse.json({ 
-      success: true, 
+    return NextResponse.json({
+      success: true,
       data: appointments,
       count: appointments.length
     });
   } catch (error) {
     console.error('Error searching appointments:', error);
     return NextResponse.json(
-      { 
-        success: false, 
-        error: error instanceof Error ? error.message : 'Failed to search appointments' 
+      {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to search appointments'
       },
       { status: 500 }
     );

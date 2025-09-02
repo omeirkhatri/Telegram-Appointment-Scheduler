@@ -28,7 +28,7 @@ describe('WebhookService', () => {
     it('should set up webhook successfully for staff with calendar', async () => {
       const { staffService } = require('@/services/staffService');
       const { googleCalendarService } = require('@/services/googleCalendarService');
-      
+
       // Mock staff member
       staffService.getStaffMember.mockResolvedValue({
         id: 'staff-1',
@@ -54,7 +54,7 @@ describe('WebhookService', () => {
 
     it('should fail when staff member not found', async () => {
       const { staffService } = require('@/services/staffService');
-      
+
       staffService.getStaffMember.mockResolvedValue(null);
 
       const result = await webhookService.setupWebhookForStaff('staff-1');
@@ -65,7 +65,7 @@ describe('WebhookService', () => {
 
     it('should fail when staff has no Google Calendar ID', async () => {
       const { staffService } = require('@/services/staffService');
-      
+
       staffService.getStaffMember.mockResolvedValue({
         id: 'staff-1',
         first_name: 'Dr. Sarah',
@@ -82,7 +82,7 @@ describe('WebhookService', () => {
     it('should fail when cannot access calendar', async () => {
       const { staffService } = require('@/services/staffService');
       const { googleCalendarService } = require('@/services/googleCalendarService');
-      
+
       staffService.getStaffMember.mockResolvedValue({
         id: 'staff-1',
         first_name: 'Dr. Sarah',
@@ -100,7 +100,7 @@ describe('WebhookService', () => {
 
     it('should handle service errors', async () => {
       const { staffService } = require('@/services/staffService');
-      
+
       staffService.getStaffMember.mockRejectedValue(new Error('Service error'));
 
       const result = await webhookService.setupWebhookForStaff('staff-1');
@@ -114,7 +114,7 @@ describe('WebhookService', () => {
     it('should remove webhook successfully', async () => {
       const { staffService } = require('@/services/staffService');
       const { googleCalendarService } = require('@/services/googleCalendarService');
-      
+
       staffService.getStaffMember.mockResolvedValue({
         id: 'staff-1',
         first_name: 'Dr. Sarah',
@@ -140,7 +140,7 @@ describe('WebhookService', () => {
 
     it('should fail when staff member not found', async () => {
       const { staffService } = require('@/services/staffService');
-      
+
       staffService.getStaffMember.mockResolvedValue(null);
 
       const result = await webhookService.removeWebhookForStaff('staff-1');
@@ -151,7 +151,7 @@ describe('WebhookService', () => {
 
     it('should fail when no webhook found', async () => {
       const { staffService } = require('@/services/staffService');
-      
+
       staffService.getStaffMember.mockResolvedValue({
         id: 'staff-1',
         first_name: 'Dr. Sarah',
@@ -173,7 +173,7 @@ describe('WebhookService', () => {
     it('should refresh webhook successfully', async () => {
       const { staffService } = require('@/services/staffService');
       const { googleCalendarService } = require('@/services/googleCalendarService');
-      
+
       staffService.getStaffMember.mockResolvedValue({
         id: 'staff-1',
         first_name: 'Dr. Sarah',
@@ -207,7 +207,7 @@ describe('WebhookService', () => {
     it('should set up webhooks for all staff with calendar integration', async () => {
       const { staffService } = require('@/services/staffService');
       const { googleCalendarService } = require('@/services/googleCalendarService');
-      
+
       staffService.getStaffMembers.mockResolvedValue([
         {
           id: 'staff-1',
@@ -241,7 +241,7 @@ describe('WebhookService', () => {
     it('should handle partial failures', async () => {
       const { staffService } = require('@/services/staffService');
       const { googleCalendarService } = require('@/services/googleCalendarService');
-      
+
       staffService.getStaffMembers.mockResolvedValue([
         {
           id: 'staff-1',
@@ -275,7 +275,7 @@ describe('WebhookService', () => {
   describe('getWebhookStatusForAllStaff', () => {
     it('should return webhook status for all staff', async () => {
       const { staffService } = require('@/services/staffService');
-      
+
       staffService.getStaffMembers.mockResolvedValue([
         {
           id: 'staff-1',
@@ -306,7 +306,7 @@ describe('WebhookService', () => {
     it('should test connectivity successfully', async () => {
       const { staffService } = require('@/services/staffService');
       const { googleCalendarService } = require('@/services/googleCalendarService');
-      
+
       staffService.getStaffMember.mockResolvedValue({
         id: 'staff-1',
         first_name: 'Dr. Sarah',
@@ -331,7 +331,7 @@ describe('WebhookService', () => {
 
     it('should fail when staff member not found', async () => {
       const { staffService } = require('@/services/staffService');
-      
+
       staffService.getStaffMember.mockResolvedValue(null);
 
       const result = await webhookService.testWebhookConnectivity('staff-1');
@@ -343,7 +343,7 @@ describe('WebhookService', () => {
     it('should handle missing calendar access', async () => {
       const { staffService } = require('@/services/staffService');
       const { googleCalendarService } = require('@/services/googleCalendarService');
-      
+
       staffService.getStaffMember.mockResolvedValue({
         id: 'staff-1',
         first_name: 'Dr. Sarah',
@@ -364,7 +364,7 @@ describe('WebhookService', () => {
   describe('getWebhookExpirationWarnings', () => {
     it('should return expiration warnings for expiring webhooks', async () => {
       const { staffService } = require('@/services/staffService');
-      
+
       staffService.getStaffMembers.mockResolvedValue([
         {
           id: 'staff-1',
@@ -391,7 +391,7 @@ describe('WebhookService', () => {
 
     it('should not return warnings for non-expiring webhooks', async () => {
       const { staffService } = require('@/services/staffService');
-      
+
       staffService.getStaffMembers.mockResolvedValue([
         {
           id: 'staff-1',

@@ -1,7 +1,6 @@
-import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { PatientSearch } from './PatientSearch';
 import type { Patient } from '@/types';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { PatientSearch } from './PatientSearch';
 
 // Mock the hooks
 jest.mock('@/hooks', () => ({
@@ -51,7 +50,7 @@ describe('PatientSearch', () => {
 
   it('renders search input correctly', () => {
     render(<PatientSearch />);
-    
+
     expect(screen.getByPlaceholderText('Search patients by name, phone, or area...')).toBeInTheDocument();
     expect(screen.getByText('Show Filters')).toBeInTheDocument();
     expect(screen.getByText('Refresh')).toBeInTheDocument();
@@ -59,10 +58,10 @@ describe('PatientSearch', () => {
 
   it('handles search input changes', async () => {
     render(<PatientSearch />);
-    
+
     const searchInput = screen.getByPlaceholderText('Search patients by name, phone, or area...');
     fireEvent.change(searchInput, { target: { value: 'John' } });
-    
+
     await waitFor(() => {
       expect(mockHookReturn.setSearchTerm).toHaveBeenCalledWith('John');
     });
@@ -70,10 +69,10 @@ describe('PatientSearch', () => {
 
   it('toggles advanced filters visibility', () => {
     render(<PatientSearch />);
-    
+
     const toggleButton = screen.getByText('Show Filters');
     fireEvent.click(toggleButton);
-    
+
     expect(screen.getByText('Hide Filters')).toBeInTheDocument();
   });
 
@@ -85,7 +84,7 @@ describe('PatientSearch', () => {
     });
 
     render(<PatientSearch />);
-    
+
     expect(screen.getByText('John Doe')).toBeInTheDocument();
     expect(screen.getByText('+971501234567')).toBeInTheDocument();
     expect(screen.getByText('Dubai Marina')).toBeInTheDocument();
@@ -99,7 +98,7 @@ describe('PatientSearch', () => {
     });
 
     render(<PatientSearch />);
-    
+
     expect(screen.getByText('Loading...')).toBeInTheDocument();
   });
 
@@ -110,13 +109,13 @@ describe('PatientSearch', () => {
     });
 
     render(<PatientSearch />);
-    
+
     expect(screen.getByText('Failed to fetch patients')).toBeInTheDocument();
   });
 
   it('displays empty state when no patients found', () => {
     render(<PatientSearch />);
-    
+
     expect(screen.getByText('No patients found')).toBeInTheDocument();
     expect(screen.getByText('Try adjusting your search criteria or filters.')).toBeInTheDocument();
   });
@@ -130,28 +129,28 @@ describe('PatientSearch', () => {
     });
 
     render(<PatientSearch onPatientSelect={onPatientSelect} />);
-    
+
     const patientRow = screen.getByText('John Doe').closest('tr');
     fireEvent.click(patientRow!);
-    
+
     expect(onPatientSelect).toHaveBeenCalledWith(mockPatient);
   });
 
   it('handles refresh button click', () => {
     render(<PatientSearch />);
-    
+
     const refreshButton = screen.getByText('Refresh');
     fireEvent.click(refreshButton);
-    
+
     expect(mockHookReturn.refresh).toHaveBeenCalled();
   });
 
   it('handles page size change', () => {
     render(<PatientSearch />);
-    
+
     const pageSizeSelect = screen.getByDisplayValue('20');
     fireEvent.change(pageSizeSelect, { target: { value: '50' } });
-    
+
     expect(mockHookReturn.setPageSize).toHaveBeenCalledWith(50);
   });
 
@@ -164,7 +163,7 @@ describe('PatientSearch', () => {
     });
 
     render(<PatientSearch />);
-    
+
     expect(screen.getByText('Showing 1 to 20 of 25 patients')).toBeInTheDocument();
     expect(screen.getByText('Previous')).toBeInTheDocument();
     expect(screen.getByText('Next')).toBeInTheDocument();
@@ -179,10 +178,10 @@ describe('PatientSearch', () => {
     });
 
     render(<PatientSearch />);
-    
+
     const nextButton = screen.getByText('Next');
     fireEvent.click(nextButton);
-    
+
     expect(mockHookReturn.setPage).toHaveBeenCalledWith(2);
   });
 
@@ -194,7 +193,7 @@ describe('PatientSearch', () => {
     });
 
     render(<PatientSearch />);
-    
+
     expect(screen.getByText('Uploaded')).toBeInTheDocument();
     expect(screen.getByText('Taxi')).toBeInTheDocument();
   });
@@ -213,7 +212,7 @@ describe('PatientSearch', () => {
     });
 
     render(<PatientSearch />);
-    
+
     expect(screen.getByText('Not specified')).toBeInTheDocument();
     expect(screen.getByText('Missing')).toBeInTheDocument();
   });
@@ -227,22 +226,22 @@ describe('PatientSearch', () => {
     });
 
     render(<PatientSearch onPatientSelect={onPatientSelect} />);
-    
+
     const patientRow = screen.getByText('John Doe').closest('tr');
     fireEvent.click(patientRow!);
-    
+
     expect(onPatientSelect).toHaveBeenCalledWith(mockPatient);
   });
 
   it('does not show filters when showFilters is false', () => {
     render(<PatientSearch showFilters={false} />);
-    
+
     expect(screen.queryByText('Show Filters')).not.toBeInTheDocument();
   });
 
   it('applies custom className', () => {
     render(<PatientSearch className="custom-class" />);
-    
+
     const container = screen.getByPlaceholderText('Search patients by name, phone, or area...').closest('div');
     expect(container).toHaveClass('custom-class');
   });

@@ -1,7 +1,6 @@
-import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { PatientForm } from './PatientForm';
 import type { Patient } from '@/types';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { PatientForm } from './PatientForm';
 
 // Mock the form validation
 jest.mock('react-hook-form', () => ({

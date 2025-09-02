@@ -1,4 +1,3 @@
-import { CalendarEventFormatter } from '@/lib/calendarEventFormatter';
 import { appointmentService } from '@/services/appointmentService';
 import { appointmentStaffService } from '@/services/appointmentStaffService';
 import { googleCalendarService } from '@/services/googleCalendarService';

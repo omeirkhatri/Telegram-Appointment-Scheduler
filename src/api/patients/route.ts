@@ -1,48 +1,48 @@
-import { NextRequest, NextResponse } from 'next/server';
 import { patientService } from '@/services/patientService';
 import { storageService } from '@/services/storage';
-import type { CreatePatient, UpdatePatient, PatientFilters } from '@/types';
+import type { CreatePatient, PatientFilters } from '@/types';
+import { NextRequest, NextResponse } from 'next/server';
 
 // GET /api/patients - Get all patients with optional filtering
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    
+
     // Parse filters from query parameters
     const filters: PatientFilters = {};
-    
+
     if (searchParams.has('name')) {
       filters.name = searchParams.get('name')!;
     }
-    
+
     if (searchParams.has('phone')) {
       filters.phone = searchParams.get('phone')!;
     }
-    
+
     if (searchParams.has('area')) {
       filters.area = searchParams.get('area')!;
     }
-    
+
     if (searchParams.has('city')) {
       filters.city = searchParams.get('city')!;
     }
-    
+
     if (searchParams.has('has_id_document')) {
       filters.has_id_document = searchParams.get('has_id_document') === 'true';
     }
 
     const patients = await patientService.getPatients(filters);
-    
-    return NextResponse.json({ 
-      success: true, 
-      data: patients 
+
+    return NextResponse.json({
+      success: true,
+      data: patients
     });
   } catch (error) {
     console.error('Error fetching patients:', error);
     return NextResponse.json(
-      { 
-        success: false, 
-        error: error instanceof Error ? error.message : 'Failed to fetch patients' 
+      {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to fetch patients'
       },
       { status: 500 }
     );
@@ -53,7 +53,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();
-    
+
     // Extract patient data
     const patientData: CreatePatient = {
       name: formData.get('name') as string,
@@ -72,10 +72,10 @@ export async function POST(request: NextRequest) {
     const validationErrors = validatePatientData(patientData);
     if (validationErrors.length > 0) {
       return NextResponse.json(
-        { 
-          success: false, 
-          error: 'Validation failed', 
-          details: validationErrors 
+        {
+          success: false,
+          error: 'Validation failed',
+          details: validationErrors
         },
         { status: 400 }
       );
@@ -101,16 +101,16 @@ export async function POST(request: NextRequest) {
 
         // Fetch updated patient
         const updatedPatient = await patientService.getPatient(patient.id);
-        return NextResponse.json({ 
-          success: true, 
+        return NextResponse.json({
+          success: true,
           data: updatedPatient,
           message: 'Patient created successfully with ID document'
         });
       } else {
         // Patient created but file upload failed
         return NextResponse.json(
-          { 
-            success: true, 
+          {
+            success: true,
             data: patient,
             warning: 'Patient created but ID document upload failed',
             uploadError: uploadResult.error
@@ -120,17 +120,17 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    return NextResponse.json({ 
-      success: true, 
+    return NextResponse.json({
+      success: true,
       data: patient,
       message: 'Patient created successfully'
     }, { status: 201 });
   } catch (error) {
     console.error('Error creating patient:', error);
     return NextResponse.json(
-      { 
-        success: false, 
-        error: error instanceof Error ? error.message : 'Failed to create patient' 
+      {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to create patient'
       },
       { status: 500 }
     );

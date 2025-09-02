@@ -1,4 +1,3 @@
-import React from 'react';
 
 interface SuccessMessageProps {
   message: string;
@@ -8,12 +7,12 @@ interface SuccessMessageProps {
   className?: string;
 }
 
-export function SuccessMessage({ 
-  message, 
+export function SuccessMessage({
+  message,
   title = 'Success',
   onDismiss,
   variant = 'card',
-  className = '' 
+  className = ''
 }: SuccessMessageProps) {
   const baseClasses = 'flex items-start space-x-3 p-4 rounded-lg';
   const variantClasses = {
@@ -40,8 +39,8 @@ export function SuccessMessage({
             <button
               onClick={onDismiss}
               className={`text-sm font-medium ${
-                variant === 'banner' 
-                  ? 'text-white hover:text-green-100' 
+                variant === 'banner'
+                  ? 'text-white hover:text-green-100'
                   : 'text-green-800 hover:text-green-900'
               }`}
             >

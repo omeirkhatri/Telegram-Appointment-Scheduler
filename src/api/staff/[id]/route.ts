@@ -1,7 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { staffService } from '@/services/staffService';
 import { googleCalendarService } from '@/services/googleCalendarService';
+import { staffService } from '@/services/staffService';
 import type { UpdateStaff } from '@/types';
+import { NextRequest, NextResponse } from 'next/server';
 
 // GET /api/staff/[id] - Get a single staff member by ID
 export async function GET(
@@ -10,27 +10,27 @@ export async function GET(
 ) {
   try {
     const staff = await staffService.getStaffMember(params.id);
-    
+
     if (!staff) {
       return NextResponse.json(
-        { 
-          success: false, 
-          error: 'Staff member not found' 
+        {
+          success: false,
+          error: 'Staff member not found'
         },
         { status: 404 }
       );
     }
 
-    return NextResponse.json({ 
-      success: true, 
-      data: staff 
+    return NextResponse.json({
+      success: true,
+      data: staff
     });
   } catch (error) {
     console.error('Error fetching staff member:', error);
     return NextResponse.json(
-      { 
-        success: false, 
-        error: error instanceof Error ? error.message : 'Failed to fetch staff member' 
+      {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to fetch staff member'
       },
       { status: 500 }
     );
@@ -44,7 +44,7 @@ export async function PUT(
 ) {
   try {
     const body = await request.json();
-    
+
     // Extract staff data
     const updateData: Partial<UpdateStaff> = {
       first_name: body.first_name,
@@ -72,10 +72,10 @@ export async function PUT(
     const validationErrors = validateStaffUpdateData(updateData);
     if (validationErrors.length > 0) {
       return NextResponse.json(
-        { 
-          success: false, 
-          error: 'Validation failed', 
-          details: validationErrors 
+        {
+          success: false,
+          error: 'Validation failed',
+          details: validationErrors
         },
         { status: 400 }
       );
@@ -86,9 +86,9 @@ export async function PUT(
       const isValidFormat = googleCalendarService.validateCalendarId(updateData.google_calendar_id);
       if (!isValidFormat) {
         return NextResponse.json(
-          { 
-            success: false, 
-            error: 'Invalid Google Calendar ID format' 
+          {
+            success: false,
+            error: 'Invalid Google Calendar ID format'
           },
           { status: 400 }
         );
@@ -98,9 +98,9 @@ export async function PUT(
       const isConnected = await googleCalendarService.testCalendarConnection(updateData.google_calendar_id);
       if (!isConnected) {
         return NextResponse.json(
-          { 
-            success: false, 
-            error: 'Unable to connect to Google Calendar. Please check the calendar ID and permissions.' 
+          {
+            success: false,
+            error: 'Unable to connect to Google Calendar. Please check the calendar ID and permissions.'
           },
           { status: 400 }
         );
@@ -110,17 +110,17 @@ export async function PUT(
     // Update staff member
     const updatedStaff = await staffService.updateStaff(params.id, updateData);
 
-    return NextResponse.json({ 
-      success: true, 
+    return NextResponse.json({
+      success: true,
       data: updatedStaff,
       message: 'Staff member updated successfully'
     });
   } catch (error) {
     console.error('Error updating staff member:', error);
     return NextResponse.json(
-      { 
-        success: false, 
-        error: error instanceof Error ? error.message : 'Failed to update staff member' 
+      {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to update staff member'
       },
       { status: 500 }
     );
@@ -137,9 +137,9 @@ export async function DELETE(
     const staff = await staffService.getStaffMember(params.id);
     if (!staff) {
       return NextResponse.json(
-        { 
-          success: false, 
-          error: 'Staff member not found' 
+        {
+          success: false,
+          error: 'Staff member not found'
         },
         { status: 404 }
       );
@@ -148,16 +148,16 @@ export async function DELETE(
     // Delete staff member
     await staffService.deleteStaff(params.id);
 
-    return NextResponse.json({ 
-      success: true, 
-      message: 'Staff member deleted successfully' 
+    return NextResponse.json({
+      success: true,
+      message: 'Staff member deleted successfully'
     });
   } catch (error) {
     console.error('Error deleting staff member:', error);
     return NextResponse.json(
-      { 
-        success: false, 
-        error: error instanceof Error ? error.message : 'Failed to delete staff member' 
+      {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to delete staff member'
       },
       { status: 500 }
     );

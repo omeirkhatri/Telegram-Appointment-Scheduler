@@ -1,5 +1,5 @@
-import { google } from 'googleapis';
 import { JWT } from 'google-auth-library';
+import { google } from 'googleapis';
 
 // Google Calendar API v3 Authentication Configuration
 export class GoogleCalendarAuth {
@@ -50,7 +50,7 @@ export class GoogleCalendarAuth {
       // Test the authentication
       await this.auth.authorize();
       this.isInitialized = true;
-      
+
       console.log('Google Calendar service account authentication initialized successfully');
     } catch (error) {
       console.error('Failed to initialize Google Calendar service account authentication:', error);
@@ -61,7 +61,7 @@ export class GoogleCalendarAuth {
   // Initialize API key authentication (for read-only operations)
   initializeApiKey(): void {
     const apiKey = process.env.GOOGLE_CALENDAR_API_KEY;
-    
+
     if (!apiKey) {
       throw new Error(
         'Google Calendar API key not configured. ' +
@@ -129,8 +129,8 @@ export class GoogleCalendarAuth {
     const specialIdRegex = /^[a-zA-Z0-9._-]+@group\.calendar\.google\.com$/;
     const primaryCalendarRegex = /^primary$/;
 
-    return emailRegex.test(calendarId) || 
-           specialIdRegex.test(calendarId) || 
+    return emailRegex.test(calendarId) ||
+           specialIdRegex.test(calendarId) ||
            primaryCalendarRegex.test(calendarId);
   }
 
@@ -138,12 +138,12 @@ export class GoogleCalendarAuth {
   async testCalendarAccess(calendarId: string): Promise<boolean> {
     try {
       const calendar = await this.getCalendarClient();
-      
+
       // Try to get calendar metadata
       await calendar.calendars.get({
         calendarId: calendarId
       });
-      
+
       return true;
     } catch (error) {
       console.error(`Failed to access calendar ${calendarId}:`, error);
@@ -155,13 +155,13 @@ export class GoogleCalendarAuth {
   async getCalendarList(): Promise<any[]> {
     try {
       const calendar = await this.getCalendarClient();
-      
+
       const response = await calendar.calendarList.list({
         maxResults: 100,
         showDeleted: false,
         showHidden: false
       });
-      
+
       return response.data.items || [];
     } catch (error) {
       console.error('Failed to get calendar list:', error);

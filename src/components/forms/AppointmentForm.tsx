@@ -1,10 +1,10 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { useForm, useFieldArray } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
 import { appointmentFormSchema, type AppointmentFormData } from '@/lib/validations/appointment';
 import type { Appointment, Patient, Staff } from '@/types';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useState } from 'react';
+import { useFieldArray, useForm } from 'react-hook-form';
 
 interface AppointmentFormProps {
   appointment?: Appointment;
@@ -50,13 +50,13 @@ const RECURRING_FREQUENCIES = [
   { value: 'yearly', label: 'Yearly' },
 ] as const;
 
-export function AppointmentForm({ 
-  appointment, 
-  patients = [], 
-  staff = [], 
-  onSubmit, 
-  onCancel, 
-  isLoading = false 
+export function AppointmentForm({
+  appointment,
+  patients = [],
+  staff = [],
+  onSubmit,
+  onCancel,
+  isLoading = false
 }: AppointmentFormProps) {
   const [showRecurringOptions, setShowRecurringOptions] = useState(false);
   const [showCustomFields, setShowCustomFields] = useState(false);
@@ -144,7 +144,7 @@ export function AppointmentForm({
   const handleStaffRoleChange = (index: number, role: string) => {
     const newAssignments = [...watch('staff_assignments')];
     newAssignments[index].role = role as any;
-    
+
     // If this is primary, unset others
     if (role === 'primary') {
       newAssignments.forEach((assignment, i) => {
@@ -154,7 +154,7 @@ export function AppointmentForm({
       });
       newAssignments[index].is_primary = true;
     }
-    
+
     setValue('staff_assignments', newAssignments);
   };
 
@@ -163,7 +163,7 @@ export function AppointmentForm({
       {/* Basic Appointment Information */}
       <div className="bg-white p-6 rounded-lg shadow-sm border">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">Appointment Details</h3>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label htmlFor="patient_id" className="block text-sm font-medium text-gray-700 mb-1">
@@ -289,7 +289,7 @@ export function AppointmentForm({
       {/* Transportation */}
       <div className="bg-white p-6 rounded-lg shadow-sm border">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">Transportation</h3>
-        
+
         <div className="space-y-4">
           <div>
             <label htmlFor="transportation_type" className="block text-sm font-medium text-gray-700 mb-1">
@@ -378,7 +378,7 @@ export function AppointmentForm({
             Add Staff
           </button>
         </div>
-        
+
         {fields.length === 0 ? (
           <p className="text-gray-500 text-sm">No staff assigned yet. Click "Add Staff" to assign staff members.</p>
         ) : (
@@ -463,7 +463,7 @@ export function AppointmentForm({
           />
           <label className="text-lg font-semibold text-gray-900">Recurring Appointment</label>
         </div>
-        
+
         {showRecurringOptions && (
           <div className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -529,7 +529,7 @@ export function AppointmentForm({
       {/* Notes */}
       <div className="bg-white p-6 rounded-lg shadow-sm border">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">Notes</h3>
-        
+
         <div>
           <label htmlFor="notes" className="block text-sm font-medium text-gray-700 mb-1">
             Appointment Notes

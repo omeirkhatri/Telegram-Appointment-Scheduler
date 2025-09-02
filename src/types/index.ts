@@ -1,5 +1,5 @@
 // Re-export database types from Supabase
-export type { Database, Tables, Inserts, Updates } from '@/lib/supabase';
+export type { Database, Inserts, Tables, Updates } from '@/lib/supabase';
 
 // Re-export environment types
 export type { Config, Env } from '@/lib/env';
@@ -21,6 +21,10 @@ export * from './staff';
 export * from './appointment';
 // Export appointment staff types from dedicated file
 export * from './appointmentStaff';
+// Export email types from dedicated file
+export * from './email';
+// Export job types from dedicated file
+export * from './job';
 
 
 // Form types

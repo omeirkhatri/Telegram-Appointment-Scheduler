@@ -1,4 +1,3 @@
-import React from 'react';
 import { LoadingSpinner } from './LoadingSpinner';
 
 interface LoadingPageProps {
@@ -7,10 +6,10 @@ interface LoadingPageProps {
   className?: string;
 }
 
-export function LoadingPage({ 
-  message = 'Loading page...', 
+export function LoadingPage({
+  message = 'Loading page...',
   spinnerSize = 'xl',
-  className = '' 
+  className = ''
 }: LoadingPageProps) {
   return (
     <div className={`min-h-screen flex items-center justify-center bg-gray-50 ${className}`}>
