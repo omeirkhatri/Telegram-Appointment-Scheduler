@@ -44,6 +44,30 @@ export {
   MockSupabaseQueryBuilderFactory,
 } from './supabase-mocks';
 
+// Re-export Google Calendar mock factories
+export {
+  createMockGoogleCalendarEvent,
+  createMockGoogleCalendarEventResponse,
+  createMockGoogleCalendarListEntry,
+  createMockGoogleCalendarWebhookPayload,
+  createMockGoogleCalendarWatchResponse,
+  createMockGoogleCalendarEventsListResponse,
+  createMockGoogleCalendarEvents,
+  createMockGoogleCalendarList,
+  createMockGoogleCalendarError,
+  createMockGoogleCalendarAuthError,
+  createMockGoogleCalendarQuotaError,
+  mockGoogleCalendarClient,
+  mockGoogleCalendarAuth,
+  setupMockCalendarEvents,
+  setupMockCalendar,
+  setupMockWebhook,
+  clearAllGoogleCalendarMocks,
+  resetMockGoogleCalendar,
+  MockGoogleCalendarClient,
+  MockGoogleCalendarAuth,
+} from './google-calendar-mocks';
+
 // Legacy compatibility - keep these for existing tests
 export const mockSupabaseResponse = {
   data: null,

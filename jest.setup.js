@@ -96,6 +96,22 @@ jest.mock('./src/lib/supabase', () => ({
   executeQuery: jest.fn((queryFn) => queryFn()),
 }));
 
+// Mock Google Calendar API with comprehensive support
+const { mockGoogleCalendarClient, mockGoogleCalendarAuth, resetMockGoogleCalendar } = require('./src/utils/google-calendar-mocks');
+
+// Initialize mock data
+resetMockGoogleCalendar();
+
+jest.mock('googleapis', () => ({
+  google: {
+    calendar: jest.fn(() => mockGoogleCalendarClient),
+  },
+}));
+
+jest.mock('./src/lib/googleCalendarAuth', () => ({
+  googleCalendarAuth: mockGoogleCalendarAuth,
+}));
+
 // Mock environment configuration
 jest.mock('./src/lib/env', () => ({
   config: {

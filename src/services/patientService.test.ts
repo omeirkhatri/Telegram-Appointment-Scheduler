@@ -1,11 +1,11 @@
-import { patientService } from './patientService';
 import type { CreatePatient } from '@/types';
-import { 
-  createMockPatient, 
-  setupMockPatients, 
-  clearAllMocks,
-  mockSupabaseClient 
+import {
+    clearAllMocks,
+    createMockPatient,
+    mockSupabaseClient,
+    setupMockPatients
 } from '@/utils/test-utils';
+import { patientService } from './patientService';
 
 describe('PatientService', () => {
 
@@ -26,7 +26,7 @@ describe('PatientService', () => {
   describe('getPatients', () => {
     it('should fetch all patients without filters', async () => {
       setupMockPatients(2);
-      
+
       const result = await patientService.getPatients();
 
       expect(result).toHaveLength(2);
@@ -87,9 +87,9 @@ describe('PatientService', () => {
 
   describe('updatePatient', () => {
     it('should update an existing patient', async () => {
-      const updatedPatient = createMockPatient({ 
-        id: 'test-id', 
-        name: 'Jane Doe' 
+      const updatedPatient = createMockPatient({
+        id: 'test-id',
+        name: 'Jane Doe'
       });
       mockSupabaseClient.setTableData('patients', [updatedPatient]);
 

@@ -1,27 +1,15 @@
 /**
  * Comprehensive Supabase Query Mocking Utilities
- * 
+ *
  * Provides type-safe, consistent mocking for all Supabase query patterns
  * used throughout the MediCare Scheduler application.
  */
 
-import type { 
-  Patient, 
-  Staff, 
-  Appointment, 
-  AppointmentStaff,
-  CreatePatient,
-  CreateStaff,
-  CreateAppointment,
-  CreateAppointmentStaff,
-  UpdatePatient,
-  UpdateStaff,
-  UpdateAppointment,
-  UpdateAppointmentStaff,
-  PatientFilters,
-  StaffFilters,
-  AppointmentFilters,
-  AppointmentStaffFilters
+import type {
+    Appointment,
+    AppointmentStaff,
+    Patient,
+    Staff
 } from '@/types';
 
 // Mock response types
@@ -152,29 +140,29 @@ export const createMockAppointmentStaff = (overrides: Partial<AppointmentStaff> 
 });
 
 // Mock collections
-export const createMockPatients = (count: number = 3): Patient[] => 
-  Array.from({ length: count }, (_, i) => 
-    createMockPatient({ 
-      id: `patient-${i + 1}`, 
+export const createMockPatients = (count: number = 3): Patient[] =>
+  Array.from({ length: count }, (_, i) =>
+    createMockPatient({
+      id: `patient-${i + 1}`,
       name: `Patient ${i + 1}`,
       phone: `+97150123456${i}`,
     })
   );
 
-export const createMockStaffMembers = (count: number = 3): Staff[] => 
-  Array.from({ length: count }, (_, i) => 
-    createMockStaff({ 
-      id: `staff-${i + 1}`, 
+export const createMockStaffMembers = (count: number = 3): Staff[] =>
+  Array.from({ length: count }, (_, i) =>
+    createMockStaff({
+      id: `staff-${i + 1}`,
       first_name: `Staff${i + 1}`,
       last_name: 'Member',
       email: `staff${i + 1}@example.com`,
     })
   );
 
-export const createMockAppointments = (count: number = 3): Appointment[] => 
-  Array.from({ length: count }, (_, i) => 
-    createMockAppointment({ 
-      id: `appointment-${i + 1}`, 
+export const createMockAppointments = (count: number = 3): Appointment[] =>
+  Array.from({ length: count }, (_, i) =>
+    createMockAppointment({
+      id: `appointment-${i + 1}`,
       patient_id: `patient-${i + 1}`,
       appointment_date: `2024-01-${15 + i}`,
     })
@@ -243,7 +231,7 @@ export class MockSupabaseQueryBuilderFactory<T> {
   // Create the query builder
   create(): MockSupabaseQueryBuilder<T> {
     const self = this;
-    
+
     const queryBuilder: MockSupabaseQueryBuilder<T> = {
       select: (columns?: string) => {
         self.queryChain.push(`select(${columns || '*'})`);
@@ -499,7 +487,7 @@ export class MockSupabaseQueryBuilderFactory<T> {
 
   private async executeSingle(): Promise<MockSupabaseResponse<T>> {
     const result = await this.execute();
-    
+
     if (result.error) {
       return result;
     }
@@ -526,7 +514,7 @@ export class MockSupabaseQueryBuilderFactory<T> {
 
   private async executeMaybeSingle(): Promise<MockSupabaseResponse<T>> {
     const result = await this.execute();
-    
+
     if (result.error) {
       return result;
     }
@@ -573,7 +561,7 @@ export class MockSupabaseClient {
   from<T>(table: string): MockSupabaseQueryBuilder<T> {
     const tableData = this.tableMocks.get(table) || [];
     const tableError = this.tableErrors.get(table);
-    
+
     const factory = new MockSupabaseQueryBuilderFactory<T>(tableData, tableError);
     return factory.create();
   }
@@ -620,8 +608,8 @@ export const setupMockAppointments = (count: number = 3) => {
 };
 
 export const setupMockAppointmentStaff = (count: number = 3) => {
-  const appointmentStaff = Array.from({ length: count }, (_, i) => 
-    createMockAppointmentStaff({ 
+  const appointmentStaff = Array.from({ length: count }, (_, i) =>
+    createMockAppointmentStaff({
       id: `appointment-staff-${i + 1}`,
       appointment_id: `appointment-${i + 1}`,
       staff_id: `staff-${i + 1}`,

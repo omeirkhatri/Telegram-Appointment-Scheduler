@@ -64,7 +64,7 @@
 - [x] 8.2 Component tests for forms
 - [x] 8.3 Integration tests for APIs
 - [x] 8.4 Supabase query mocking
-- [ ] 8.5 Google Calendar API mocking
+- [x] 8.5 Google Calendar API mocking
 - [ ] 8.6 End-to-end tests for critical flows
 - [ ] 8.7 Performance testing
 - [ ] 8.8 Accessibility compliance
