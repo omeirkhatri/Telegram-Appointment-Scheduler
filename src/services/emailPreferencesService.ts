@@ -1,8 +1,8 @@
 import { supabase } from '@/lib/supabase';
-import { 
-  GlobalEmailPreferences, 
-  DEFAULT_EMAIL_PREFERENCES, 
-  validateEmailPreferences 
+import {
+    DEFAULT_EMAIL_PREFERENCES,
+    GlobalEmailPreferences,
+    validateEmailPreferences
 } from '@/types/emailPreferences';
 
 export class EmailPreferencesService {
@@ -55,7 +55,7 @@ export class EmailPreferencesService {
 
       // Get current preferences
       const currentPreferences = await this.getGlobalEmailPreferences();
-      
+
       // Merge with current preferences
       const updatedPreferences = {
         ...currentPreferences,
@@ -211,7 +211,7 @@ export class EmailPreferencesService {
   }> {
     try {
       const preferences = await this.getGlobalEmailPreferences();
-      
+
       // Basic validation
       if (!preferences.smtpHost || !preferences.smtpPort || !preferences.fromEmail) {
         return {
@@ -259,7 +259,7 @@ export class EmailPreferencesService {
   async importPreferences(jsonData: string): Promise<GlobalEmailPreferences> {
     try {
       const preferences = JSON.parse(jsonData) as Partial<GlobalEmailPreferences>;
-      
+
       // Validate imported preferences
       const validation = validateEmailPreferences(preferences);
       if (!validation.isValid) {

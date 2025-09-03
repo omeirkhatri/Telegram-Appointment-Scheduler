@@ -1,6 +1,9 @@
 'use client';
 
 import Header from '@/components/layout/Header';
+import { StaffModal } from '@/components/modals';
+import { useStaff } from '@/hooks';
+import type { Staff } from '@/types';
 import {
     Filter,
     MoreHorizontal,
@@ -10,71 +13,40 @@ import {
     UserCheck,
     Users,
 } from 'lucide-react';
+import { useState } from 'react';
 
 export default function StaffPage() {
-  // Sample staff data
-  const staff = [
-    {
-      id: 1,
-      name: 'Dr. Sarah Smith',
-      email: 'dr.smith@medicare.com',
-      phone: '+1 (555) 123-4567',
-      role: 'Doctor',
-      department: 'Cardiology',
-      status: 'Active',
-      schedule: 'Mon-Fri, 9AM-5PM',
-      patients: 45,
-      avatar: 'SS',
-    },
-    {
-      id: 2,
-      name: 'Dr. Michael Johnson',
-      email: 'dr.johnson@medicare.com',
-      phone: '+1 (555) 234-5678',
-      role: 'Doctor',
-      department: 'Neurology',
-      status: 'Active',
-      schedule: 'Mon-Fri, 8AM-4PM',
-      patients: 38,
-      avatar: 'MJ',
-    },
-    {
-      id: 3,
-      name: 'Dr. Emily Brown',
-      email: 'dr.brown@medicare.com',
-      phone: '+1 (555) 345-6789',
-      role: 'Doctor',
-      department: 'Pediatrics',
-      status: 'Active',
-      schedule: 'Mon-Fri, 10AM-6PM',
-      patients: 52,
-      avatar: 'EB',
-    },
-    {
-      id: 4,
-      name: 'Nurse Jennifer Wilson',
-      email: 'nurse.wilson@medicare.com',
-      phone: '+1 (555) 456-7890',
-      role: 'Nurse',
-      department: 'Emergency',
-      status: 'Active',
-      schedule: 'Rotating shifts',
-      patients: 28,
-      avatar: 'JW',
-    },
-    {
-      id: 5,
-      name: 'Dr. Robert Davis',
-      email: 'dr.davis@medicare.com',
-      phone: '+1 (555) 567-8901',
-      role: 'Doctor',
-      department: 'Orthopedics',
-      status: 'On Leave',
-      schedule: 'Mon-Fri, 9AM-5PM',
-      patients: 0,
-      avatar: 'RD',
-    },
-  ];
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedStaff, setSelectedStaff] = useState<Staff | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+
+  const {
+    staff,
+    isLoading,
+    error,
+    createStaff,
+    updateStaff,
+    refresh,
+  } = useStaff();
+
+  const handleAddStaff = () => {
+    setSelectedStaff(null);
+    setIsModalOpen(true);
+  };
+
+  const handleEditStaff = (staffMember: Staff) => {
+    setSelectedStaff(staffMember);
+    setIsModalOpen(true);
+  };
+
+  const handleModalClose = () => {
+    setIsModalOpen(false);
+    setSelectedStaff(null);
+  };
+
+  const handleModalSuccess = () => {
+    refresh();
+  };
 
   return (
     <div className="min-h-screen bg-[--background] text-[--foreground]">
@@ -89,7 +61,11 @@ export default function StaffPage() {
             <h1 className="text-3xl font-bold text-[--foreground]">Staff</h1>
             <p className="text-[--muted-foreground] text-lg mt-1">Manage healthcare staff and schedules</p>
           </div>
-          <button className="inline-flex items-center px-4 py-2 bg-[--primary] text-[--primary-foreground] rounded-lg hover:bg-[--primary]/90 transition-colors">
+          <button 
+            onClick={handleAddStaff}
+            data-testid="new-staff-button"
+            className="inline-flex items-center px-4 py-2 bg-[--primary] text-[--primary-foreground] rounded-lg hover:bg-[--primary]/90 transition-colors"
+          >
             <Plus className="w-4 h-4 mr-2" />
             Add Staff
           </button>
@@ -101,7 +77,7 @@ export default function StaffPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-[--muted-foreground]">Total Staff</p>
-                <p className="text-3xl font-bold text-[--foreground]">24</p>
+                <p className="text-3xl font-bold text-[--foreground]">{staff.length}</p>
               </div>
               <Users className="w-8 h-8 text-[--medical-blue]" />
             </div>
@@ -110,7 +86,7 @@ export default function StaffPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-[--muted-foreground]">Doctors</p>
-                <p className="text-3xl font-bold text-[--foreground]">8</p>
+                <p className="text-3xl font-bold text-[--foreground]">{staff.filter(s => s.staff_type === 'doctor').length}</p>
               </div>
               <UserCheck className="w-8 h-8 text-[--success]" />
             </div>
@@ -119,7 +95,7 @@ export default function StaffPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-[--muted-foreground]">Nurses</p>
-                <p className="text-3xl font-bold text-[--foreground]">12</p>
+                <p className="text-3xl font-bold text-[--foreground]">{staff.filter(s => s.staff_type === 'nurse').length}</p>
               </div>
               <Plus className="w-8 h-8 text-[--warning]" />
             </div>
@@ -128,7 +104,7 @@ export default function StaffPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-[--muted-foreground]">Support Staff</p>
-                <p className="text-3xl font-bold text-[--foreground]">4</p>
+                <p className="text-3xl font-bold text-[--foreground]">{staff.filter(s => !['doctor', 'nurse'].includes(s.staff_type)).length}</p>
               </div>
               <UserCheck className="w-8 h-8 text-[--error]" />
             </div>
@@ -143,6 +119,9 @@ export default function StaffPage() {
               <input
                 type="text"
                 placeholder="Search staff..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                data-testid="staff-search"
                 className="w-full pl-10 pr-4 py-3 border border-[--border] rounded-lg bg-[--muted] text-[--foreground] placeholder-[--muted-foreground] focus:outline-none focus:ring-2 focus:ring-[--ring] focus:border-transparent"
               />
             </div>
@@ -161,7 +140,7 @@ export default function StaffPage() {
                 <tr>
                   <th className="text-left py-4 px-6 text-sm font-medium text-[--muted-foreground]">Staff Member</th>
                   <th className="text-left py-4 px-6 text-sm font-medium text-[--muted-foreground]">Role</th>
-                  <th className="text-left py-4 px-6 text-sm font-medium text-[--muted-foreground]">Department</th>
+                  <th className="text-left py-4 px-6 text-sm font-medium text-[--muted-foreground]">Specialization</th>
                   <th className="text-left py-4 px-6 text-sm font-medium text-[--muted-foreground]">Status</th>
                   <th className="text-left py-4 px-6 text-sm font-medium text-[--muted-foreground]">Schedule</th>
                   <th className="text-left py-4 px-6 text-sm font-medium text-[--muted-foreground]">Contact</th>
@@ -169,58 +148,106 @@ export default function StaffPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-[--border]">
-                {staff.map((member) => (
-                  <tr key={member.id} className="hover:bg-[--accent]/30 transition-colors">
-                    <td className="py-4 px-6">
-                      <div className="flex items-center space-x-3">
-                        <div className="w-10 h-10 bg-[--muted] rounded-full flex items-center justify-center">
-                          <span className="text-sm font-medium text-[--muted-foreground]">
-                            {member.name.split(' ').map(n => n[0]).join('')}
-                          </span>
-                        </div>
-                        <div>
-                          <p className="font-medium text-[--foreground]">{member.name}</p>
-                          <p className="text-sm text-[--muted-foreground]">{member.email}</p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="py-4 px-6">
-                      <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${
-                        member.role === 'Doctor' ? 'bg-[--medical-blue]/10 text-[--medical-blue]' :
-                        member.role === 'Nurse' ? 'bg-[--success]/10 text-[--success]' :
-                        'bg-[--warning]/10 text-[--warning]'
-                      }`}>
-                        {member.role}
-                      </span>
-                    </td>
-                    <td className="py-4 px-6 text-sm text-[--foreground]">{member.department}</td>
-                    <td className="py-4 px-6">
-                      <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${
-                        member.status === 'Active' ? 'bg-[--success]/10 text-[--success]' :
-                        member.status === 'On Leave' ? 'bg-[--warning]/10 text-[--warning]' :
-                        'bg-[--error]/10 text-[--error]'
-                      }`}>
-                        {member.status}
-                      </span>
-                    </td>
-                    <td className="py-4 px-6 text-sm text-[--foreground]">{member.schedule}</td>
-                    <td className="py-4 px-6">
-                      <div className="flex items-center space-x-2">
-                        <Phone className="w-4 h-4 text-[--muted-foreground]" />
-                        <span className="text-sm text-[--foreground]">{member.phone}</span>
-                      </div>
-                    </td>
-                    <td className="py-4 px-6 text-right">
-                      <button className="p-2 text-[--muted-foreground] hover:text-[--foreground] hover:bg-[--accent] rounded-lg transition-colors">
-                        <MoreHorizontal className="w-4 h-4" />
-                      </button>
+                {isLoading ? (
+                  <tr>
+                    <td colSpan={7} className="py-8 px-6 text-center text-[--muted-foreground]">
+                      Loading staff members...
                     </td>
                   </tr>
-                ))}
+                ) : error ? (
+                  <tr>
+                    <td colSpan={7} className="py-8 px-6 text-center text-[--error]">
+                      Error loading staff: {error}
+                    </td>
+                  </tr>
+                ) : staff.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="py-8 px-6 text-center text-[--muted-foreground]">
+                      No staff members found
+                    </td>
+                  </tr>
+                ) : (
+                  staff
+                    .filter(member => 
+                      searchTerm === '' || 
+                      `${member.first_name} ${member.last_name}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                      member.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                      member.staff_type.toLowerCase().includes(searchTerm.toLowerCase())
+                    )
+                    .map((member) => (
+                    <tr 
+                      key={member.id} 
+                      className="hover:bg-[--accent]/30 transition-colors cursor-pointer"
+                      onClick={() => handleEditStaff(member)}
+                      data-testid={`staff-item-${member.first_name} ${member.last_name}`}
+                    >
+                      <td className="py-4 px-6">
+                        <div className="flex items-center space-x-3">
+                          <div className="w-10 h-10 bg-[--muted] rounded-full flex items-center justify-center">
+                            <span className="text-sm font-medium text-[--muted-foreground]">
+                              {member.first_name[0]}{member.last_name[0]}
+                            </span>
+                          </div>
+                          <div>
+                            <p className="font-medium text-[--foreground]">{member.first_name} {member.last_name}</p>
+                            <p className="text-sm text-[--muted-foreground]">{member.email}</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="py-4 px-6">
+                        <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${
+                          member.staff_type === 'doctor' ? 'bg-[--medical-blue]/10 text-[--medical-blue]' :
+                          member.staff_type === 'nurse' ? 'bg-[--success]/10 text-[--success]' :
+                          'bg-[--warning]/10 text-[--warning]'
+                        }`}>
+                          {member.staff_type.charAt(0).toUpperCase() + member.staff_type.slice(1)}
+                        </span>
+                      </td>
+                      <td className="py-4 px-6 text-sm text-[--foreground]">{member.specialization || 'N/A'}</td>
+                      <td className="py-4 px-6">
+                        <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${
+                          member.status === 'active' ? 'bg-[--success]/10 text-[--success]' :
+                          member.status === 'inactive' ? 'bg-[--error]/10 text-[--error]' :
+                          'bg-[--warning]/10 text-[--warning]'
+                        }`}>
+                          {member.status.charAt(0).toUpperCase() + member.status.slice(1)}
+                        </span>
+                      </td>
+                      <td className="py-4 px-6 text-sm text-[--foreground]">
+                        {member.available_days?.length ? `${member.available_days.length} days/week` : 'N/A'}
+                      </td>
+                      <td className="py-4 px-6">
+                        <div className="flex items-center space-x-2">
+                          <Phone className="w-4 h-4 text-[--muted-foreground]" />
+                          <span className="text-sm text-[--foreground]">{member.phone}</span>
+                        </div>
+                      </td>
+                      <td className="py-4 px-6 text-right">
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleEditStaff(member);
+                          }}
+                          className="p-2 text-[--muted-foreground] hover:text-[--foreground] hover:bg-[--accent] rounded-lg transition-colors"
+                        >
+                          <MoreHorizontal className="w-4 h-4" />
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
         </div>
+
+        {/* Staff Modal */}
+        <StaffModal
+          isOpen={isModalOpen}
+          onClose={handleModalClose}
+          onSuccess={handleModalSuccess}
+          initialStaff={selectedStaff}
+        />
       </main>
     </div>
   );

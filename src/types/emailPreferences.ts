@@ -4,30 +4,30 @@ export interface GlobalEmailPreferences {
   emailNotificationsEnabled: boolean;
   smsNotificationsEnabled: boolean;
   appointmentRemindersEnabled: boolean;
-  
+
   // Email timing settings
   reminderTimeBeforeAppointment: number; // minutes before appointment
   dailyAgendaTime: string; // HH:mm format (default: 06:00)
   timezone: string; // default: Asia/Dubai
-  
+
   // Email content settings
   includeAppointmentDetails: boolean;
   includePatientContactInfo: boolean;
   includeGoogleMapsLink: boolean;
   includeStaffContactInfo: boolean;
-  
+
   // Notification types
   newAppointmentNotifications: boolean;
   appointmentCancellationNotifications: boolean;
   appointmentRescheduleNotifications: boolean;
   dailyAgendaNotifications: boolean;
   weeklySummaryNotifications: boolean;
-  
+
   // Email delivery settings
   retryFailedEmails: boolean;
   maxRetryAttempts: number;
   retryDelayMinutes: number;
-  
+
   // SMTP settings (for admin configuration)
   smtpHost?: string;
   smtpPort?: number;

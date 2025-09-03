@@ -3,6 +3,7 @@
 import Header from '@/components/layout/Header';
 import { EmailTestSection, StaffPreferencesSection, AutomatedEmailSection, EmailPreferencesSection } from '@/components/email';
 import { GoogleCalendarSection, SyncStatusCard, SyncSettingsPanel } from '@/components/google-calendar';
+import { BackupSection } from '@/components/backup';
 import {
     Bell,
     Database,
@@ -96,25 +97,13 @@ export default function SettingsPage() {
             <SyncSettingsPanel />
           </div>
 
-          {/* Quick Actions & System Info */}
+          {/* Backup & Export */}
           <div className="space-y-6">
             {/* Google Calendar Sync Status */}
             <SyncStatusCard />
 
-            <div className="bg-[--card] border border-[--border] rounded-xl p-6 shadow-lg">
-              <h3 className="text-lg font-semibold text-[--foreground] mb-4">Quick Actions</h3>
-              <div className="space-y-3">
-                <button className="w-full px-4 py-2 bg-[--primary] text-[--primary-foreground] rounded-lg hover:bg-[--primary]/90 transition-colors">
-                  Export Data
-                </button>
-                <button className="w-full px-4 py-2 border border-[--border] rounded-lg hover:bg-[--accent] transition-colors text-[--foreground] hover:text-[--foreground]">
-                  Backup Settings
-                </button>
-                <button className="w-full px-4 py-2 border border-[--border] rounded-lg hover:bg-[--accent] transition-colors text-[--foreground] hover:text-[--foreground]">
-                  System Logs
-                </button>
-              </div>
-            </div>
+            {/* Backup Section */}
+            <BackupSection />
 
             <div className="bg-[--card] border border-[--border] rounded-xl p-6 shadow-lg">
               <h3 className="text-lg font-semibold text-[--foreground] mb-4">System Information</h3>

@@ -1,5 +1,5 @@
-import { emailPreferencesService } from './emailPreferencesService';
 import { DEFAULT_EMAIL_PREFERENCES, validateEmailPreferences } from '@/types/emailPreferences';
+import { emailPreferencesService } from './emailPreferencesService';
 
 // Mock Supabase
 jest.mock('@/lib/supabase', () => ({
@@ -174,7 +174,7 @@ describe('EmailPreferencesService', () => {
   describe('testEmailConfiguration', () => {
     it('should return success for valid configuration', async () => {
       mockSupabase.from().select().eq().single.mockResolvedValue({
-        data: { 
+        data: {
           preferences: {
             ...DEFAULT_EMAIL_PREFERENCES,
             smtpHost: 'smtp.example.com',
@@ -193,7 +193,7 @@ describe('EmailPreferencesService', () => {
 
     it('should return error for incomplete configuration', async () => {
       mockSupabase.from().select().eq().single.mockResolvedValue({
-        data: { 
+        data: {
           preferences: {
             ...DEFAULT_EMAIL_PREFERENCES,
             smtpHost: '',
@@ -212,7 +212,7 @@ describe('EmailPreferencesService', () => {
 
     it('should return error for invalid email format', async () => {
       mockSupabase.from().select().eq().single.mockResolvedValue({
-        data: { 
+        data: {
           preferences: {
             smtpHost: 'smtp.example.com',
             smtpPort: 587,
