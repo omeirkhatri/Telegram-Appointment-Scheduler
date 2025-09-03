@@ -1,7 +1,7 @@
 'use client';
 
 import type { Appointment } from '@/types';
-import { Copy, Edit, ExternalLink, Trash2, X } from 'lucide-react';
+import { Copy, Edit, ExternalLink, Printer, Trash2, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
 interface AppointmentContextMenuProps {
@@ -158,6 +158,14 @@ export function AppointmentContextMenu({
             Edit Appointment
           </button>
         )}
+
+        <button
+          onClick={() => handleAction(() => window.open(`/print/appointment/${appointment.id}`, '_blank'))}
+          className="w-full flex items-center px-3 py-2 text-sm text-[--foreground] hover:bg-[--accent] transition-colors"
+        >
+          <Printer className="w-4 h-4 mr-3 text-[--muted-foreground]" />
+          Print Appointment
+        </button>
 
         {onCopy && (
           <button

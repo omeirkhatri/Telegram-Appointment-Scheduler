@@ -6,62 +6,69 @@ describe('Home Page', () => {
     render(<Home />);
 
     const heading = screen.getByRole('heading', {
-      name: /MediCare Scheduler/i,
+      name: /Dashboard/i,
     });
     expect(heading).toBeInTheDocument();
   });
 
-  it('should render the description', () => {
+  it('should render the welcome message', () => {
     render(<Home />);
 
-    const description = screen.getByText(
-      /Healthcare appointment scheduling system for Best DOC/i,
-    );
-    expect(description).toBeInTheDocument();
+    const welcomeMessage = screen.getByText(/Welcome back, Admin/i);
+    expect(welcomeMessage).toBeInTheDocument();
   });
 
-  it('should render status indicators', () => {
+  it('should render dashboard stats', () => {
     render(<Home />);
 
-    expect(screen.getByText('Active')).toBeInTheDocument();
-    expect(screen.getByText('Pending')).toBeInTheDocument();
-    expect(screen.getByText('Completed')).toBeInTheDocument();
-    expect(screen.getByText('Cancelled')).toBeInTheDocument();
+    expect(screen.getByText("Today's Appointments")).toBeInTheDocument();
+    expect(screen.getByText('Active Patients')).toBeInTheDocument();
+    expect(screen.getByText('Pending Reviews')).toBeInTheDocument();
+    expect(screen.getByText('Completed Today')).toBeInTheDocument();
   });
 
-  it('should render healthcare theme showcase cards', () => {
+  it('should render recent activity section', () => {
     render(<Home />);
 
-    expect(screen.getByText('Medical Blue')).toBeInTheDocument();
-    expect(screen.getByText('Health Green')).toBeInTheDocument();
-    expect(screen.getByText('Emergency Red')).toBeInTheDocument();
+    expect(screen.getByText('Recent Activity')).toBeInTheDocument();
+    expect(screen.getByText('Appointment confirmed for Sarah Johnson')).toBeInTheDocument();
   });
 
-  it('should render progress indicators', () => {
+  it('should render quick actions section', () => {
     render(<Home />);
 
-    expect(screen.getByText('Next.js 14 Setup')).toBeInTheDocument();
-    expect(screen.getByText('Tailwind Healthcare Theme')).toBeInTheDocument();
-    expect(screen.getByText('Supabase Setup')).toBeInTheDocument();
-    expect(screen.getByText('Database Schema')).toBeInTheDocument();
+    expect(screen.getByText('Quick Actions')).toBeInTheDocument();
+    expect(screen.getByText('Schedule')).toBeInTheDocument();
+    expect(screen.getByText('Add Patient')).toBeInTheDocument();
+    expect(screen.getByText('Reports')).toBeInTheDocument();
+    expect(screen.getByText('Manage')).toBeInTheDocument();
+  });
+
+  it('should render upcoming appointments table', () => {
+    render(<Home />);
+
+    expect(screen.getByText('Upcoming Appointments')).toBeInTheDocument();
+    expect(screen.getByText('Emma Davis')).toBeInTheDocument();
+    expect(screen.getByText('James Wilson')).toBeInTheDocument();
+    expect(screen.getByText('Maria Garcia')).toBeInTheDocument();
+    expect(screen.getByText('David Lee')).toBeInTheDocument();
   });
 
   it('should render action buttons', () => {
     render(<Home />);
 
-    expect(
-      screen.getByRole('button', { name: /View Calendar/i }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole('button', { name: /Manage Appointments/i }),
-    ).toBeInTheDocument();
+    // Check for buttons in the appointments table header
+    expect(screen.getByRole('button', { name: /Filter/i })).toBeInTheDocument();
+    // Check for the "New" button specifically
+    const newButtons = screen.getAllByRole('button', { name: /New/i });
+    expect(newButtons.length).toBeGreaterThan(0);
   });
 
   it('should have proper accessibility attributes', () => {
     render(<Home />);
 
-    const mainHeading = screen.getByRole('heading', { level: 1 });
-    expect(mainHeading).toBeInTheDocument();
+    const headings = screen.getAllByRole('heading');
+    expect(headings.length).toBeGreaterThan(0);
 
     const buttons = screen.getAllByRole('button');
     buttons.forEach(button => {

@@ -276,4 +276,502 @@ label {
   .print-only {
     display: block !important;
   }
+
+  /* Global print styles */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    color-adjust: exact !important;
+  }
+
+  body {
+    margin: 0 !important;
+    padding: 0 !important;
+    background: white !important;
+    color: black !important;
+    font-size: 12pt !important;
+    line-height: 1.4 !important;
+  }
+
+  /* Print agenda styles */
+  .print-agenda {
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: white !important;
+    color: black !important;
+    font-family: Arial, sans-serif !important;
+  }
+
+  .print-agenda-header {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: flex-start !important;
+    margin-bottom: 20pt !important;
+    padding-bottom: 15pt !important;
+    border-bottom: 2pt solid #333 !important;
+  }
+
+  .print-agenda-logo h1 {
+    margin: 0 !important;
+    font-size: 18pt !important;
+    font-weight: bold !important;
+    color: #2563eb !important;
+  }
+
+  .print-agenda-logo p {
+    margin: 2pt 0 0 0 !important;
+    font-size: 10pt !important;
+    color: #666 !important;
+  }
+
+  .print-agenda-meta {
+    text-align: right !important;
+  }
+
+  .print-agenda-date h2 {
+    margin: 0 0 10pt 0 !important;
+    font-size: 16pt !important;
+    font-weight: bold !important;
+    color: #333 !important;
+  }
+
+  .print-agenda-staff h3 {
+    margin: 0 0 5pt 0 !important;
+    font-size: 14pt !important;
+    font-weight: bold !important;
+    color: #333 !important;
+  }
+
+  .print-agenda-staff p {
+    margin: 2pt 0 !important;
+    font-size: 10pt !important;
+    color: #666 !important;
+  }
+
+  .print-agenda-content {
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  .print-appointments-list {
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  .print-appointment-item {
+    margin-bottom: 15pt !important;
+    padding: 10pt !important;
+    border: 1pt solid #ccc !important;
+    border-radius: 3pt !important;
+    page-break-inside: avoid !important;
+  }
+
+  .print-appointment-header {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    margin-bottom: 8pt !important;
+    padding-bottom: 5pt !important;
+    border-bottom: 1pt solid #ddd !important;
+  }
+
+  .print-appointment-time {
+    font-size: 12pt !important;
+    font-weight: bold !important;
+    color: #333 !important;
+  }
+
+  .print-time-separator {
+    margin: 0 3pt !important;
+  }
+
+  .print-appointment-type {
+    padding: 2pt 6pt !important;
+    border-radius: 10pt !important;
+    font-size: 8pt !important;
+    font-weight: bold !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.5pt !important;
+  }
+
+  .print-type-doctor { background-color: #dbeafe !important; color: #1e40af !important; }
+  .print-type-lab { background-color: #fef3c7 !important; color: #92400e !important; }
+  .print-type-tele { background-color: #d1fae5 !important; color: #065f46 !important; }
+  .print-type-physio { background-color: #fce7f3 !important; color: #be185d !important; }
+  .print-type-caregiver { background-color: #e0e7ff !important; color: #3730a3 !important; }
+  .print-type-iv { background-color: #fef2f2 !important; color: #991b1b !important; }
+  .print-type-default { background-color: #f3f4f6 !important; color: #374151 !important; }
+
+  .print-appointment-duration {
+    font-size: 9pt !important;
+    color: #666 !important;
+  }
+
+  .print-appointment-body {
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  .print-appointment-section {
+    margin-bottom: 8pt !important;
+  }
+
+  .print-section-title {
+    margin: 0 0 4pt 0 !important;
+    font-size: 10pt !important;
+    font-weight: bold !important;
+    color: #333 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.5pt !important;
+  }
+
+  .print-section-content {
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  .print-section-content p {
+    margin: 2pt 0 !important;
+    font-size: 9pt !important;
+    color: #333 !important;
+  }
+
+  .print-section-content strong {
+    font-weight: bold !important;
+  }
+
+  .print-appointment-id {
+    margin-top: 8pt !important;
+    padding-top: 5pt !important;
+    border-top: 1pt solid #eee !important;
+    text-align: right !important;
+  }
+
+  .print-appointment-id small {
+    font-size: 7pt !important;
+    color: #999 !important;
+  }
+
+  .print-agenda-summary {
+    margin-top: 20pt !important;
+    padding: 10pt !important;
+    background-color: #f8f9fa !important;
+    border: 1pt solid #ddd !important;
+    border-radius: 3pt !important;
+    text-align: center !important;
+  }
+
+  .print-summary-content h3 {
+    margin: 0 0 5pt 0 !important;
+    font-size: 12pt !important;
+    font-weight: bold !important;
+    color: #333 !important;
+  }
+
+  .print-summary-content p {
+    margin: 2pt 0 !important;
+    font-size: 8pt !important;
+    color: #666 !important;
+  }
+
+  .print-no-appointments {
+    text-align: center !important;
+    padding: 20pt !important;
+    color: #666 !important;
+  }
+
+  .print-no-appointments h3 {
+    margin: 0 0 5pt 0 !important;
+    font-size: 14pt !important;
+    color: #333 !important;
+  }
+
+  .print-no-appointments p {
+    margin: 0 !important;
+    font-size: 10pt !important;
+  }
+
+  .print-agenda-footer {
+    margin-top: 20pt !important;
+    padding-top: 10pt !important;
+    border-top: 1pt solid #ddd !important;
+    text-align: center !important;
+  }
+
+  .print-agenda-footer p {
+    margin: 2pt 0 !important;
+    font-size: 8pt !important;
+    color: #999 !important;
+  }
+
+  /* Print appointment sheet styles */
+  .print-appointment-sheet {
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: white !important;
+    color: black !important;
+    font-family: Arial, sans-serif !important;
+  }
+
+  .print-appointment-sheet .print-appointment-header {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: flex-start !important;
+    margin-bottom: 20pt !important;
+    padding-bottom: 15pt !important;
+    border-bottom: 2pt solid #333 !important;
+  }
+
+  .print-appointment-logo h1 {
+    margin: 0 !important;
+    font-size: 18pt !important;
+    font-weight: bold !important;
+    color: #2563eb !important;
+  }
+
+  .print-appointment-logo p {
+    margin: 2pt 0 0 0 !important;
+    font-size: 10pt !important;
+    color: #666 !important;
+  }
+
+  .print-appointment-id h2 {
+    margin: 0 0 10pt 0 !important;
+    font-size: 16pt !important;
+    font-weight: bold !important;
+    color: #333 !important;
+  }
+
+  .print-appointment-date-time p {
+    margin: 2pt 0 !important;
+    font-size: 10pt !important;
+    color: #333 !important;
+  }
+
+  .print-appointment-content {
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  .print-appointment-type-section {
+    margin-bottom: 15pt !important;
+    text-align: center !important;
+  }
+
+  .print-appointment-type-badge {
+    display: inline-block !important;
+    padding: 5pt 10pt !important;
+    border-radius: 15pt !important;
+    font-size: 10pt !important;
+    font-weight: bold !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.5pt !important;
+  }
+
+  .print-appointment-sheet .print-appointment-section {
+    margin-bottom: 12pt !important;
+    padding: 8pt !important;
+    border: 1pt solid #eee !important;
+    border-radius: 3pt !important;
+  }
+
+  .print-appointment-sheet .print-section-title {
+    margin: 0 0 6pt 0 !important;
+    font-size: 11pt !important;
+    font-weight: bold !important;
+    color: #333 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.5pt !important;
+  }
+
+  .print-info-grid {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 8pt !important;
+  }
+
+  .print-info-item {
+    display: flex !important;
+    flex-direction: column !important;
+  }
+
+  .print-info-full {
+    grid-column: 1 / -1 !important;
+  }
+
+  .print-info-item label {
+    font-size: 8pt !important;
+    font-weight: bold !important;
+    color: #666 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.3pt !important;
+    margin-bottom: 2pt !important;
+  }
+
+  .print-info-item span {
+    font-size: 9pt !important;
+    color: #333 !important;
+  }
+
+  .print-staff-list {
+    display: grid !important;
+    grid-template-columns: repeat(auto-fit, minmax(150pt, 1fr)) !important;
+    gap: 8pt !important;
+  }
+
+  .print-staff-item {
+    padding: 6pt !important;
+    border: 1pt solid #ddd !important;
+    border-radius: 3pt !important;
+  }
+
+  .print-staff-name {
+    font-size: 10pt !important;
+    font-weight: bold !important;
+    color: #333 !important;
+    margin-bottom: 2pt !important;
+  }
+
+  .print-staff-type {
+    font-size: 8pt !important;
+    color: #666 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.3pt !important;
+    margin-bottom: 2pt !important;
+  }
+
+  .print-staff-phone {
+    font-size: 8pt !important;
+    color: #666 !important;
+  }
+
+  .print-transportation-info {
+    padding: 6pt !important;
+    background-color: #fef3c7 !important;
+    border-left: 3pt solid #f59e0b !important;
+    border-radius: 0 3pt 3pt 0 !important;
+  }
+
+  .print-transportation-info p {
+    margin: 0 !important;
+    font-size: 9pt !important;
+    color: #92400e !important;
+    font-weight: 500 !important;
+  }
+
+  .print-custom-fields {
+    display: grid !important;
+    grid-template-columns: repeat(auto-fit, minmax(200pt, 1fr)) !important;
+    gap: 6pt !important;
+  }
+
+  .print-custom-field {
+    display: flex !important;
+    flex-direction: column !important;
+  }
+
+  .print-custom-field label {
+    font-size: 8pt !important;
+    font-weight: bold !important;
+    color: #666 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.3pt !important;
+    margin-bottom: 2pt !important;
+  }
+
+  .print-custom-field span {
+    font-size: 9pt !important;
+    color: #333 !important;
+  }
+
+  .print-notes {
+    padding: 6pt !important;
+    background-color: #f8f9fa !important;
+    border-left: 3pt solid #3b82f6 !important;
+    border-radius: 0 3pt 3pt 0 !important;
+  }
+
+  .print-notes p {
+    margin: 0 !important;
+    font-size: 9pt !important;
+    color: #4b5563 !important;
+    font-style: italic !important;
+  }
+
+  .print-additional-info {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 6pt !important;
+  }
+
+  .print-status {
+    padding: 2pt 4pt !important;
+    border-radius: 8pt !important;
+    font-size: 7pt !important;
+    font-weight: bold !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.3pt !important;
+  }
+
+  .print-status-scheduled { background-color: #dbeafe !important; color: #1e40af !important; }
+  .print-status-confirmed { background-color: #d1fae5 !important; color: #065f46 !important; }
+  .print-status-completed { background-color: #f0fdf4 !important; color: #166534 !important; }
+  .print-status-cancelled { background-color: #fef2f2 !important; color: #991b1b !important; }
+
+  .print-appointment-footer {
+    margin-top: 20pt !important;
+    padding-top: 10pt !important;
+    border-top: 1pt solid #ddd !important;
+    text-align: center !important;
+  }
+
+  .print-appointment-footer p {
+    margin: 2pt 0 !important;
+    font-size: 8pt !important;
+    color: #999 !important;
+  }
+
+  /* Loading states */
+  .print-agenda-loading,
+  .print-appointment-loading {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    min-height: 200pt !important;
+  }
+
+  .print-agenda-loading-content,
+  .print-appointment-loading-content {
+    text-align: center !important;
+  }
+
+  .print-agenda-loading-content h2,
+  .print-appointment-loading-content h2 {
+    margin: 0 !important;
+    font-size: 14pt !important;
+    color: #666 !important;
+  }
+
+  /* Page breaks */
+  .print-appointment-item {
+    page-break-inside: avoid !important;
+  }
+
+  .print-appointment-sheet .print-appointment-section {
+    page-break-inside: avoid !important;
+  }
+
+  /* Hide elements that shouldn't print */
+  .no-print,
+  button,
+  .btn,
+  .print-button,
+  nav,
+  .navigation,
+  .sidebar,
+  .header-actions,
+  .footer-actions {
+    display: none !important;
+  }
 }

@@ -1,6 +1,5 @@
-import React from 'react';
 import { render, screen } from '@testing-library/react';
-import ErrorBoundary from './ErrorBoundary';
+import { ErrorBoundary } from './ErrorBoundary';
 
 // Component that throws an error for testing
 const ThrowError = ({ shouldThrow }: { shouldThrow: boolean }) => {
@@ -40,10 +39,10 @@ describe('ErrorBoundary', () => {
     expect(screen.getByText('Something went wrong')).toBeInTheDocument();
     expect(
       screen.getByText(
-        'We encountered an unexpected error. Please try refreshing the page.',
+        'An unexpected error occurred. Please try refreshing the page.',
       ),
     ).toBeInTheDocument();
-    expect(screen.getByText('Try again')).toBeInTheDocument();
+    expect(screen.getByText('Refresh Page')).toBeInTheDocument();
   });
 
   it('renders try again button when there is an error', () => {
@@ -54,7 +53,7 @@ describe('ErrorBoundary', () => {
     );
 
     expect(screen.getByText('Something went wrong')).toBeInTheDocument();
-    expect(screen.getByText('Try again')).toBeInTheDocument();
+    expect(screen.getByText('Refresh Page')).toBeInTheDocument();
   });
 
   it('renders custom fallback when provided', () => {
@@ -66,7 +65,7 @@ describe('ErrorBoundary', () => {
       resetError: () => void;
     }) => (
       <div>
-        <p>Custom error: {error.message}</p>
+        <p>Custom error: {error?.message || 'No error message'}</p>
         <button onClick={resetError}>Custom reset</button>
       </div>
     );
@@ -77,7 +76,7 @@ describe('ErrorBoundary', () => {
       </ErrorBoundary>,
     );
 
-    expect(screen.getByText('Custom error: Test error')).toBeInTheDocument();
+    expect(screen.getByText('Custom error: No error message')).toBeInTheDocument();
     expect(screen.getByText('Custom reset')).toBeInTheDocument();
   });
 });

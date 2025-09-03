@@ -4,7 +4,7 @@ import { appointmentStaffService } from '@/services/appointmentStaffService';
 import { googleCalendarService } from '@/services/googleCalendarService';
 import { patientService } from '@/services/patientService';
 import { staffService } from '@/services/staffService';
-import { utcToDateString, utcToTimeString } from '@/utils/date';
+import { utcToDateString, utcToTimeString } from '@/utils/timezone';
 import { NextRequest, NextResponse } from 'next/server';
 
 // Webhook secret for verification (should be set in environment variables)

@@ -3,11 +3,11 @@ export const APP_NAME = 'MediCare Scheduler';
 export const APP_VERSION = '1.0.0';
 export const COMPANY_NAME = 'Best DOC';
 
-// Timezone and date constants
-export const TZ = 'Asia/Dubai';
-export const DATE_FMT = 'dd/MM/yyyy';
-export const TIME_FMT = 'HH:mm';
-export const DATETIME_FMT = 'dd/MM/yyyy HH:mm';
+// Re-export timezone constants from consolidated timezone utilities
+export {
+    DATETIME_FMT, DATE_FMT, DUBAI_TIMEZONE, ISO_DATE_FMT,
+    ISO_TIME_FMT, TIME_FMT, TZ, UTC_TIMEZONE, UTC_TZ
+} from '@/utils/timezone';
 
 // API constants
 export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '/api';
@@ -30,3 +30,9 @@ export const MAX_DESCRIPTION_LENGTH = 500;
 // UI constants
 export const TOAST_DURATION = 5000; // 5 seconds
 export const DEBOUNCE_DELAY = 300; // 300ms
+
+// Cache constants
+export const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+export const CACHE_MAX_SIZE = 50; // Maximum cache entries
+export const SEARCH_DEBOUNCE_DELAY = 300; // Search debounce delay
+export const FILTER_DEBOUNCE_DELAY = 200; // Filter debounce delay

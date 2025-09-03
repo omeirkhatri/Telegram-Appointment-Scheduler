@@ -115,7 +115,15 @@ The application supports two authentication methods:
 
 ### 1. Supabase Setup
 
-#### Local Development
+#### Local Development with Docker Compose (Recommended)
+```bash
+# Set up and start all services with Docker
+./scripts/docker-setup.sh setup
+
+# The default environment variables will work automatically
+```
+
+#### Local Development with Supabase CLI
 ```bash
 # Install Supabase CLI
 npm install -g supabase
@@ -307,11 +315,65 @@ NODE_ENV=development
 
 This will provide detailed logging for troubleshooting.
 
+## Docker Development
+
+### Quick Start with Docker
+
+```bash
+# Clone the repository
+git clone <repository-url>
+cd scheduler
+
+# Set up environment
+cp env.example .env.local
+
+# Start all services with Docker
+./scripts/docker-setup.sh setup
+```
+
+### Docker Commands
+
+```bash
+# Start services
+./scripts/docker-setup.sh start
+# or
+docker-compose up -d
+
+# Stop services
+./scripts/docker-setup.sh stop
+# or
+docker-compose down
+
+# View logs
+./scripts/docker-setup.sh logs
+# or
+docker-compose logs -f
+
+# Check status
+./scripts/docker-setup.sh status
+# or
+docker-compose ps
+
+# Clean up everything
+./scripts/docker-setup.sh cleanup
+```
+
+### Docker Service URLs
+
+- 📱 **Next.js App**: http://localhost:3000
+- 🗄️ **Supabase Studio**: http://localhost:54323
+- 📧 **Email Testing**: http://localhost:54324
+- 🔗 **Supabase API**: http://localhost:54321
+- 🗃️ **Database**: localhost:54322
+- 📊 **Redis**: localhost:6379
+
 ## Next Steps
 
 1. **Complete Setup**: Follow the service-specific setup instructions above
 2. **Test Configuration**: Run `npm run validate-env` to verify your setup
-3. **Start Development**: Run `npm run dev` to start the application
+3. **Start Development**:
+   - With Docker: `./scripts/docker-setup.sh setup`
+   - Traditional: `npm run dev`
 4. **Deploy**: Follow the deployment guide for production setup
 
 ## Support

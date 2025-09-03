@@ -28,7 +28,7 @@ describe('Appointment API Routes', () => {
           id: '1',
           patient_id: 'patient-1',
           appointment_type: 'doctor_on_call' as const,
-          appointment_date: '2024-01-15',
+          appointment_date: '2030-01-15',
           start_time: '10:00',
           duration_minutes: 60,
           status: 'scheduled' as const,
@@ -61,7 +61,7 @@ describe('Appointment API Routes', () => {
           id: '1',
           patient_id: 'patient-1',
           appointment_type: 'doctor_on_call' as const,
-          appointment_date: '2024-01-15',
+          appointment_date: '2030-01-15',
           start_time: '10:00',
           duration_minutes: 60,
           status: 'scheduled' as const,
@@ -115,7 +115,7 @@ describe('Appointment API Routes', () => {
         id: '1',
         patient_id: 'patient-1',
         appointment_type: 'doctor_on_call' as const,
-        appointment_date: '2024-01-15',
+        appointment_date: '2030-01-15',
         start_time: '10:00',
         duration_minutes: 60,
         status: 'scheduled' as const,
@@ -141,10 +141,11 @@ describe('Appointment API Routes', () => {
         body: JSON.stringify({
           patient_id: 'patient-1',
           appointment_type: 'doctor_on_call',
-          appointment_date: '2024-01-15',
+          appointment_date: '2030-01-15',
           start_time: '10:00',
           duration_minutes: 60,
           transportation_type: 'driver',
+          transportation_method: 'Company Driver',
           driver_id: 'driver-1',
           notes: 'Regular checkup',
         }),
@@ -164,7 +165,7 @@ describe('Appointment API Routes', () => {
         id: '1',
         patient_id: 'patient-1',
         appointment_type: 'doctor_on_call' as const,
-        appointment_date: '2024-01-15',
+        appointment_date: '2030-01-15',
         start_time: '10:00',
         duration_minutes: 60,
         status: 'scheduled' as const,
@@ -220,10 +221,11 @@ describe('Appointment API Routes', () => {
         body: JSON.stringify({
           patient_id: 'patient-1',
           appointment_type: 'doctor_on_call',
-          appointment_date: '2024-01-15',
+          appointment_date: '2030-01-15',
           start_time: '10:00',
           duration_minutes: 60,
           transportation_type: 'driver',
+          transportation_method: 'Company Driver',
           driver_id: 'driver-1',
           notes: 'Regular checkup',
           staff_assignments: [
@@ -254,7 +256,7 @@ describe('Appointment API Routes', () => {
         body: JSON.stringify({
           patient_id: '', // Invalid: empty patient ID
           appointment_type: 'doctor_on_call',
-          appointment_date: '2024-01-15',
+          appointment_date: '2030-01-15',
           start_time: '10:00',
           duration_minutes: 60,
         }),
@@ -274,7 +276,7 @@ describe('Appointment API Routes', () => {
         id: '1',
         patient_id: 'patient-1',
         appointment_type: 'doctor_on_call' as const,
-        appointment_date: '2024-01-15',
+        appointment_date: '2030-01-15',
         start_time: '10:00',
         duration_minutes: 60,
         status: 'scheduled' as const,
@@ -299,9 +301,11 @@ describe('Appointment API Routes', () => {
         body: JSON.stringify({
           patient_id: 'patient-1',
           appointment_type: 'doctor_on_call',
-          appointment_date: '2024-01-15',
+          appointment_date: '2030-01-15',
           start_time: '10:00',
           duration_minutes: 60,
+          transportation_type: 'self_transport',
+          transportation_method: 'Taxi',
           staff_assignments: [
             {
               staff_id: 'invalid-staff-id',
@@ -332,9 +336,11 @@ describe('Appointment API Routes', () => {
         body: JSON.stringify({
           patient_id: 'patient-1',
           appointment_type: 'doctor_on_call',
-          appointment_date: '2024-01-15',
+          appointment_date: '2030-01-15',
           start_time: '10:00',
           duration_minutes: 60,
+          transportation_type: 'self_transport',
+          transportation_method: 'Taxi',
         }),
       });
 

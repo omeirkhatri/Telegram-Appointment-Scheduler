@@ -4,7 +4,7 @@ import type { Patient } from '@/types/patient';
 import { getPatientFullAddress } from '@/types/patient';
 import type { Staff, StaffType } from '@/types/staff';
 import { getStaffFullName } from '@/types/staff';
-import { formatDate } from '@/utils/date';
+import { formatDate } from '@/utils/timezone';
 
 // Google Calendar Event Formatter
 export class CalendarEventFormatter {

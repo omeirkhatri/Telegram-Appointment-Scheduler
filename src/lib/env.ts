@@ -139,8 +139,8 @@ export const config = {
 
     // Runtime validation helpers
     isServiceAccountConfigured: () => {
-      return !!(env.GOOGLE_CALENDAR_SERVICE_ACCOUNT_EMAIL && 
-                env.GOOGLE_CALENDAR_PRIVATE_KEY && 
+      return !!(env.GOOGLE_CALENDAR_SERVICE_ACCOUNT_EMAIL &&
+                env.GOOGLE_CALENDAR_PRIVATE_KEY &&
                 env.GOOGLE_CALENDAR_PROJECT_ID);
     },
 
@@ -149,13 +149,13 @@ export const config = {
     },
 
     isConfigured: () => {
-      return config.googleCalendar.isServiceAccountConfigured() || 
+      return config.googleCalendar.isServiceAccountConfigured() ||
              config.googleCalendar.isOAuthConfigured();
     },
 
     validateServiceAccountConfig: () => {
-      if (!env.GOOGLE_CALENDAR_SERVICE_ACCOUNT_EMAIL || 
-          !env.GOOGLE_CALENDAR_PRIVATE_KEY || 
+      if (!env.GOOGLE_CALENDAR_SERVICE_ACCOUNT_EMAIL ||
+          !env.GOOGLE_CALENDAR_PRIVATE_KEY ||
           !env.GOOGLE_CALENDAR_PROJECT_ID) {
         throw new Error('Google Calendar service account configuration is incomplete');
       }

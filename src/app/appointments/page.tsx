@@ -4,15 +4,16 @@ import { AppointmentCalendar } from '@/components/calendar';
 import { AppointmentFilters, type AppointmentFilterState } from '@/components/filters';
 import Header from '@/components/layout/Header';
 import { AppointmentContextMenu, AppointmentDetailsDrawer, AppointmentModal, CopyAppointmentModal } from '@/components/modals';
-import { ErrorMessage } from '@/components/ui';
+import { ErrorMessage, VirtualizedTable, type VirtualizedTableColumn } from '@/components/ui';
 import { ExternalEditBanner } from '@/components/ui/ExternalEditNotification';
 import { ExternalEditNotificationContainer } from '@/components/ui/ExternalEditNotificationContainer';
 import { useToastContext } from '@/components/ui/ToastContainer';
 import { useAppointmentsForDateRange, useUpdateAppointment } from '@/hooks/useAppointments';
+import { createAppointmentShortcuts, useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { usePatients } from '@/hooks/usePatients';
 import { useStaff } from '@/hooks/useStaff';
 import type { Appointment } from '@/types';
-import { utcToDateString, utcToTimeString } from '@/utils/date';
+import { utcToDateString, utcToTimeString } from '@/utils/timezone';
 import {
     Calendar,
     CheckCircle,
@@ -43,8 +44,23 @@ export default function AppointmentsPage() {
 
   // Debounced refetch to avoid excessive API calls
   const refetchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   const { updateAppointmentTime } = useUpdateAppointment();
+
+  // Focus search input function
+  const focusSearch = useCallback(() => {
+    searchInputRef.current?.focus();
+  }, []);
+
+  // Page-specific keyboard shortcuts
+  const appointmentShortcuts = createAppointmentShortcuts(setViewMode, focusSearch);
+
+  useKeyboardShortcuts({
+    shortcuts: appointmentShortcuts,
+    enabled: true,
+    ignoreInputs: true,
+  });
 
   // Fetch real appointment data for the calendar
   const {
@@ -271,6 +287,96 @@ export default function AppointmentsPage() {
     staff_type: s.staff_type,
   }));
 
+  // Define columns for virtualized appointments table
+  const appointmentColumns: VirtualizedTableColumn<Appointment>[] = [
+    {
+      key: 'time',
+      header: 'Time',
+      width: 150,
+      render: (appointment) => (
+        <div>
+          <p className="text-sm text-[--foreground] font-medium">{appointment.start_time}</p>
+          <p className="text-xs text-[--muted-foreground]">{appointment.appointment_date}</p>
+        </div>
+      ),
+    },
+    {
+      key: 'patient',
+      header: 'Patient',
+      width: 200,
+      render: (appointment) => {
+        const patient = patients.find(p => p.id === appointment.patient_id);
+        const patientName = patient ? `${patient.name}` : 'Unknown Patient';
+        return (
+          <div className="flex items-center space-x-3">
+            <div className="w-8 h-8 bg-[--muted] rounded-full flex items-center justify-center">
+              <span className="text-xs font-medium text-[--muted-foreground]">
+                {patientName.split(' ').map(n => n[0]).join('')}
+              </span>
+            </div>
+            <span className="text-sm text-[--foreground]">{patientName}</span>
+          </div>
+        );
+      },
+    },
+    {
+      key: 'type',
+      header: 'Type',
+      width: 150,
+      render: (appointment) => (
+        <span className="text-sm text-[--foreground]">
+          {appointment.appointment_type.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+        </span>
+      ),
+    },
+    {
+      key: 'duration',
+      header: 'Duration',
+      width: 100,
+      render: (appointment) => (
+        <span className="text-sm text-[--foreground]">
+          {appointment.duration_minutes} min
+        </span>
+      ),
+    },
+    {
+      key: 'status',
+      header: 'Status',
+      width: 120,
+      render: (appointment) => (
+        <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${
+          appointment.status === 'confirmed' ? 'bg-[--success]/10 text-[--success]' :
+          appointment.status === 'scheduled' ? 'bg-[--warning]/10 text-[--warning]' :
+          appointment.status === 'cancelled' ? 'bg-[--error]/10 text-[--error]' :
+          appointment.status === 'completed' ? 'bg-[--primary]/10 text-[--primary]' :
+          'bg-[--muted] text-[--muted-foreground]'
+        }`}>
+          {appointment.status}
+        </span>
+      ),
+    },
+    {
+      key: 'notes',
+      header: 'Notes',
+      width: 200,
+      render: (appointment) => (
+        <span className="text-sm text-[--foreground]">
+          {appointment.notes || 'No notes'}
+        </span>
+      ),
+    },
+    {
+      key: 'actions',
+      header: 'Actions',
+      width: 100,
+      render: () => (
+        <button className="p-2 text-[--muted-foreground] hover:text-[--foreground] hover:bg-[--accent] rounded-lg transition-colors">
+          <MoreHorizontal className="w-4 h-4" />
+        </button>
+      ),
+    },
+  ];
+
   return (
     <div className="min-h-screen bg-[--background] text-[--foreground]">
       {/* Header with Navigation */}
@@ -408,6 +514,7 @@ export default function AppointmentsPage() {
               <div className="flex-1 relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[--muted-foreground]" />
                 <input
+                  ref={searchInputRef}
                   type="text"
                   placeholder="Search appointments..."
                   className="w-full pl-10 pr-4 py-3 border border-[--border] rounded-lg bg-[--muted] text-[--foreground] placeholder-[--muted-foreground] focus:outline-none focus:ring-2 focus:ring-[--ring] focus:border-transparent"
@@ -425,95 +532,20 @@ export default function AppointmentsPage() {
           />
         </div>
 
-        {/* Appointments table */}
+        {/* Virtualized Appointments Table */}
         {viewMode === 'table' && (
-          <div className="bg-[--card] border border-[--border] rounded-xl overflow-hidden shadow-lg">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-[--muted]/50">
-                <tr>
-                  <th className="text-left py-4 px-6 text-sm font-medium text-[--muted-foreground]">Time</th>
-                  <th className="text-left py-4 px-6 text-sm font-medium text-[--muted-foreground]">Patient</th>
-                  <th className="text-left py-4 px-6 text-sm font-medium text-[--muted-foreground]">Type</th>
-                  <th className="text-left py-4 px-6 text-sm font-medium text-[--muted-foreground]">Duration</th>
-                  <th className="text-left py-4 px-6 text-sm font-medium text-[--muted-foreground]">Status</th>
-                  <th className="text-left py-4 px-6 text-sm font-medium text-[--muted-foreground]">Notes</th>
-                  <th className="text-right py-4 px-6 text-sm font-medium text-[--muted-foreground]">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[--border]">
-                {isLoadingAppointments ? (
-                  <tr>
-                    <td colSpan={7} className="py-8 px-6 text-center text-[--muted-foreground]">
-                      Loading appointments...
-                    </td>
-                  </tr>
-                ) : realAppointments.length === 0 ? (
-                  <tr>
-                    <td colSpan={7} className="py-8 px-6 text-center text-[--muted-foreground]">
-                      No appointments found
-                    </td>
-                  </tr>
-                ) : (
-                  realAppointments.map((appointment) => {
-                    const patient = patients.find(p => p.id === appointment.patient_id);
-                    const patientName = patient ? `${patient.name}` : 'Unknown Patient';
-
-                    return (
-                      <tr
-                        key={appointment.id}
-                        className="hover:bg-[--accent]/30 transition-colors cursor-pointer"
-                        onClick={() => handleOpenDetailsDrawer(appointment)}
-                      >
-                        <td className="py-4 px-6">
-                          <div>
-                            <p className="text-sm text-[--foreground] font-medium">{appointment.start_time}</p>
-                            <p className="text-xs text-[--muted-foreground]">{appointment.appointment_date}</p>
-                          </div>
-                        </td>
-                        <td className="py-4 px-6">
-                          <div className="flex items-center space-x-3">
-                            <div className="w-8 h-8 bg-[--muted] rounded-full flex items-center justify-center">
-                              <span className="text-xs font-medium text-[--muted-foreground]">
-                                {patientName.split(' ').map(n => n[0]).join('')}
-                              </span>
-                            </div>
-                            <span className="text-sm text-[--foreground]">{patientName}</span>
-                          </div>
-                        </td>
-                        <td className="py-4 px-6 text-sm text-[--foreground]">
-                          {appointment.appointment_type.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                        </td>
-                        <td className="py-4 px-6 text-sm text-[--foreground]">
-                          {appointment.duration_minutes} min
-                        </td>
-                        <td className="py-4 px-6">
-                          <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${
-                            appointment.status === 'confirmed' ? 'bg-[--success]/10 text-[--success]' :
-                            appointment.status === 'scheduled' ? 'bg-[--warning]/10 text-[--warning]' :
-                            appointment.status === 'cancelled' ? 'bg-[--error]/10 text-[--error]' :
-                            appointment.status === 'completed' ? 'bg-[--primary]/10 text-[--primary]' :
-                            'bg-[--muted] text-[--muted-foreground]'
-                          }`}>
-                            {appointment.status}
-                          </span>
-                        </td>
-                        <td className="py-4 px-6 text-sm text-[--foreground]">
-                          {appointment.notes || 'No notes'}
-                        </td>
-                        <td className="py-4 px-6 text-right">
-                          <button className="p-2 text-[--muted-foreground] hover:text-[--foreground] hover:bg-[--accent] rounded-lg transition-colors">
-                            <MoreHorizontal className="w-4 h-4" />
-                          </button>
-                        </td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
+          <VirtualizedTable
+            data={realAppointments}
+            columns={appointmentColumns}
+            height={600}
+            itemHeight={80}
+            loading={isLoadingAppointments}
+            loadingMessage="Loading appointments..."
+            emptyMessage="No appointments found"
+            onRowClick={handleOpenDetailsDrawer}
+            getRowKey={(appointment) => appointment.id}
+            enableKeyboardNavigation={true}
+          />
         )}
 
         {/* Context Menu */}

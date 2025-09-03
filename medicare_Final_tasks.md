@@ -86,14 +86,39 @@
 
 ## 11.0 Deployment, Ops & Migration
 - [x] 11.1 .env.example with keys & guards (✅ Complete implementation with comprehensive environment variable template, detailed documentation and setup instructions, runtime validation guards for all services, environment-specific configuration examples, security best practices and warnings, automated validation script with helpful suggestions, and enhanced README with quick start guide)
-- [ ] 11.2 Docker Compose for local
-- [ ] 11.3 Supabase Cloud migration scripts
-- [ ] 11.4 Cron/worker for daily emails
-- [ ] 11.5 Error logging & observability
+- [x] 11.2 Docker Compose for local (✅ Complete Docker Compose setup with all services, development overrides, helper scripts, and comprehensive documentation)
+- [x] 11.3 Supabase Cloud migration scripts (✅ Complete migration system with validation, backup, restore, migration, and rollback scripts, comprehensive documentation, and npm script integration)
+- [x] 11.4 Cron/worker for daily emails (✅ Complete cron worker system with continuous job execution, database persistence, standalone worker process, health monitoring, web UI controls, and comprehensive documentation)
+- [x] 11.5 Error logging & observability (✅ Complete observability system with structured logging, error tracking, performance monitoring, health checks, real-time dashboard, comprehensive API endpoints, and detailed documentation)
 
 ## 12.0 Performance & UX Polish
-- [ ] 12.1 Data virtualization for tables
-- [ ] 12.2 Debounced search, cached filters, skeleton loaders
-- [ ] 12.3 Timezone utilities (UTC store, Dubai display)
-- [ ] 12.4 Keyboard shortcuts
-- [ ] 12.5 Print-friendly agenda & appointment sheets
+- [x] 12.1 Data virtualization for tables
+- [x] 12.2 Debounced search, cached filters, skeleton loaders
+- [x] 12.3 Timezone utilities (UTC store, Dubai display) (✅ Consolidated duplicate timezone implementations into single authoritative timezone.ts with comprehensive test coverage, maintained backward compatibility with legacy functions, and ensured all timezone operations use consistent API)
+- [x] 12.4 Keyboard shortcuts (✅ Complete keyboard shortcuts system with global and page-specific shortcuts, help modal, comprehensive test coverage, and integration across all main pages)
+
+**Relevant Files:**
+- `src/hooks/useKeyboardShortcuts.ts` - Core keyboard shortcuts hook with global and page-specific shortcut creators
+- `src/components/ui/KeyboardShortcutsHelp.tsx` - Help modal component showing available shortcuts
+- `src/components/providers/KeyboardShortcutsProvider.tsx` - Provider component for global shortcuts
+- `src/app/layout.tsx` - Integrated keyboard shortcuts provider
+- `src/app/appointments/page.tsx` - Added appointment-specific shortcuts (toggle view, focus search)
+- `src/app/patients/page.tsx` - Added patient-specific shortcuts (focus search)
+- `src/app/staff/page.tsx` - Added staff-specific shortcuts (focus search)
+- `src/hooks/useKeyboardShortcuts.test.ts` - Comprehensive unit tests for all functionality
+- `src/components/ui/index.ts` - Exported keyboard shortcuts components
+- `src/hooks/index.ts` - Exported keyboard shortcuts hooks
+- `src/lib/printUtils.ts` - Print utility functions and formatting helpers for agendas and appointments
+- `src/components/print/PrintableAgenda.tsx` - Print-optimized agenda component for staff daily schedules
+- `src/components/print/PrintableAppointmentSheet.tsx` - Print-optimized individual appointment sheet component
+- `src/app/print/agenda/[staffId]/[date]/page.tsx` - Print route for staff agendas
+- `src/app/print/appointment/[id]/page.tsx` - Print route for individual appointments
+- `src/components/print/index.ts` - Export index for print components
+- `src/styles/components.css` - Comprehensive print styles for professional printing
+- `src/components/modals/AppointmentDetailsDrawer.tsx` - Added print button to appointment details
+- `src/components/modals/AppointmentContextMenu.tsx` - Added print option to context menu
+- `src/components/email/EmailTestSection.tsx` - Added print button to agenda preview modal
+- `src/lib/printUtils.test.ts` - Unit tests for print utility functions
+- `src/components/print/PrintableAgenda.test.tsx` - Unit tests for printable agenda component
+- `src/components/print/PrintableAppointmentSheet.test.tsx` - Unit tests for printable appointment sheet component
+- [x] 12.5 Print-friendly agenda & appointment sheets

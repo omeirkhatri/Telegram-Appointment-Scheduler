@@ -2,7 +2,10 @@
 
 import Header from '@/components/layout/Header';
 import { PatientModal } from '@/components/modals';
+import { VirtualizedTable, type VirtualizedTableColumn } from '@/components/ui';
 import { useToastContext } from '@/components/ui/ToastContainer';
+import { createPatientShortcuts, useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
+import type { Patient } from '@/types';
 import {
     Filter,
     MoreHorizontal,
@@ -12,15 +15,30 @@ import {
     UserCheck,
     Users,
 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 export default function Patients() {
   const [isPatientModalOpen, setIsPatientModalOpen] = useState(false);
-  const [editingPatient, setEditingPatient] = useState<any>(null);
-  const [patients, setPatients] = useState<any[]>([]);
+  const [editingPatient, setEditingPatient] = useState<Patient | null>(null);
+  const [patients, setPatients] = useState<Patient[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { showToast } = useToastContext();
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  // Focus search input function
+  const focusSearch = useCallback(() => {
+    searchInputRef.current?.focus();
+  }, []);
+
+  // Page-specific keyboard shortcuts
+  const patientShortcuts = createPatientShortcuts(focusSearch);
+
+  useKeyboardShortcuts({
+    shortcuts: patientShortcuts,
+    enabled: true,
+    ignoreInputs: true,
+  });
 
   // Fetch patients from API
   const fetchPatients = async () => {
@@ -84,6 +102,90 @@ export default function Patients() {
       message: editingPatient ? 'Patient updated successfully' : 'Patient created successfully',
     });
   };
+
+  // Define columns for virtualized table
+  const columns: VirtualizedTableColumn<Patient>[] = [
+    {
+      key: 'patient',
+      header: 'Patient',
+      width: 250,
+      render: (patient) => (
+        <div>
+          <p className="font-medium text-[--foreground]">{patient.name}</p>
+          <p className="text-sm text-[--muted-foreground]">ID: {patient.id}</p>
+        </div>
+      ),
+    },
+    {
+      key: 'contact',
+      header: 'Contact',
+      width: 200,
+      render: (patient) => (
+        <div className="flex items-center space-x-2">
+          <Phone className="w-4 h-4 text-[--muted-foreground]" />
+          <span className="text-sm text-[--foreground]">{patient.phone}</span>
+        </div>
+      ),
+    },
+    {
+      key: 'address',
+      header: 'Address',
+      width: 300,
+      render: (patient) => (
+        <div className="text-sm text-[--foreground]">
+          <p>{patient.flat_villa_no}, {patient.building_street}</p>
+          <p className="text-[--muted-foreground]">{patient.area}, {patient.city}</p>
+        </div>
+      ),
+    },
+    {
+      key: 'created',
+      header: 'Created',
+      width: 150,
+      render: (patient) => (
+        <span className="text-sm text-[--foreground]">
+          {new Date(patient.created_at).toLocaleDateString()}
+        </span>
+      ),
+    },
+    {
+      key: 'document',
+      header: 'Document',
+      width: 150,
+      render: (patient) => (
+        patient.id_document_url ? (
+          <a
+            href={patient.id_document_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-[--success]/10 text-[--success] hover:bg-[--success]/20 transition-colors"
+          >
+            View Document
+          </a>
+        ) : (
+          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-[--muted] text-[--muted-foreground]">
+            None
+          </span>
+        )
+      ),
+    },
+    {
+      key: 'actions',
+      header: 'Actions',
+      width: 100,
+      render: (patient) => (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            handleEditPatient(patient);
+          }}
+          className="p-2 text-[--muted-foreground] hover:text-[--foreground] hover:bg-[--accent] rounded-lg transition-colors"
+        >
+          <MoreHorizontal className="w-4 h-4" />
+        </button>
+      ),
+    },
+  ];
 
   return (
     <div className="min-h-screen bg-[--background] text-[--foreground]">
@@ -165,6 +267,7 @@ export default function Patients() {
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[--muted-foreground]" />
               <input
+                ref={searchInputRef}
                 type="text"
                 placeholder="Search patients..."
                 className="w-full pl-10 pr-4 py-3 border border-[--border] rounded-lg bg-[--muted] text-[--foreground] placeholder-[--muted-foreground] focus:outline-none focus:ring-2 focus:ring-[--ring] focus:border-transparent"
@@ -177,110 +280,35 @@ export default function Patients() {
           </div>
         </div>
 
-        {/* Patients table */}
-        <div className="bg-[--card] border border-[--border] rounded-xl overflow-hidden shadow-lg">
-          {error && (
-            <div className="p-6 border-b border-[--border]">
-              <div className="bg-[--destructive]/10 border border-[--destructive]/20 rounded-lg p-4">
-                <p className="text-[--destructive] font-medium">Error loading patients</p>
-                <p className="text-[--destructive]/80 text-sm mt-1">{error}</p>
-                <button
-                  onClick={fetchPatients}
-                  className="mt-2 px-3 py-1 bg-[--destructive] text-[--destructive-foreground] rounded text-sm hover:bg-[--destructive]/90 transition-colors"
-                >
-                  Retry
-                </button>
-              </div>
+        {/* Error Display */}
+        {error && (
+          <div className="bg-[--card] border border-[--border] rounded-xl p-6 shadow-lg">
+            <div className="bg-[--destructive]/10 border border-[--destructive]/20 rounded-lg p-4">
+              <p className="text-[--destructive] font-medium">Error loading patients</p>
+              <p className="text-[--destructive]/80 text-sm mt-1">{error}</p>
+              <button
+                onClick={fetchPatients}
+                className="mt-2 px-3 py-1 bg-[--destructive] text-[--destructive-foreground] rounded text-sm hover:bg-[--destructive]/90 transition-colors"
+              >
+                Retry
+              </button>
             </div>
-          )}
-
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-[--muted]/50">
-                <tr>
-                  <th className="text-left py-4 px-6 text-sm font-medium text-[--muted-foreground]">Patient</th>
-                  <th className="text-left py-4 px-6 text-sm font-medium text-[--muted-foreground]">Contact</th>
-                  <th className="text-left py-4 px-6 text-sm font-medium text-[--muted-foreground]">Address</th>
-                  <th className="text-left py-4 px-6 text-sm font-medium text-[--muted-foreground]">Created</th>
-                  <th className="text-left py-4 px-6 text-sm font-medium text-[--muted-foreground]">Document</th>
-                  <th className="text-right py-4 px-6 text-sm font-medium text-[--muted-foreground]">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[--border]">
-                {isLoading ? (
-                  <tr>
-                    <td colSpan={6} className="py-8 px-6 text-center">
-                      <div className="flex items-center justify-center space-x-2">
-                        <div className="w-4 h-4 border-2 border-[--primary] border-t-transparent rounded-full animate-spin" />
-                        <span className="text-[--muted-foreground]">Loading patients...</span>
-                      </div>
-                    </td>
-                  </tr>
-                ) : patients.length === 0 ? (
-                  <tr>
-                    <td colSpan={6} className="py-8 px-6 text-center">
-                      <div className="text-[--muted-foreground]">
-                        <Users className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                        <p className="text-lg font-medium">No patients found</p>
-                        <p className="text-sm">Get started by adding your first patient</p>
-                      </div>
-                    </td>
-                  </tr>
-                ) : (
-                  patients.map((patient) => (
-                    <tr key={patient.id} className="hover:bg-[--accent]/30 transition-colors">
-                      <td className="py-4 px-6">
-                        <div>
-                          <p className="font-medium text-[--foreground]">{patient.name}</p>
-                          <p className="text-sm text-[--muted-foreground]">ID: {patient.id}</p>
-                        </div>
-                      </td>
-                      <td className="py-4 px-6">
-                        <div className="flex items-center space-x-2">
-                          <Phone className="w-4 h-4 text-[--muted-foreground]" />
-                          <span className="text-sm text-[--foreground]">{patient.phone}</span>
-                        </div>
-                      </td>
-                      <td className="py-4 px-6">
-                        <div className="text-sm text-[--foreground]">
-                          <p>{patient.flat_villa_no}, {patient.building_street}</p>
-                          <p className="text-[--muted-foreground]">{patient.area}, {patient.city}</p>
-                        </div>
-                      </td>
-                      <td className="py-4 px-6 text-sm text-[--foreground]">
-                        {new Date(patient.created_at).toLocaleDateString()}
-                      </td>
-                      <td className="py-4 px-6">
-                        {patient.id_document_url ? (
-                          <a
-                            href={patient.id_document_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-[--success]/10 text-[--success] hover:bg-[--success]/20 transition-colors"
-                          >
-                            View Document
-                          </a>
-                        ) : (
-                          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-[--muted] text-[--muted-foreground]">
-                            None
-                          </span>
-                        )}
-                      </td>
-                      <td className="py-4 px-6 text-right">
-                        <button
-                          onClick={() => handleEditPatient(patient)}
-                          className="p-2 text-[--muted-foreground] hover:text-[--foreground] hover:bg-[--accent] rounded-lg transition-colors"
-                        >
-                          <MoreHorizontal className="w-4 h-4" />
-                        </button>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
           </div>
-        </div>
+        )}
+
+        {/* Virtualized Patients Table */}
+        <VirtualizedTable
+          data={patients}
+          columns={columns}
+          height={600}
+          itemHeight={80}
+          loading={isLoading}
+          loadingMessage="Loading patients..."
+          emptyMessage="No patients found"
+          onRowClick={handleEditPatient}
+          getRowKey={(patient) => patient.id}
+          enableKeyboardNavigation={true}
+        />
       </main>
 
       {/* Patient Modal */}
@@ -288,7 +316,7 @@ export default function Patients() {
         isOpen={isPatientModalOpen}
         onClose={handlePatientModalClose}
         onSuccess={handlePatientSuccess}
-        initialPatient={editingPatient}
+        initialPatient={editingPatient || undefined}
       />
     </div>
   );

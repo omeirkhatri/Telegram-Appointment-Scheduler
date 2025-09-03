@@ -13,7 +13,7 @@ import type { Staff } from '@/types';
 import type { Appointment } from '@/types/appointment';
 import { getAppointmentEndTime, getAppointmentTypeDisplayName } from '@/types/appointment';
 import type { Patient } from '@/types/patient';
-import { formatForGoogleCalendar } from '@/utils/date';
+import { formatForGoogleCalendar } from '@/utils/timezone';
 
 // Google Calendar API service for staff integration
 export class GoogleCalendarService {

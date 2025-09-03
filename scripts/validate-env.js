@@ -2,7 +2,7 @@
 
 /**
  * Environment Validation Script
- * 
+ *
  * This script validates the environment configuration for the MediCare Scheduler application.
  * It checks for required environment variables, validates their formats, and provides
  * helpful suggestions for common configuration issues.
@@ -19,7 +19,7 @@ if (fs.existsSync(envPath)) {
     // Simple .env file parser (without external dependencies)
     const envContent = fs.readFileSync(envPath, 'utf8');
     const envLines = envContent.split('\n');
-    
+
     envLines.forEach(line => {
       line = line.trim();
       if (line && !line.startsWith('#')) {
@@ -27,7 +27,7 @@ if (fs.existsSync(envPath)) {
         if (key && valueParts.length > 0) {
           let value = valueParts.join('=');
           // Remove surrounding quotes
-          if ((value.startsWith('"') && value.endsWith('"')) || 
+          if ((value.startsWith('"') && value.endsWith('"')) ||
               (value.startsWith("'") && value.endsWith("'"))) {
             value = value.slice(1, -1);
           }
@@ -130,7 +130,7 @@ function validateGoogleCalendarConfig(env) {
   const hasServiceAccount = isConfigured(env.GOOGLE_CALENDAR_SERVICE_ACCOUNT_EMAIL) &&
                            isConfigured(env.GOOGLE_CALENDAR_PRIVATE_KEY) &&
                            isConfigured(env.GOOGLE_CALENDAR_PROJECT_ID);
-  
+
   const hasOAuth = isConfigured(env.GOOGLE_CALENDAR_CLIENT_ID) &&
                   isConfigured(env.GOOGLE_CALENDAR_CLIENT_SECRET);
 
@@ -166,8 +166,9 @@ function validateSecurityConfig(env) {
 }
 
 function validateSupabaseConfig(env) {
-  const isLocal = env.NEXT_PUBLIC_SUPABASE_URL.includes('127.0.0.1') || 
-                  env.NEXT_PUBLIC_SUPABASE_URL.includes('localhost');
+  const isLocal = env.NEXT_PUBLIC_SUPABASE_URL.includes('127.0.0.1') ||
+                  env.NEXT_PUBLIC_SUPABASE_URL.includes('localhost') ||
+                  env.NEXT_PUBLIC_SUPABASE_URL.includes('supabase-kong');
 
   if (isLocal && env.NODE_ENV === 'production') {
     addError('Local Supabase URL detected in production environment.', 'NEXT_PUBLIC_SUPABASE_URL');
@@ -178,6 +179,15 @@ function validateSupabaseConfig(env) {
   }
 }
 
+function validateDockerConfig(env) {
+  const isDocker = env.NEXT_PUBLIC_SUPABASE_URL.includes('supabase-kong');
+
+  if (isDocker) {
+    console.log('🐳 Docker Compose environment detected');
+    addSuggestion('Using Docker Compose setup. Run "./scripts/docker-setup.sh status" to check service status.');
+  }
+}
+
 // Main validation function
 function validateEnvironment() {
   console.log('🔍 Validating environment configuration...\n');
@@ -185,10 +195,10 @@ function validateEnvironment() {
   try {
     // Parse and validate environment variables
     const envParseResult = envSchema.safeParse(process.env);
-    
+
     if (!envParseResult.success) {
       console.log('❌ Environment validation failed:\n');
-      
+
       if (envParseResult.error.errors) {
         envParseResult.error.errors.forEach(error => {
           const path = error.path.join('.');
@@ -205,7 +215,7 @@ function validateEnvironment() {
       console.log('  • Copy env.example to .env.local and fill in the required values');
       console.log('  • Check the documentation in docs/environment-setup.md');
       console.log('  • Ensure all required environment variables are set');
-      
+
       return false;
     }
 
@@ -226,10 +236,11 @@ function validateEnvironment() {
     validateEmailConfig(env);
     validateSecurityConfig(env);
     validateSupabaseConfig(env);
+    validateDockerConfig(env);
 
     // Display results
     console.log('✅ Environment validation completed\n');
-    
+
     // Configuration summary
     console.log('📊 Configuration Summary:');
     console.log(`  • Total variables: ${results.summary.total}`);
@@ -246,21 +257,24 @@ function validateEnvironment() {
 
     // Service status
     console.log('🔧 Service Configuration Status:');
-    
-    const supabaseStatus = env.NEXT_PUBLIC_SUPABASE_URL.includes('127.0.0.1') ? 'Local' : 'Cloud';
+
+    const isLocalSupabase = env.NEXT_PUBLIC_SUPABASE_URL.includes('127.0.0.1') ||
+                           env.NEXT_PUBLIC_SUPABASE_URL.includes('localhost') ||
+                           env.NEXT_PUBLIC_SUPABASE_URL.includes('supabase-kong');
+    const supabaseStatus = isLocalSupabase ? 'Local' : 'Cloud';
     console.log(`  • Supabase: ${supabaseStatus}`);
-    
-    const googleCalendarStatus = (isConfigured(env.GOOGLE_CALENDAR_SERVICE_ACCOUNT_EMAIL) || 
+
+    const googleCalendarStatus = (isConfigured(env.GOOGLE_CALENDAR_SERVICE_ACCOUNT_EMAIL) ||
                                  isConfigured(env.GOOGLE_CALENDAR_CLIENT_ID)) ? 'Configured' : 'Not configured';
     console.log(`  • Google Calendar: ${googleCalendarStatus}`);
-    
-    const emailStatus = (isConfigured(env.SMTP_HOST) && isConfigured(env.SMTP_PORT) && 
+
+    const emailStatus = (isConfigured(env.SMTP_HOST) && isConfigured(env.SMTP_PORT) &&
                         isConfigured(env.SMTP_USER) && isConfigured(env.SMTP_PASS)) ? 'Configured' : 'Not configured';
     console.log(`  • Email (SMTP): ${emailStatus}`);
-    
+
     const jwtStatus = isConfigured(env.JWT_SECRET) ? 'Configured' : 'Not configured';
     console.log(`  • JWT Secret: ${jwtStatus}`);
-    
+
     const sentryStatus = isConfigured(env.SENTRY_DSN) ? 'Configured' : 'Not configured';
     console.log(`  • Sentry: ${sentryStatus}\n`);
 

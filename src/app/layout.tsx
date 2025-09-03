@@ -1,3 +1,4 @@
+import { KeyboardShortcutsProvider } from '@/components/providers/KeyboardShortcutsProvider';
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
 import { ToastProvider } from '@/components/ui/ToastContainer';
 import type { Metadata } from 'next';
@@ -30,7 +31,11 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <ErrorBoundary>
-          <ToastProvider>{children}</ToastProvider>
+          <ToastProvider>
+            <KeyboardShortcutsProvider>
+              {children}
+            </KeyboardShortcutsProvider>
+          </ToastProvider>
         </ErrorBoundary>
       </body>
     </html>

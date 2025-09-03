@@ -14,6 +14,7 @@ import {
     FileText,
     MapPin,
     Phone,
+    Printer,
     Stethoscope,
     Trash2,
     User,
@@ -368,6 +369,13 @@ export function AppointmentDetailsDrawer({
               )}
             </div>
             <div className="flex items-center space-x-2">
+              <button
+                onClick={() => window.open(`/print/appointment/${appointment.id}`, '_blank')}
+                className="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                <Printer className="w-4 h-4 mr-2" />
+                Print
+              </button>
               <button
                 onClick={() => onCopy?.(appointment)}
                 className="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"

@@ -8,5 +8,14 @@ export { useErrorHandler } from './useErrorHandler';
 export { useLoadingState } from './useLoadingState';
 
 // Utility hooks
-export { useDebounce } from './useDebounce';
+export { useDebounce, useDebounceLegacy } from './useDebounce';
 export { useLocalStorage } from './useLocalStorage';
+
+// Performance and caching hooks
+export { useFilterCache, useSearchFilterCache } from './useFilterCache';
+
+// Keyboard shortcuts hooks
+export {
+    createAppointmentShortcuts, createGlobalShortcuts, createPatientShortcuts,
+    createStaffShortcuts, useKeyboardShortcuts
+} from './useKeyboardShortcuts';

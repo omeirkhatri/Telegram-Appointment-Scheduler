@@ -5,9 +5,13 @@ import { PatientSearch } from './PatientSearch';
 // Mock the hooks
 jest.mock('@/hooks', () => ({
   usePatients: jest.fn(),
+  useDebounce: jest.fn(),
+  useSearchFilterCache: jest.fn(),
 }));
 
 const mockUsePatients = require('@/hooks').usePatients;
+const mockUseDebounce = require('@/hooks').useDebounce;
+const mockUseSearchFilterCache = require('@/hooks').useSearchFilterCache;
 
 describe('PatientSearch', () => {
   const mockPatient: Patient = {
@@ -46,6 +50,20 @@ describe('PatientSearch', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockUsePatients.mockReturnValue(mockHookReturn);
+
+    // Mock useDebounce to return the search term as debounced value
+    mockUseDebounce.mockImplementation((value) => ({
+      debouncedValue: value,
+      isPending: false,
+      cancel: jest.fn(),
+      flush: jest.fn(),
+    }));
+
+    // Mock useSearchFilterCache
+    mockUseSearchFilterCache.mockReturnValue({
+      getCachedResults: jest.fn().mockReturnValue(null),
+      setCachedResults: jest.fn(),
+    });
   });
 
   it('renders search input correctly', () => {
@@ -99,7 +117,7 @@ describe('PatientSearch', () => {
 
     render(<PatientSearch />);
 
-    expect(screen.getByText('Loading...')).toBeInTheDocument();
+    expect(screen.getAllByText('Loading...').length).toBeGreaterThan(0);
   });
 
   it('displays error state', () => {
@@ -116,7 +134,7 @@ describe('PatientSearch', () => {
   it('displays empty state when no patients found', () => {
     render(<PatientSearch />);
 
-    expect(screen.getByText('No patients found')).toBeInTheDocument();
+    expect(screen.getAllByText('No patients found').length).toBeGreaterThan(0);
     expect(screen.getByText('Try adjusting your search criteria or filters.')).toBeInTheDocument();
   });
 
@@ -165,8 +183,8 @@ describe('PatientSearch', () => {
     render(<PatientSearch />);
 
     expect(screen.getByText('Showing 1 to 20 of 25 patients')).toBeInTheDocument();
-    expect(screen.getByText('Previous')).toBeInTheDocument();
-    expect(screen.getByText('Next')).toBeInTheDocument();
+    expect(screen.getAllByText('Previous').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Next').length).toBeGreaterThan(0);
   });
 
   it('handles page navigation', () => {
@@ -179,7 +197,8 @@ describe('PatientSearch', () => {
 
     render(<PatientSearch />);
 
-    const nextButton = screen.getByText('Next');
+    const nextButtons = screen.getAllByText('Next');
+    const nextButton = nextButtons[0]; // Use the first one
     fireEvent.click(nextButton);
 
     expect(mockHookReturn.setPage).toHaveBeenCalledWith(2);
@@ -242,7 +261,7 @@ describe('PatientSearch', () => {
   it('applies custom className', () => {
     render(<PatientSearch className="custom-class" />);
 
-    const container = screen.getByPlaceholderText('Search patients by name, phone, or area...').closest('div');
+    const container = screen.getByPlaceholderText('Search patients by name, phone, or area...').closest('.space-y-4');
     expect(container).toHaveClass('custom-class');
   });
 });
