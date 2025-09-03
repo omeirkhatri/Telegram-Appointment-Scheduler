@@ -1,23 +1,22 @@
 'use client';
 
-import { ErrorMessage } from '@/components/ui';
 import type { Appointment, Patient, Staff } from '@/types';
-import { getAppointmentTypeDisplayName, getAppointmentStatusDisplayName } from '@/types/appointment';
-import { 
-  Calendar, 
-  Clock, 
-  MapPin, 
-  Phone, 
-  User, 
-  X, 
-  Edit, 
-  Copy, 
-  Trash2, 
-  ExternalLink,
-  Car,
-  Stethoscope,
-  FileText,
-  AlertCircle
+import { getAppointmentStatusDisplayName, getAppointmentTypeDisplayName } from '@/types/appointment';
+import {
+    AlertCircle,
+    Calendar,
+    Car,
+    Clock,
+    Copy,
+    Edit,
+    ExternalLink,
+    FileText,
+    MapPin,
+    Phone,
+    Stethoscope,
+    Trash2,
+    User,
+    X
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
@@ -83,8 +82,8 @@ export function AppointmentDetailsDrawer({
   if (!isOpen || !appointment) return null;
 
   // Get assigned staff members
-  const assignedStaff = staff.filter(s => 
-    appointment.google_event_ids && 
+  const assignedStaff = staff.filter(s =>
+    appointment.google_event_ids &&
     Object.keys(appointment.google_event_ids).includes(s.id)
   );
 

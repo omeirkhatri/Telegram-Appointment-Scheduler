@@ -1,6 +1,6 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { AppointmentDetailsDrawer } from './AppointmentDetailsDrawer';
 import type { Appointment, Patient, Staff } from '@/types';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { AppointmentDetailsDrawer } from './AppointmentDetailsDrawer';
 
 // Mock the appointment type helper functions
 jest.mock('@/types/appointment', () => ({
@@ -121,7 +121,7 @@ describe('AppointmentDetailsDrawer', () => {
 
   it('renders when open with appointment data', () => {
     render(<AppointmentDetailsDrawer {...defaultProps} />);
-    
+
     // Check for the main heading (h2)
     expect(screen.getByRole('heading', { level: 2, name: 'Appointment Details' })).toBeInTheDocument();
     // Check for the appointment type in the header subtitle
@@ -130,13 +130,13 @@ describe('AppointmentDetailsDrawer', () => {
 
   it('does not render when closed', () => {
     render(<AppointmentDetailsDrawer {...defaultProps} isOpen={false} />);
-    
+
     expect(screen.queryByText('Appointment Details')).not.toBeInTheDocument();
   });
 
   it('displays patient information correctly', () => {
     render(<AppointmentDetailsDrawer {...defaultProps} />);
-    
+
     expect(screen.getByText('John Doe')).toBeInTheDocument();
     expect(screen.getByText('+971501234567')).toBeInTheDocument();
     expect(screen.getByText('Villa 123, Main Street')).toBeInTheDocument();
@@ -145,7 +145,7 @@ describe('AppointmentDetailsDrawer', () => {
 
   it('displays appointment details correctly', () => {
     render(<AppointmentDetailsDrawer {...defaultProps} />);
-    
+
     expect(screen.getByText('2024-01-15')).toBeInTheDocument();
     expect(screen.getByText('10:00 - 11:00')).toBeInTheDocument();
     expect(screen.getByText('60 minutes')).toBeInTheDocument();
@@ -154,7 +154,7 @@ describe('AppointmentDetailsDrawer', () => {
 
   it('displays assigned staff correctly', () => {
     render(<AppointmentDetailsDrawer {...defaultProps} />);
-    
+
     expect(screen.getByText('Dr. Sarah Ahmed')).toBeInTheDocument();
     expect(screen.getByText('doctor - Cardiology')).toBeInTheDocument();
     expect(screen.getByText('+971501234569')).toBeInTheDocument();
@@ -162,7 +162,7 @@ describe('AppointmentDetailsDrawer', () => {
 
   it('displays transportation information correctly', () => {
     render(<AppointmentDetailsDrawer {...defaultProps} />);
-    
+
     // Check for driver in transportation section specifically
     const transportationSection = screen.getByText('Transportation').closest('.bg-gray-50');
     expect(transportationSection).toHaveTextContent('Ahmed Hassan');
@@ -171,23 +171,23 @@ describe('AppointmentDetailsDrawer', () => {
 
   it('displays custom fields correctly', () => {
     render(<AppointmentDetailsDrawer {...defaultProps} />);
-    
+
     expect(screen.getByText('chief complaint')).toBeInTheDocument();
     expect(screen.getByText('Chest pain')).toBeInTheDocument();
   });
 
   it('displays notes correctly', () => {
     render(<AppointmentDetailsDrawer {...defaultProps} />);
-    
+
     expect(screen.getByText('Patient has history of heart disease')).toBeInTheDocument();
   });
 
   it('calls onClose when close button is clicked', async () => {
     render(<AppointmentDetailsDrawer {...defaultProps} />);
-    
+
     const closeButton = screen.getByLabelText('Close drawer');
     fireEvent.click(closeButton);
-    
+
     // Wait for the animation to complete
     await waitFor(() => {
       expect(defaultProps.onClose).toHaveBeenCalledTimes(1);
@@ -196,7 +196,7 @@ describe('AppointmentDetailsDrawer', () => {
 
   it('calls onClose when backdrop is clicked', async () => {
     render(<AppointmentDetailsDrawer {...defaultProps} />);
-    
+
     const backdrop = document.querySelector('.fixed.inset-0.bg-black\\/50');
     if (backdrop) {
       fireEvent.click(backdrop);
@@ -208,45 +208,45 @@ describe('AppointmentDetailsDrawer', () => {
 
   it('calls onEdit when edit button is clicked', () => {
     render(<AppointmentDetailsDrawer {...defaultProps} />);
-    
+
     const editButton = screen.getByText('Edit');
     fireEvent.click(editButton);
-    
+
     expect(defaultProps.onEdit).toHaveBeenCalledWith(mockAppointment);
   });
 
   it('calls onCopy when copy button is clicked', () => {
     render(<AppointmentDetailsDrawer {...defaultProps} />);
-    
+
     const copyButton = screen.getByText('Copy');
     fireEvent.click(copyButton);
-    
+
     expect(defaultProps.onCopy).toHaveBeenCalledWith(mockAppointment);
   });
 
   it('calls onDelete when delete button is clicked', () => {
     render(<AppointmentDetailsDrawer {...defaultProps} />);
-    
+
     const deleteButton = screen.getByText('Delete');
     fireEvent.click(deleteButton);
-    
+
     expect(defaultProps.onDelete).toHaveBeenCalledWith(mockAppointment);
   });
 
   it('calls onOpenInGoogleCalendar when Google Calendar button is clicked', () => {
     render(<AppointmentDetailsDrawer {...defaultProps} />);
-    
+
     const googleCalendarButton = screen.getByText('Open in Google Calendar');
     fireEvent.click(googleCalendarButton);
-    
+
     expect(defaultProps.onOpenInGoogleCalendar).toHaveBeenCalledWith(mockAppointment);
   });
 
   it('handles escape key to close drawer', async () => {
     render(<AppointmentDetailsDrawer {...defaultProps} />);
-    
+
     fireEvent.keyDown(document, { key: 'Escape' });
-    
+
     await waitFor(() => {
       expect(defaultProps.onClose).toHaveBeenCalledTimes(1);
     }, { timeout: 300 });
@@ -263,7 +263,7 @@ describe('AppointmentDetailsDrawer', () => {
     };
 
     render(<AppointmentDetailsDrawer {...defaultProps} appointment={recurringAppointment} />);
-    
+
     expect(screen.getByText('Recurring Appointment')).toBeInTheDocument();
     // Check for the recurring text with more flexible matching
     expect(screen.getByText(/Repeats every 2 weekly/)).toBeInTheDocument();
@@ -272,7 +272,7 @@ describe('AppointmentDetailsDrawer', () => {
 
   it('handles missing patient information gracefully', () => {
     render(<AppointmentDetailsDrawer {...defaultProps} patient={null} />);
-    
+
     expect(screen.getByText('Patient information not available')).toBeInTheDocument();
   });
 
@@ -285,7 +285,7 @@ describe('AppointmentDetailsDrawer', () => {
     };
 
     render(<AppointmentDetailsDrawer {...defaultProps} appointment={selfTransportAppointment} />);
-    
+
     expect(screen.getByText('Self Transport')).toBeInTheDocument();
     expect(screen.getByText('Taxi')).toBeInTheDocument();
   });
@@ -297,7 +297,7 @@ describe('AppointmentDetailsDrawer', () => {
     };
 
     render(<AppointmentDetailsDrawer {...defaultProps} appointment={appointmentWithoutGoogleEvents} />);
-    
+
     expect(screen.queryByText('Open in Google Calendar')).not.toBeInTheDocument();
   });
 });

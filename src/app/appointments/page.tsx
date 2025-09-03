@@ -475,8 +475,8 @@ export default function AppointmentsPage() {
                     const patientName = patient ? `${patient.name}` : 'Unknown Patient';
 
                     return (
-                      <tr 
-                        key={appointment.id} 
+                      <tr
+                        key={appointment.id}
                         className="hover:bg-[--accent]/30 transition-colors cursor-pointer"
                         onClick={() => handleOpenDetailsDrawer(appointment)}
                       >
