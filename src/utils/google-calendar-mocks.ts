@@ -1,13 +1,10 @@
 /**
  * Comprehensive Google Calendar API Mocking Utilities
- * 
+ *
  * Provides type-safe, consistent mocking for all Google Calendar API patterns
  * used throughout the MediCare Scheduler application.
  */
 
-import type { Staff } from '@/types';
-import type { Appointment } from '@/types/appointment';
-import type { Patient } from '@/types/patient';
 
 // Google Calendar API types
 export interface GoogleCalendarEvent {
@@ -338,7 +335,7 @@ export class MockGoogleCalendarClient {
   // Get the events API
   get events() {
     const self = this;
-    
+
     return {
       list: jest.fn(async (params: any) => {
         if (self.shouldThrow && self.mockError) {
@@ -351,7 +348,7 @@ export class MockGoogleCalendarClient {
 
         const calendarId = params.calendarId || 'primary';
         const events = self.eventsData.get(calendarId) || [];
-        
+
         // Apply basic filtering
         let filteredEvents = events;
         if (params.timeMin) {
@@ -416,10 +413,10 @@ export class MockGoogleCalendarClient {
         const calendarId = params.calendarId || 'primary';
         const eventId = params.eventId;
         const eventData = params.resource;
-        
+
         const existingEvents = self.eventsData.get(calendarId) || [];
         const eventIndex = existingEvents.findIndex(event => event.id === eventId);
-        
+
         if (eventIndex >= 0) {
           const updatedEvent = {
             ...existingEvents[eventIndex],
@@ -428,7 +425,7 @@ export class MockGoogleCalendarClient {
           };
           existingEvents[eventIndex] = updatedEvent;
           self.eventsData.set(calendarId, existingEvents);
-          
+
           return { data: createMockGoogleCalendarEventResponse(updatedEvent) };
         } else {
           throw new Error('Event not found');
@@ -446,7 +443,7 @@ export class MockGoogleCalendarClient {
 
         const calendarId = params.calendarId || 'primary';
         const eventId = params.eventId;
-        
+
         const existingEvents = self.eventsData.get(calendarId) || [];
         const filteredEvents = existingEvents.filter(event => event.id !== eventId);
         self.eventsData.set(calendarId, filteredEvents);
@@ -493,7 +490,7 @@ export class MockGoogleCalendarClient {
   // Get the calendars API
   get calendars() {
     const self = this;
-    
+
     return {
       get: jest.fn(async (params: any) => {
         if (self.shouldThrow && self.mockError) {
@@ -519,7 +516,7 @@ export class MockGoogleCalendarClient {
   // Get the calendarList API
   get calendarList() {
     const self = this;
-    
+
     return {
       list: jest.fn(async (params: any) => {
         if (self.shouldThrow && self.mockError) {
@@ -578,25 +575,25 @@ export const clearAllGoogleCalendarMocks = () => {
   mockGoogleCalendarClient.webhooksData.clear();
   mockGoogleCalendarClient.shouldThrow = false;
   mockGoogleCalendarClient.mockError = null;
-  
+
   // Reset mock auth
   mockGoogleCalendarAuth.isInitialized = false;
   mockGoogleCalendarAuth.hasServiceAccount = false;
   mockGoogleCalendarAuth.hasApiKey = false;
   mockGoogleCalendarAuth.mockError = null;
   mockGoogleCalendarAuth.shouldThrow = false;
-  
+
   jest.clearAllMocks();
 };
 
 // Reset to default state
 export const resetMockGoogleCalendar = () => {
   clearAllGoogleCalendarMocks();
-  
+
   // Set up default calendars
   setupMockCalendar('primary', { summary: 'Primary Calendar', primary: true });
   setupMockCalendar('test@example.com', { summary: 'Test Calendar' });
-  
+
   // Set up default events
   setupMockCalendarEvents('primary', 2);
   setupMockCalendarEvents('test@example.com', 1);
@@ -658,7 +655,7 @@ export class MockGoogleCalendarAuth {
   }
 
   validateCalendarId(calendarId: string): boolean {
-    return /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(calendarId) || 
+    return /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(calendarId) ||
            calendarId === 'primary' ||
            /^[a-zA-Z0-9._%+-]+@group\.calendar\.google\.com$/.test(calendarId);
   }

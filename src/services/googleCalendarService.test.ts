@@ -1,14 +1,13 @@
-import { GoogleCalendarService } from './googleCalendarService';
-import { 
-  mockGoogleCalendarAuth,
-  mockGoogleCalendarClient,
-  clearAllGoogleCalendarMocks,
-  setupMockCalendarEvents,
-  setupMockCalendar,
-  createMockGoogleCalendarEvent,
-  createMockGoogleCalendarEvents,
-  createMockGoogleCalendarError,
+import {
+    clearAllGoogleCalendarMocks,
+    createMockGoogleCalendarEvent,
+    createMockGoogleCalendarEvents,
+    mockGoogleCalendarAuth,
+    mockGoogleCalendarClient,
+    setupMockCalendar,
+    setupMockCalendarEvents
 } from '@/utils/test-utils';
+import { GoogleCalendarService } from './googleCalendarService';
 
 describe('GoogleCalendarService', () => {
   let service: GoogleCalendarService;
@@ -16,10 +15,10 @@ describe('GoogleCalendarService', () => {
   beforeEach(() => {
     // Reset all mocks
     clearAllGoogleCalendarMocks();
-    
+
     // Set up default authentication
     mockGoogleCalendarAuth.withApiKey();
-    
+
     // Set up default calendar
     setupMockCalendar('test@example.com', { summary: 'Test Calendar' });
     setupMockCalendarEvents('test@example.com', 2);
@@ -52,7 +51,7 @@ describe('GoogleCalendarService', () => {
 
     it('should handle errors gracefully', async () => {
       mockGoogleCalendarAuth.withError(new Error('Test error'));
-      
+
       const result = await service.testCalendarConnection('test@example.com');
       expect(result).toBe(false);
     });

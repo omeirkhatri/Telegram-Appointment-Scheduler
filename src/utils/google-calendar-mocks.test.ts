@@ -1,29 +1,27 @@
 /**
  * Tests for Google Calendar Mocking Utilities
- * 
+ *
  * Ensures the mock factory works correctly and provides
  * consistent behavior for all Google Calendar API patterns.
  */
 
 import {
-  createMockGoogleCalendarEvent,
-  createMockGoogleCalendarEventResponse,
-  createMockGoogleCalendarListEntry,
-  createMockGoogleCalendarWebhookPayload,
-  createMockGoogleCalendarWatchResponse,
-  createMockGoogleCalendarEventsListResponse,
-  createMockGoogleCalendarEvents,
-  createMockGoogleCalendarList,
-  createMockGoogleCalendarError,
-  createMockGoogleCalendarAuthError,
-  createMockGoogleCalendarQuotaError,
-  MockGoogleCalendarClient,
-  MockGoogleCalendarAuth,
-  setupMockCalendarEvents,
-  setupMockCalendar,
-  setupMockWebhook,
-  clearAllGoogleCalendarMocks,
-  resetMockGoogleCalendar,
+    clearAllGoogleCalendarMocks,
+    createMockGoogleCalendarAuthError,
+    createMockGoogleCalendarError,
+    createMockGoogleCalendarEvent,
+    createMockGoogleCalendarEventResponse,
+    createMockGoogleCalendarEvents,
+    createMockGoogleCalendarList,
+    createMockGoogleCalendarListEntry,
+    createMockGoogleCalendarQuotaError,
+    createMockGoogleCalendarWebhookPayload,
+    MockGoogleCalendarAuth,
+    MockGoogleCalendarClient,
+    resetMockGoogleCalendar,
+    setupMockCalendar,
+    setupMockCalendarEvents,
+    setupMockWebhook
 } from './google-calendar-mocks';
 
 describe('Google Calendar Mocking Utilities', () => {
@@ -35,7 +33,7 @@ describe('Google Calendar Mocking Utilities', () => {
     describe('createMockGoogleCalendarEvent', () => {
       it('should create a calendar event with default values', () => {
         const event = createMockGoogleCalendarEvent();
-        
+
         expect(event).toMatchObject({
           id: 'test-event-id',
           summary: 'Test Appointment',
@@ -52,7 +50,7 @@ describe('Google Calendar Mocking Utilities', () => {
           summary: 'Custom Event',
           location: 'Custom Location',
         });
-        
+
         expect(event.summary).toBe('Custom Event');
         expect(event.location).toBe('Custom Location');
         expect(event.id).toBe('test-event-id'); // Default value preserved
@@ -62,7 +60,7 @@ describe('Google Calendar Mocking Utilities', () => {
     describe('createMockGoogleCalendarEventResponse', () => {
       it('should create a calendar event response with default values', () => {
         const eventResponse = createMockGoogleCalendarEventResponse();
-        
+
         expect(eventResponse).toMatchObject({
           kind: 'calendar#event',
           id: 'test-event-id',
@@ -78,7 +76,7 @@ describe('Google Calendar Mocking Utilities', () => {
     describe('createMockGoogleCalendarListEntry', () => {
       it('should create a calendar list entry with default values', () => {
         const calendar = createMockGoogleCalendarListEntry();
-        
+
         expect(calendar).toMatchObject({
           id: 'test-calendar-id',
           summary: 'Test Calendar',
@@ -93,7 +91,7 @@ describe('Google Calendar Mocking Utilities', () => {
     describe('createMockGoogleCalendarWebhookPayload', () => {
       it('should create a webhook payload with default values', () => {
         const webhook = createMockGoogleCalendarWebhookPayload();
-        
+
         expect(webhook).toMatchObject({
           kind: 'api#channel',
           id: 'test-webhook-id',
@@ -108,7 +106,7 @@ describe('Google Calendar Mocking Utilities', () => {
     describe('Collection Factories', () => {
       it('should create multiple calendar events with unique IDs', () => {
         const events = createMockGoogleCalendarEvents(3);
-        
+
         expect(events).toHaveLength(3);
         expect(events[0].id).toBe('event-1');
         expect(events[1].id).toBe('event-2');
@@ -120,7 +118,7 @@ describe('Google Calendar Mocking Utilities', () => {
 
       it('should create multiple calendar list entries with unique IDs', () => {
         const calendars = createMockGoogleCalendarList(2);
-        
+
         expect(calendars).toHaveLength(2);
         expect(calendars[0].id).toBe('calendar-1');
         expect(calendars[1].id).toBe('calendar-2');
@@ -134,7 +132,7 @@ describe('Google Calendar Mocking Utilities', () => {
   describe('Error Factories', () => {
     it('should create a custom Google Calendar error', () => {
       const error = createMockGoogleCalendarError('Custom error', 400);
-      
+
       expect(error).toEqual({
         error: {
           code: 400,
@@ -152,7 +150,7 @@ describe('Google Calendar Mocking Utilities', () => {
 
     it('should create an authentication error', () => {
       const error = createMockGoogleCalendarAuthError();
-      
+
       expect(error.error.code).toBe(401);
       expect(error.error.message).toBe('Invalid Credentials');
       expect(error.error.errors[0].reason).toBe('authError');
@@ -160,7 +158,7 @@ describe('Google Calendar Mocking Utilities', () => {
 
     it('should create a quota exceeded error', () => {
       const error = createMockGoogleCalendarQuotaError();
-      
+
       expect(error.error.code).toBe(403);
       expect(error.error.message).toBe('Quota exceeded');
       expect(error.error.errors[0].reason).toBe('quotaExceeded');
@@ -177,21 +175,21 @@ describe('Google Calendar Mocking Utilities', () => {
     it('should set and retrieve calendar events', () => {
       const events = createMockGoogleCalendarEvents(2);
       client.setCalendarEvents('test-calendar', events);
-      
+
       expect(client.events).toBeDefined();
     });
 
     it('should set and retrieve calendar info', () => {
       const calendar = createMockGoogleCalendarListEntry({ id: 'test-calendar' });
       client.setCalendar('test-calendar', calendar);
-      
+
       expect(client.calendars).toBeDefined();
     });
 
     it('should set and retrieve webhooks', () => {
       const webhook = createMockGoogleCalendarWebhookPayload({ id: 'test-webhook' });
       client.setWebhook('test-webhook', webhook);
-      
+
       // Verify webhook was set by checking if we can stop it
       expect(client.events.stop).toBeDefined();
     });
@@ -199,7 +197,7 @@ describe('Google Calendar Mocking Utilities', () => {
     it('should handle errors when configured', () => {
       const error = createMockGoogleCalendarError('Test error');
       client.withError(error);
-      
+
       expect(client.mockError).toEqual(error);
       expect(client.shouldThrow).toBe(false);
     });
@@ -207,7 +205,7 @@ describe('Google Calendar Mocking Utilities', () => {
     it('should handle throwing errors when configured', () => {
       const error = createMockGoogleCalendarError('Test error');
       client.withThrowingError(error);
-      
+
       expect(client.mockError).toEqual(error);
       expect(client.shouldThrow).toBe(true);
     });
@@ -216,9 +214,9 @@ describe('Google Calendar Mocking Utilities', () => {
       it('should list events', async () => {
         const events = createMockGoogleCalendarEvents(2);
         client.setCalendarEvents('test-calendar', events);
-        
+
         const result = await client.events.list({ calendarId: 'test-calendar' });
-        
+
         expect(result.data.items).toHaveLength(2);
         expect(result.data.items[0].id).toBe('event-1');
       });
@@ -230,12 +228,12 @@ describe('Google Calendar Mocking Utilities', () => {
           start: { dateTime: '2024-01-15T10:00:00+04:00', timeZone: 'Asia/Dubai' },
           end: { dateTime: '2024-01-15T11:00:00+04:00', timeZone: 'Asia/Dubai' },
         };
-        
+
         const result = await client.events.insert({
           calendarId: 'test-calendar',
           resource: eventData,
         });
-        
+
         expect(result.data.id).toMatch(/^generated-\d+$/);
         expect(result.data.summary).toBe('New Event');
       });
@@ -243,14 +241,14 @@ describe('Google Calendar Mocking Utilities', () => {
       it('should patch events', async () => {
         const existingEvent = createMockGoogleCalendarEvent({ id: 'event-123' });
         client.setCalendarEvents('test-calendar', [existingEvent]);
-        
+
         const updateData = { summary: 'Updated Event' };
         const result = await client.events.patch({
           calendarId: 'test-calendar',
           eventId: 'event-123',
           resource: updateData,
         });
-        
+
         expect(result.data.summary).toBe('Updated Event');
         expect(result.data.id).toBe('event-123');
       });
@@ -258,12 +256,12 @@ describe('Google Calendar Mocking Utilities', () => {
       it('should delete events', async () => {
         const existingEvent = createMockGoogleCalendarEvent({ id: 'event-123' });
         client.setCalendarEvents('test-calendar', [existingEvent]);
-        
+
         const result = await client.events.delete({
           calendarId: 'test-calendar',
           eventId: 'event-123',
         });
-        
+
         expect(result.data).toEqual({});
       });
 
@@ -272,7 +270,7 @@ describe('Google Calendar Mocking Utilities', () => {
           calendarId: 'test-calendar',
           resource: { address: 'https://example.com/webhook' },
         });
-        
+
         expect(result.data.id).toMatch(/^webhook-\d+$/);
         expect(result.data.address).toBe('https://example.com/webhook');
       });
@@ -280,11 +278,11 @@ describe('Google Calendar Mocking Utilities', () => {
       it('should stop watching', async () => {
         const webhook = createMockGoogleCalendarWebhookPayload({ id: 'webhook-123' });
         client.setWebhook('webhook-123', webhook);
-        
+
         const result = await client.events.stop({
           resource: { id: 'webhook-123' },
         });
-        
+
         expect(result.data).toEqual({});
       });
     });
@@ -293,9 +291,9 @@ describe('Google Calendar Mocking Utilities', () => {
       it('should get calendar info', async () => {
         const calendar = createMockGoogleCalendarListEntry({ id: 'test-calendar' });
         client.setCalendar('test-calendar', calendar);
-        
+
         const result = await client.calendars.get({ calendarId: 'test-calendar' });
-        
+
         expect(result.data.id).toBe('test-calendar');
         expect(result.data.summary).toBe('Test Calendar');
       });
@@ -307,9 +305,9 @@ describe('Google Calendar Mocking Utilities', () => {
         calendars.forEach(calendar => {
           client.setCalendar(calendar.id, calendar);
         });
-        
+
         const result = await client.calendarList.list();
-        
+
         expect(result.data.items).toHaveLength(2);
         expect(result.data.kind).toBe('calendar#calendarList');
       });
@@ -325,7 +323,7 @@ describe('Google Calendar Mocking Utilities', () => {
 
     it('should set service account authentication', () => {
       auth.withServiceAccount();
-      
+
       expect(auth.hasServiceAccountAuth()).toBe(true);
       expect(auth.hasApiKeyAuth()).toBe(false);
       expect(auth.getAuthStatus().isInitialized).toBe(true);
@@ -333,7 +331,7 @@ describe('Google Calendar Mocking Utilities', () => {
 
     it('should set API key authentication', () => {
       auth.withApiKey();
-      
+
       expect(auth.hasServiceAccountAuth()).toBe(false);
       expect(auth.hasApiKeyAuth()).toBe(true);
       expect(auth.getAuthStatus().isInitialized).toBe(true);
@@ -354,7 +352,7 @@ describe('Google Calendar Mocking Utilities', () => {
 
     it('should handle errors when configured', async () => {
       auth.withError(new Error('Test error'));
-      
+
       await expect(auth.testCalendarAccess('user@example.com')).rejects.toThrow('Test error');
     });
 
@@ -366,7 +364,7 @@ describe('Google Calendar Mocking Utilities', () => {
     it('should get API key when available', () => {
       auth.withApiKey();
       expect(auth.getApiKey()).toBe('mock-api-key');
-      
+
       auth = new MockGoogleCalendarAuth();
       expect(auth.getApiKey()).toBe(null);
     });
@@ -375,21 +373,21 @@ describe('Google Calendar Mocking Utilities', () => {
   describe('Setup Helpers', () => {
     it('should setup mock calendar events', () => {
       const events = setupMockCalendarEvents('test-calendar', 3);
-      
+
       expect(events).toHaveLength(3);
       expect(events[0].id).toBe('event-1');
     });
 
     it('should setup mock calendar', () => {
       const calendar = setupMockCalendar('test-calendar', { summary: 'Custom Calendar' });
-      
+
       expect(calendar.id).toBe('test-calendar');
       expect(calendar.summary).toBe('Custom Calendar');
     });
 
     it('should setup mock webhook', () => {
       const webhook = setupMockWebhook('test-webhook', { address: 'https://custom.com/webhook' });
-      
+
       expect(webhook.id).toBe('test-webhook');
       expect(webhook.address).toBe('https://custom.com/webhook');
     });
@@ -399,7 +397,7 @@ describe('Google Calendar Mocking Utilities', () => {
     it('should clear all mocks', () => {
       setupMockCalendarEvents('test-calendar', 3);
       clearAllGoogleCalendarMocks();
-      
+
       // After clearing, we should be able to set up new data
       const events = setupMockCalendarEvents('test-calendar', 1);
       expect(events).toHaveLength(1);
@@ -407,7 +405,7 @@ describe('Google Calendar Mocking Utilities', () => {
 
     it('should reset to default state', () => {
       resetMockGoogleCalendar();
-      
+
       // Should have default calendars and events
       expect(true).toBe(true); // Mock successfully reset
     });
