@@ -3,7 +3,7 @@
 import { AppointmentCalendar } from '@/components/calendar';
 import { AppointmentFilters, type AppointmentFilterState } from '@/components/filters';
 import Header from '@/components/layout/Header';
-import { AppointmentContextMenu, AppointmentModal, CopyAppointmentModal } from '@/components/modals';
+import { AppointmentContextMenu, AppointmentDetailsDrawer, AppointmentModal, CopyAppointmentModal } from '@/components/modals';
 import { ErrorMessage, SuccessMessage } from '@/components/ui';
 import { useAppointmentsForDateRange, useUpdateAppointment } from '@/hooks/useAppointments';
 import { usePatients } from '@/hooks/usePatients';
@@ -38,6 +38,8 @@ export default function AppointmentsPage() {
   const [isCopyModalOpen, setIsCopyModalOpen] = useState(false);
   const [copySourceAppointment, setCopySourceAppointment] = useState<Appointment | null>(null);
   const [selectedDate, setSelectedDate] = useState<{ start: Date; end: Date } | null>(null);
+  const [isDetailsDrawerOpen, setIsDetailsDrawerOpen] = useState(false);
+  const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
 
   // Debounced refetch to avoid excessive API calls
   const refetchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -177,6 +179,37 @@ export default function AppointmentsPage() {
   const handleOpenInGoogleCalendar = (appointment: Appointment) => {
     // TODO: Open Google Calendar URL
     showNotification('success', `Open in Google Calendar: ${appointment.id}`);
+  };
+
+  // Drawer handlers
+  const handleOpenDetailsDrawer = (appointment: Appointment) => {
+    setSelectedAppointment(appointment);
+    setIsDetailsDrawerOpen(true);
+  };
+
+  const handleCloseDetailsDrawer = () => {
+    setIsDetailsDrawerOpen(false);
+    setSelectedAppointment(null);
+  };
+
+  const handleEditFromDrawer = (appointment: Appointment) => {
+    handleCloseDetailsDrawer();
+    handleEditAppointment(appointment);
+  };
+
+  const handleCopyFromDrawer = (appointment: Appointment) => {
+    handleCloseDetailsDrawer();
+    handleCopyAppointment(appointment);
+  };
+
+  const handleDeleteFromDrawer = (appointment: Appointment) => {
+    handleCloseDetailsDrawer();
+    handleDeleteAppointment(appointment);
+  };
+
+  const handleOpenInGoogleCalendarFromDrawer = (appointment: Appointment) => {
+    handleCloseDetailsDrawer();
+    handleOpenInGoogleCalendar(appointment);
   };
 
   const handleDeleteAppointment = async (appointment: Appointment) => {
@@ -372,10 +405,7 @@ export default function AppointmentsPage() {
             <AppointmentCalendar
               initialView="timeGridWeek"
               height={600}
-              onEventClick={(appointment) => {
-                // You can open a modal or drawer here
-                console.log('Selected appointment:', appointment);
-              }}
+              onEventClick={handleOpenDetailsDrawer}
               onEventRightClick={handleEventRightClick}
               onDateSelect={handleCalendarDateSelect}
               onEventDrop={handleEventDrop}
@@ -445,7 +475,11 @@ export default function AppointmentsPage() {
                     const patientName = patient ? `${patient.name}` : 'Unknown Patient';
 
                     return (
-                      <tr key={appointment.id} className="hover:bg-[--accent]/30 transition-colors">
+                      <tr 
+                        key={appointment.id} 
+                        className="hover:bg-[--accent]/30 transition-colors cursor-pointer"
+                        onClick={() => handleOpenDetailsDrawer(appointment)}
+                      >
                         <td className="py-4 px-6">
                           <div>
                             <p className="text-sm text-[--foreground] font-medium">{appointment.start_time}</p>
@@ -544,6 +578,19 @@ export default function AppointmentsPage() {
             staffError={staffError}
           />
         )}
+
+        {/* Appointment Details Drawer */}
+        <AppointmentDetailsDrawer
+          isOpen={isDetailsDrawerOpen}
+          onClose={handleCloseDetailsDrawer}
+          appointment={selectedAppointment}
+          patient={selectedAppointment ? patients.find(p => p.id === selectedAppointment.patient_id) : null}
+          staff={staff}
+          onEdit={handleEditFromDrawer}
+          onCopy={handleCopyFromDrawer}
+          onDelete={handleDeleteFromDrawer}
+          onOpenInGoogleCalendar={handleOpenInGoogleCalendarFromDrawer}
+        />
       </main>
     </div>
   );

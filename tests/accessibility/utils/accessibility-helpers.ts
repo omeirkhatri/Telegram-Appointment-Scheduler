@@ -1,5 +1,5 @@
-import { Page, expect } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
+import { Page, expect } from '@playwright/test';
 
 /**
  * Accessibility testing utilities and helpers
@@ -33,13 +33,13 @@ export interface AccessibilityResults {
  */
 export async function runAccessibilityAudit(page: Page): Promise<AccessibilityResults> {
   const axeBuilder = new AxeBuilder({ page });
-  
+
   // Configure axe-core with healthcare-specific rules
   const results = await axeBuilder
     .withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'best-practice'])
     .exclude('#axe-skip') // Allow skipping specific elements
     .analyze();
-  
+
   return results;
 }
 
@@ -52,20 +52,20 @@ export function assertAccessibilityCompliance(
   allowMinorViolations: boolean = false
 ): void {
   const { violations } = results;
-  
+
   // Filter violations based on severity
   const criticalViolations = violations.filter(v => v.impact === 'critical');
   const seriousViolations = violations.filter(v => v.impact === 'serious');
   const moderateViolations = violations.filter(v => v.impact === 'moderate');
   const minorViolations = violations.filter(v => v.impact === 'minor');
-  
+
   console.log(`\n🔍 Accessibility Audit Results for ${pageName}:`);
   console.log(`Total violations: ${violations.length}`);
   console.log(`Critical: ${criticalViolations.length}`);
   console.log(`Serious: ${seriousViolations.length}`);
   console.log(`Moderate: ${moderateViolations.length}`);
   console.log(`Minor: ${minorViolations.length}`);
-  
+
   // Log detailed violation information
   if (violations.length > 0) {
     console.log('\n📋 Violation Details:');
@@ -74,7 +74,7 @@ export function assertAccessibilityCompliance(
       console.log(`   Description: ${violation.description}`);
       console.log(`   Help: ${violation.help}`);
       console.log(`   Help URL: ${violation.helpUrl}`);
-      
+
       if (violation.nodes.length > 0) {
         console.log(`   Affected elements: ${violation.nodes.length}`);
         violation.nodes.slice(0, 3).forEach((node, nodeIndex) => {
@@ -87,12 +87,12 @@ export function assertAccessibilityCompliance(
       }
     });
   }
-  
+
   // Assert based on severity
   expect(criticalViolations.length, `Critical accessibility violations found on ${pageName}`).toBe(0);
   expect(seriousViolations.length, `Serious accessibility violations found on ${pageName}`).toBe(0);
   expect(moderateViolations.length, `Moderate accessibility violations found on ${pageName}`).toBe(0);
-  
+
   if (!allowMinorViolations) {
     expect(minorViolations.length, `Minor accessibility violations found on ${pageName}`).toBe(0);
   }
@@ -103,23 +103,23 @@ export function assertAccessibilityCompliance(
  */
 export async function testKeyboardNavigation(page: Page, selectors: string[]): Promise<void> {
   console.log('🎹 Testing keyboard navigation...');
-  
+
   for (const selector of selectors) {
     try {
       // Focus the element
       await page.focus(selector);
-      
+
       // Verify element is focused
       const isFocused = await page.evaluate((sel) => {
         const element = document.querySelector(sel);
         return element === document.activeElement;
       }, selector);
-      
+
       expect(isFocused, `Element ${selector} should be focusable`).toBe(true);
-      
+
       // Test Tab navigation
       await page.keyboard.press('Tab');
-      
+
       console.log(`✅ Keyboard navigation test passed for ${selector}`);
     } catch (error) {
       console.error(`❌ Keyboard navigation test failed for ${selector}:`, error);
@@ -133,7 +133,7 @@ export async function testKeyboardNavigation(page: Page, selectors: string[]): P
  */
 export async function testScreenReaderCompatibility(page: Page): Promise<void> {
   console.log('🔊 Testing screen reader compatibility...');
-  
+
   // Check for proper heading structure
   const headings = await page.evaluate(() => {
     const headingElements = document.querySelectorAll('h1, h2, h3, h4, h5, h6');
@@ -143,9 +143,9 @@ export async function testScreenReaderCompatibility(page: Page): Promise<void> {
       level: parseInt(heading.tagName.charAt(1))
     }));
   });
-  
+
   console.log(`Found ${headings.length} headings`);
-  
+
   // Verify heading hierarchy
   let previousLevel = 0;
   for (const heading of headings) {
@@ -154,7 +154,7 @@ export async function testScreenReaderCompatibility(page: Page): Promise<void> {
     }
     previousLevel = heading.level;
   }
-  
+
   // Check for proper form labels
   const formElements = await page.evaluate(() => {
     const inputs = document.querySelectorAll('input, select, textarea');
@@ -162,7 +162,7 @@ export async function testScreenReaderCompatibility(page: Page): Promise<void> {
       const label = document.querySelector(`label[for="${input.id}"]`);
       const ariaLabel = input.getAttribute('aria-label');
       const ariaLabelledBy = input.getAttribute('aria-labelledby');
-      
+
       return {
         tag: input.tagName.toLowerCase(),
         type: input.getAttribute('type'),
@@ -174,12 +174,12 @@ export async function testScreenReaderCompatibility(page: Page): Promise<void> {
       };
     });
   });
-  
+
   const unlabeledElements = formElements.filter(el => !el.isLabeled);
   if (unlabeledElements.length > 0) {
     console.warn(`⚠️ Found ${unlabeledElements.length} unlabeled form elements:`, unlabeledElements);
   }
-  
+
   // Check for proper ARIA landmarks
   const landmarks = await page.evaluate(() => {
     const landmarkElements = document.querySelectorAll('[role="banner"], [role="navigation"], [role="main"], [role="complementary"], [role="contentinfo"]');
@@ -189,9 +189,9 @@ export async function testScreenReaderCompatibility(page: Page): Promise<void> {
       text: el.textContent?.trim().substring(0, 50)
     }));
   });
-  
+
   console.log(`Found ${landmarks.length} ARIA landmarks:`, landmarks);
-  
+
   console.log('✅ Screen reader compatibility tests completed');
 }
 
@@ -200,7 +200,7 @@ export async function testScreenReaderCompatibility(page: Page): Promise<void> {
  */
 export async function testVisualAccessibility(page: Page): Promise<void> {
   console.log('👁️ Testing visual accessibility...');
-  
+
   // Check for proper focus indicators
   const focusableElements = await page.evaluate(() => {
     const focusable = document.querySelectorAll('a, button, input, select, textarea, [tabindex]:not([tabindex="-1"])');
@@ -209,7 +209,7 @@ export async function testVisualAccessibility(page: Page): Promise<void> {
       const outline = styles.outline;
       const outlineWidth = styles.outlineWidth;
       const boxShadow = styles.boxShadow;
-      
+
       return {
         tag: el.tagName.toLowerCase(),
         hasOutline: outline !== 'none' && outlineWidth !== '0px',
@@ -218,12 +218,12 @@ export async function testVisualAccessibility(page: Page): Promise<void> {
       };
     });
   });
-  
+
   const elementsWithoutFocus = focusableElements.filter(el => !el.hasFocusIndicator);
   if (elementsWithoutFocus.length > 0) {
     console.warn(`⚠️ Found ${elementsWithoutFocus.length} focusable elements without focus indicators`);
   }
-  
+
   // Check for proper alt text on images
   const images = await page.evaluate(() => {
     const imgElements = document.querySelectorAll('img');
@@ -234,12 +234,12 @@ export async function testVisualAccessibility(page: Page): Promise<void> {
       isDecorative: img.alt === '' && img.getAttribute('role') === 'presentation'
     }));
   });
-  
+
   const imagesWithoutAlt = images.filter(img => !img.hasAlt && !img.isDecorative);
   if (imagesWithoutAlt.length > 0) {
     console.warn(`⚠️ Found ${imagesWithoutAlt.length} images without alt text:`, imagesWithoutAlt);
   }
-  
+
   console.log('✅ Visual accessibility tests completed');
 }
 
@@ -248,10 +248,10 @@ export async function testVisualAccessibility(page: Page): Promise<void> {
  */
 export async function testMobileAccessibility(page: Page): Promise<void> {
   console.log('📱 Testing mobile accessibility...');
-  
+
   // Set mobile viewport
   await page.setViewportSize({ width: 375, height: 667 });
-  
+
   // Check for proper touch targets (minimum 44x44px)
   const touchTargets = await page.evaluate(() => {
     const interactive = document.querySelectorAll('a, button, input, select, textarea, [role="button"], [role="link"]');
@@ -265,12 +265,12 @@ export async function testMobileAccessibility(page: Page): Promise<void> {
       };
     });
   });
-  
+
   const smallTargets = touchTargets.filter(target => !target.isLargeEnough);
   if (smallTargets.length > 0) {
     console.warn(`⚠️ Found ${smallTargets.length} touch targets smaller than 44x44px:`, smallTargets);
   }
-  
+
   // Check for proper zoom support
   const viewport = await page.evaluate(() => {
     const viewportMeta = document.querySelector('meta[name="viewport"]');
@@ -279,13 +279,13 @@ export async function testMobileAccessibility(page: Page): Promise<void> {
       content: viewportMeta?.getAttribute('content') || ''
     };
   });
-  
+
   if (!viewport.hasViewportMeta) {
     console.warn('⚠️ No viewport meta tag found');
   } else if (!viewport.content.includes('user-scalable=yes') && !viewport.content.includes('user-scalable=1')) {
     console.warn('⚠️ Viewport meta tag may prevent zooming');
   }
-  
+
   console.log('✅ Mobile accessibility tests completed');
 }
 
@@ -318,7 +318,7 @@ export function generateAccessibilityReport(
     })),
     recommendations: generateAccessibilityRecommendations(results.violations),
   };
-  
+
   return JSON.stringify(report, null, 2);
 }
 
@@ -327,37 +327,37 @@ export function generateAccessibilityReport(
  */
 function generateAccessibilityRecommendations(violations: AccessibilityViolation[]): string[] {
   const recommendations: string[] = [];
-  
+
   const violationTypes = new Set(violations.map(v => v.id));
-  
+
   if (violationTypes.has('color-contrast')) {
     recommendations.push('Improve color contrast ratios to meet WCAG AA standards (4.5:1 for normal text, 3:1 for large text)');
   }
-  
+
   if (violationTypes.has('keyboard-navigation')) {
     recommendations.push('Ensure all interactive elements are keyboard accessible');
   }
-  
+
   if (violationTypes.has('aria-labels')) {
     recommendations.push('Add proper ARIA labels to form elements and interactive components');
   }
-  
+
   if (violationTypes.has('heading-order')) {
     recommendations.push('Fix heading hierarchy to follow logical order (h1 → h2 → h3, etc.)');
   }
-  
+
   if (violationTypes.has('alt-text')) {
     recommendations.push('Add descriptive alt text to all images');
   }
-  
+
   if (violationTypes.has('focus-management')) {
     recommendations.push('Implement proper focus management for dynamic content');
   }
-  
+
   if (violationTypes.has('touch-targets')) {
     recommendations.push('Ensure touch targets are at least 44x44 pixels for mobile accessibility');
   }
-  
+
   return recommendations;
 }
 
@@ -386,18 +386,18 @@ export const HEALTHCARE_ACCESSIBILITY_SELECTORS = [
   '[data-testid="patient-form"] select',
   '[data-testid="patient-form"] textarea',
   '[data-testid="patient-form"] button',
-  
+
   // Staff management
   '[data-testid="staff-form"] input',
   '[data-testid="staff-form"] select',
   '[data-testid="staff-form"] button',
-  
+
   // Appointment management
   '[data-testid="appointment-form"] input',
   '[data-testid="appointment-form"] select',
   '[data-testid="appointment-form"] textarea',
   '[data-testid="appointment-form"] button',
-  
+
   // Calendar navigation
   '[data-testid="calendar-view-day"]',
   '[data-testid="calendar-view-week"]',
@@ -405,7 +405,7 @@ export const HEALTHCARE_ACCESSIBILITY_SELECTORS = [
   '[data-testid="calendar-view-agenda"]',
   '[data-testid="calendar-next-month"]',
   '[data-testid="calendar-prev-month"]',
-  
+
   // Modal controls
   '[data-testid="modal-close"]',
   '[data-testid="modal-submit"]',
