@@ -22,7 +22,10 @@
     "test:e2e:install": "playwright install",
     "test:performance": "playwright test --project=performance",
     "test:performance:lighthouse": "lighthouse http://localhost:3000 --output=json --output-path=./performance-reports/lighthouse-report.json",
-    "test:performance:ci": "playwright test --project=performance --reporter=json --output-dir=performance-reports"
+    "test:performance:ci": "playwright test --project=performance --reporter=json --output-dir=performance-reports",
+    "test:accessibility": "playwright test --project=accessibility",
+    "test:accessibility:ci": "playwright test --project=accessibility --reporter=json --output-dir=accessibility-reports",
+    "test:a11y": "npm run test:accessibility"
   },
   "dependencies": {
     "@fullcalendar/core": "^6.1.19",
@@ -74,6 +77,8 @@
     "prettier": "^3.6.2",
     "tailwindcss": "^3.4.17",
     "typescript": "^5",
-    "web-vitals": "^4.2.4"
+    "web-vitals": "^4.2.4",
+    "@axe-core/playwright": "^4.10.0",
+    "axe-core": "^4.10.0"
   }
 }

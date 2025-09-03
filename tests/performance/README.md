@@ -5,7 +5,7 @@ This directory contains comprehensive performance tests for the MediCare Schedul
 ## Performance Requirements (from PRD)
 
 - **Initial page load**: < 2 seconds
-- **Calendar render (month, 200 events)**: < 1 second  
+- **Calendar render (month, 200 events)**: < 1 second
 - **Google sync latency**: < 5 seconds
 - **Uptime**: 99.5%
 

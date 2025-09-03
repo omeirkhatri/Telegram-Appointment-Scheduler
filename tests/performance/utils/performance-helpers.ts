@@ -87,10 +87,10 @@ export async function measurePageLoadPerformance(page: Page): Promise<Performanc
   const metrics = await page.evaluate(() => {
     const navigation = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming;
     const paintEntries = performance.getEntriesByType('paint');
-    
+
     const fcp = paintEntries.find(entry => entry.name === 'first-contentful-paint');
     const lcp = performance.getEntriesByType('largest-contentful-paint').pop();
-    
+
     return {
       loadTime: navigation.loadEventEnd - navigation.navigationStart,
       firstContentfulPaint: fcp ? fcp.startTime : 0,
@@ -111,13 +111,13 @@ export async function measurePageLoadPerformance(page: Page): Promise<Performanc
 export async function measureCalendarPerformance(page: Page, eventCount: number): Promise<PerformanceMetrics> {
   // Start performance measurement
   const startTime = Date.now();
-  
+
   // Navigate to calendar page
   await page.goto('/appointments');
-  
+
   // Wait for calendar to be visible
   await page.waitForSelector('[data-testid="appointment-calendar"]');
-  
+
   // Wait for all events to be rendered
   await page.waitForFunction(
     (expectedCount) => {
@@ -126,15 +126,15 @@ export async function measureCalendarPerformance(page: Page, eventCount: number)
     },
     eventCount
   );
-  
+
   const endTime = Date.now();
   const loadTime = endTime - startTime;
-  
+
   // Get additional performance metrics
   const metrics = await page.evaluate(() => {
     const paintEntries = performance.getEntriesByType('paint');
     const fcp = paintEntries.find(entry => entry.name === 'first-contentful-paint');
-    
+
     return {
       loadTime: 0, // Will be set below
       firstContentfulPaint: fcp ? fcp.startTime : 0,
@@ -145,7 +145,7 @@ export async function measureCalendarPerformance(page: Page, eventCount: number)
       speedIndex: 0,
     };
   });
-  
+
   metrics.loadTime = loadTime;
   return metrics;
 }
@@ -155,25 +155,25 @@ export async function measureCalendarPerformance(page: Page, eventCount: number)
  */
 export async function measureGoogleSyncPerformance(page: Page): Promise<PerformanceMetrics> {
   const startTime = Date.now();
-  
+
   // Create an appointment to trigger Google Calendar sync
   await page.goto('/appointments');
   await page.click('[data-testid="new-appointment-button"]');
-  
+
   // Fill appointment form
   await page.selectOption('[data-testid="appointment-type"]', 'Doctor on Call');
   await page.fill('[data-testid="appointment-date"]', '2024-12-25');
   await page.fill('[data-testid="appointment-start-time"]', '10:00');
-  
+
   // Submit form and measure sync time
   await page.click('[data-testid="appointment-submit"]');
-  
+
   // Wait for Google Calendar sync to complete
   await page.waitForSelector('[data-testid="google-calendar-sync-status"]', { timeout: 10000 });
-  
+
   const endTime = Date.now();
   const syncTime = endTime - startTime;
-  
+
   return {
     loadTime: syncTime,
     firstContentfulPaint: 0,
@@ -197,29 +197,29 @@ export function assertPerformanceMetrics(
   console.log(`Load Time: ${metrics.loadTime}ms (threshold: ${thresholds.loadTime}ms)`);
   console.log(`First Contentful Paint: ${metrics.firstContentfulPaint}ms (threshold: ${thresholds.firstContentfulPaint}ms)`);
   console.log(`Largest Contentful Paint: ${metrics.largestContentfulPaint}ms (threshold: ${thresholds.largestContentfulPaint}ms)`);
-  
+
   expect(metrics.loadTime, `Load time should be less than ${thresholds.loadTime}ms`).toBeLessThan(thresholds.loadTime);
-  
+
   if (metrics.firstContentfulPaint > 0) {
     expect(metrics.firstContentfulPaint, `FCP should be less than ${thresholds.firstContentfulPaint}ms`).toBeLessThan(thresholds.firstContentfulPaint);
   }
-  
+
   if (metrics.largestContentfulPaint > 0) {
     expect(metrics.largestContentfulPaint, `LCP should be less than ${thresholds.largestContentfulPaint}ms`).toBeLessThan(thresholds.largestContentfulPaint);
   }
-  
+
   if (metrics.firstInputDelay > 0) {
     expect(metrics.firstInputDelay, `FID should be less than ${thresholds.firstInputDelay}ms`).toBeLessThan(thresholds.firstInputDelay);
   }
-  
+
   if (metrics.cumulativeLayoutShift > 0) {
     expect(metrics.cumulativeLayoutShift, `CLS should be less than ${thresholds.cumulativeLayoutShift}`).toBeLessThan(thresholds.cumulativeLayoutShift);
   }
-  
+
   if (metrics.totalBlockingTime > 0) {
     expect(metrics.totalBlockingTime, `TBT should be less than ${thresholds.totalBlockingTime}ms`).toBeLessThan(thresholds.totalBlockingTime);
   }
-  
+
   if (metrics.speedIndex > 0) {
     expect(metrics.speedIndex, `SI should be less than ${thresholds.speedIndex}ms`).toBeLessThan(thresholds.speedIndex);
   }
@@ -248,7 +248,7 @@ export function generatePerformanceReport(
       speedIndex: metrics.speedIndex === 0 || metrics.speedIndex < thresholds.speedIndex,
     }
   };
-  
+
   return JSON.stringify(report, null, 2);
 }
 
@@ -257,22 +257,22 @@ export function generatePerformanceReport(
  */
 export async function createTestDataForPerformance(page: Page, eventCount: number): Promise<void> {
   console.log(`Creating ${eventCount} test appointments for performance testing...`);
-  
+
   // This would create test data in the database
   // For now, we'll simulate with existing data
   // In a real implementation, you'd create appointments via API calls
-  
+
   for (let i = 0; i < Math.min(eventCount, 10); i++) {
     await page.goto('/appointments');
     await page.click('[data-testid="new-appointment-button"]');
-    
+
     await page.selectOption('[data-testid="appointment-type"]', 'Doctor on Call');
     await page.fill('[data-testid="appointment-date"]', `2024-12-${String(20 + i).padStart(2, '0')}`);
     await page.fill('[data-testid="appointment-start-time"]', `${10 + i}:00`);
-    
+
     await page.click('[data-testid="appointment-submit"]');
     await page.waitForSelector('[data-testid="success-message"]', { timeout: 5000 });
   }
-  
+
   console.log(`Created ${Math.min(eventCount, 10)} test appointments`);
 }

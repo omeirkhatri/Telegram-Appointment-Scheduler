@@ -144,30 +144,30 @@ jobs:
         script: |
           const fs = require('fs');
           const path = require('path');
-          
+
           try {
             const reportPath = path.join('performance-reports', 'performance-results.json');
             if (fs.existsSync(reportPath)) {
               const report = JSON.parse(fs.readFileSync(reportPath, 'utf8'));
-              
+
               const comment = `## 📊 Performance Test Results
-              
+
               **Overall Status:** ${report.summary?.overallStatus || 'UNKNOWN'}
-              
+
               ### Page Load Performance
               - Dashboard: ${report.results?.pageLoad?.metrics?.loadTime || 'N/A'}ms
               - Patients: ${report.results?.pageLoad?.metrics?.loadTime || 'N/A'}ms
               - Staff: ${report.results?.pageLoad?.metrics?.loadTime || 'N/A'}ms
               - Appointments: ${report.results?.pageLoad?.metrics?.loadTime || 'N/A'}ms
-              
+
               ### Calendar Render Performance
               - 200 Events: ${report.results?.calendarRender?.metrics?.loadTime || 'N/A'}ms
-              
+
               ### Google Sync Performance
               - Sync Latency: ${report.results?.googleSync?.metrics?.loadTime || 'N/A'}ms
-              
+
               [View detailed report](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})`;
-              
+
               github.rest.issues.createComment({
                 issue_number: context.issue.number,
                 owner: context.repo.owner,
@@ -177,4 +177,87 @@ jobs:
             }
           } catch (error) {
             console.log('Could not create performance comment:', error.message);
+          }
+
+  accessibility-tests:
+    timeout-minutes: 30
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Install Playwright browsers
+      run: npx playwright install --with-deps chromium
+
+    - name: Build application
+      run: npm run build
+
+    - name: Start Supabase local instance
+      run: |
+        npx supabase start
+        npx supabase db reset
+
+    - name: Run accessibility tests
+      run: npm run test:accessibility:ci
+      env:
+        PLAYWRIGHT_BASE_URL: http://localhost:3000
+
+    - name: Upload accessibility reports
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: accessibility-reports
+        path: accessibility-reports/
+        retention-days: 30
+
+    - name: Comment accessibility results on PR
+      if: github.event_name == 'pull_request'
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const fs = require('fs');
+          const path = require('path');
+
+          try {
+            const reportPath = path.join('accessibility-reports', 'accessibility-results.json');
+            if (fs.existsSync(reportPath)) {
+              const report = JSON.parse(fs.readFileSync(reportPath, 'utf8'));
+
+              const comment = `## ♿ Accessibility Test Results
+
+              **Overall Status:** ${report.summary?.overallStatus || 'UNKNOWN'}
+
+              ### Accessibility Compliance
+              - Total Violations: ${report.summary?.totalViolations || 'N/A'}
+              - Critical: ${report.summary?.criticalViolations || 'N/A'}
+              - Serious: ${report.summary?.seriousViolations || 'N/A'}
+              - Moderate: ${report.summary?.moderateViolations || 'N/A'}
+              - Minor: ${report.summary?.minorViolations || 'N/A'}
+
+              ### Page Results
+              ${report.pages?.map(page => `- **${page.name}**: ${page.status} (${page.violations} violations)`).join('\n') || 'No page results available'}
+
+              ### Recommendations
+              ${report.recommendations?.map(rec => `- ${rec}`).join('\n') || 'No recommendations available'}
+
+              [View detailed report](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})`;
+
+              github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: comment
+              });
+            }
+          } catch (error) {
+            console.log('Could not create accessibility comment:', error.message);
           }

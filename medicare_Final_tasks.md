@@ -67,7 +67,7 @@
 - [x] 8.5 Google Calendar API mocking
 - [x] 8.6 End-to-end tests for critical flows
 - [x] 8.7 Performance testing
-- [ ] 8.8 Accessibility compliance
+- [x] 8.8 Accessibility compliance
 
 ## 9.0 Admin UX & Additional UI
 - [ ] 9.1 Appointment details drawer

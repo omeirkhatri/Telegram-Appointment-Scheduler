@@ -65,7 +65,7 @@ export default defineConfig({
     {
       name: 'performance',
       testDir: './tests/performance',
-      use: { 
+      use: {
         ...devices['Desktop Chrome'],
         // Disable video and screenshots for performance tests
         video: 'off',
@@ -74,6 +74,20 @@ export default defineConfig({
         trace: 'on',
       },
       timeout: 60 * 1000, // 60 seconds for performance tests
+    },
+
+    /* Accessibility testing project */
+    {
+      name: 'accessibility',
+      testDir: './tests/accessibility',
+      use: {
+        ...devices['Desktop Chrome'],
+        // Enable screenshots for accessibility issues
+        screenshot: 'only-on-failure',
+        // Enable tracing for accessibility analysis
+        trace: 'on',
+      },
+      timeout: 30 * 1000, // 30 seconds for accessibility tests
     },
 
     /* Test against branded browsers. */
