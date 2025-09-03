@@ -85,7 +85,7 @@
 - [x] 10.4 google_event_ids integrity checks (✅ Complete implementation with comprehensive integrity validation service, database-level constraints and triggers, orphaned event detection, duplicate event ID detection, API endpoints for integrity operations, automated cleanup functionality, and comprehensive test coverage)
 
 ## 11.0 Deployment, Ops & Migration
-- [ ] 11.1 .env.example with keys & guards
+- [x] 11.1 .env.example with keys & guards (✅ Complete implementation with comprehensive environment variable template, detailed documentation and setup instructions, runtime validation guards for all services, environment-specific configuration examples, security best practices and warnings, automated validation script with helpful suggestions, and enhanced README with quick start guide)
 - [ ] 11.2 Docker Compose for local
 - [ ] 11.3 Supabase Cloud migration scripts
 - [ ] 11.4 Cron/worker for daily emails

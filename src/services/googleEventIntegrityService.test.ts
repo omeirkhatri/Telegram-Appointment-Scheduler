@@ -1,10 +1,10 @@
-import { GoogleEventIntegrityService } from './googleEventIntegrityService';
-import { 
-  validateGoogleEventIdsStructure,
-  detectDuplicateEventIds,
-  detectOrphanedEventIds,
-  generateCleanupOperations
+import {
+    detectDuplicateEventIds,
+    detectOrphanedEventIds,
+    generateCleanupOperations,
+    validateGoogleEventIdsStructure
 } from '@/lib/validations/googleEventIntegrity';
+import { GoogleEventIntegrityService } from './googleEventIntegrityService';
 
 // Mock the entire module
 jest.mock('@/lib/supabase', () => ({

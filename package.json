@@ -25,7 +25,9 @@
     "test:performance:ci": "playwright test --project=performance --reporter=json --output-dir=performance-reports",
     "test:accessibility": "playwright test --project=accessibility",
     "test:accessibility:ci": "playwright test --project=accessibility --reporter=json --output-dir=accessibility-reports",
-    "test:a11y": "npm run test:accessibility"
+    "test:a11y": "npm run test:accessibility",
+    "validate-env": "node scripts/validate-env.js",
+    "env:check": "npm run validate-env"
   },
   "dependencies": {
     "@fullcalendar/core": "^6.1.19",
