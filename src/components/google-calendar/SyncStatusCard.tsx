@@ -6,7 +6,7 @@ import {
     CheckCircle,
     Clock,
     RefreshCw,
-    TrendingUp
+    TrendingUp,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
@@ -55,7 +55,7 @@ export function SyncStatusCard({ className = '' }: SyncStatusCardProps) {
             const statusResponse = await fetch('/api/staff/validate-calendar', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ calendarId: staff.google_calendar_id })
+              body: JSON.stringify({ calendarId: staff.google_calendar_id }),
             });
 
             const statusData = await statusResponse.json();
@@ -80,7 +80,7 @@ export function SyncStatusCard({ className = '' }: SyncStatusCardProps) {
           syncSuccessRate: Math.round(syncSuccessRate * 100) / 100,
           eventsSyncedToday: Math.floor(Math.random() * 50) + 10,
           eventsSyncedThisWeek: Math.floor(Math.random() * 200) + 50,
-          averageSyncTime: Math.floor(Math.random() * 500) + 100
+          averageSyncTime: Math.floor(Math.random() * 500) + 100,
         };
 
         setStats(mockStats);

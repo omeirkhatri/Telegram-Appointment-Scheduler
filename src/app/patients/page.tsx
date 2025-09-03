@@ -2,6 +2,7 @@
 
 import Header from '@/components/layout/Header';
 import { PatientModal } from '@/components/modals';
+import { useToastContext } from '@/components/ui/ToastContainer';
 import {
     Filter,
     MoreHorizontal,
@@ -19,6 +20,7 @@ export default function Patients() {
   const [patients, setPatients] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { showToast } = useToastContext();
 
   // Fetch patients from API
   const fetchPatients = async () => {
@@ -46,6 +48,16 @@ export default function Patients() {
     fetchPatients();
   }, []);
 
+  // Show error toast when there's an error
+  useEffect(() => {
+    if (error) {
+      showToast({
+        type: 'error',
+        title: 'Error',
+        message: error,
+      });
+    }
+  }, [error, showToast]);
 
 
   const handleAddPatient = () => {
@@ -66,7 +78,11 @@ export default function Patients() {
   const handlePatientSuccess = () => {
     // Refresh patients list after successful save
     fetchPatients();
-    console.log('Patient saved successfully');
+    showToast({
+      type: 'success',
+      title: 'Success',
+      message: editingPatient ? 'Patient updated successfully' : 'Patient created successfully',
+    });
   };
 
   return (
@@ -195,7 +211,7 @@ export default function Patients() {
                   <tr>
                     <td colSpan={6} className="py-8 px-6 text-center">
                       <div className="flex items-center justify-center space-x-2">
-                        <div className="w-4 h-4 border-2 border-[--primary] border-t-transparent rounded-full animate-spin"></div>
+                        <div className="w-4 h-4 border-2 border-[--primary] border-t-transparent rounded-full animate-spin" />
                         <span className="text-[--muted-foreground]">Loading patients...</span>
                       </div>
                     </td>

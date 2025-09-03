@@ -10,7 +10,7 @@ jest.mock('@/types/reports', () => ({
     if (unit === 'percentage') return `${value}%`;
     if (unit === 'minutes') return `${value} min`;
     return value.toString();
-  }
+  },
 }));
 
 const mockKPI: KPI = {
@@ -22,7 +22,7 @@ const mockKPI: KPI = {
   unit: 'percentage',
   description: 'Test description',
   trend: 'up',
-  icon: 'activity'
+  icon: 'activity',
 };
 
 describe('KPICard', () => {
@@ -39,7 +39,7 @@ describe('KPICard', () => {
     const minimalKPI: KPI = {
       id: 'minimal-kpi',
       title: 'Minimal KPI',
-      value: 50
+      value: 50,
     };
 
     render(<KPICard kpi={minimalKPI} />);
@@ -87,7 +87,7 @@ describe('AppointmentKPICard', () => {
     total: 150,
     today: 12,
     completionRate: 85.5,
-    averageDuration: 45
+    averageDuration: 45,
   };
 
   it('renders all appointment KPI cards', () => {

@@ -131,13 +131,14 @@ export function StaffForm({ staff, onSubmit, onCancel, isLoading = false }: Staf
               {...register('first_name')}
               type="text"
               id="first_name"
+              data-testid="staff-first-name"
               className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-900 font-medium ${
                 errors.first_name ? 'border-red-500' : 'border-gray-300'
               }`}
               placeholder="Enter first name"
             />
             {errors.first_name && (
-              <p className="mt-1 text-sm text-red-600">{errors.first_name.message}</p>
+              <p className="mt-1 text-sm text-red-600" data-testid="staff-first-name-error">{errors.first_name.message}</p>
             )}
           </div>
 
@@ -149,13 +150,14 @@ export function StaffForm({ staff, onSubmit, onCancel, isLoading = false }: Staf
               {...register('last_name')}
               type="text"
               id="last_name"
+              data-testid="staff-last-name"
               className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-900 font-medium ${
                 errors.last_name ? 'border-red-500' : 'border-gray-300'
               }`}
               placeholder="Enter last name"
             />
             {errors.last_name && (
-              <p className="mt-1 text-sm text-red-600">{errors.last_name.message}</p>
+              <p className="mt-1 text-sm text-red-600" data-testid="staff-last-name-error">{errors.last_name.message}</p>
             )}
           </div>
 
@@ -166,6 +168,7 @@ export function StaffForm({ staff, onSubmit, onCancel, isLoading = false }: Staf
             <select
               {...register('staff_type')}
               id="staff_type"
+              data-testid="staff-type"
               className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                 errors.staff_type ? 'border-red-500' : 'border-gray-300'
               }`}
@@ -177,7 +180,7 @@ export function StaffForm({ staff, onSubmit, onCancel, isLoading = false }: Staf
               ))}
             </select>
             {errors.staff_type && (
-              <p className="mt-1 text-sm text-red-600">{errors.staff_type.message}</p>
+              <p className="mt-1 text-sm text-red-600" data-testid="staff-type-error">{errors.staff_type.message}</p>
             )}
           </div>
 
@@ -189,6 +192,7 @@ export function StaffForm({ staff, onSubmit, onCancel, isLoading = false }: Staf
               {...register('specialization')}
               type="text"
               id="specialization"
+              data-testid="staff-specialization"
               className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                 errors.specialization ? 'border-red-500' : 'border-gray-300'
               }`}
@@ -214,13 +218,14 @@ export function StaffForm({ staff, onSubmit, onCancel, isLoading = false }: Staf
               {...register('phone')}
               type="tel"
               id="phone"
+              data-testid="staff-phone"
               className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                 errors.phone ? 'border-red-500' : 'border-gray-300'
               }`}
               placeholder="+971 50 123 4567"
             />
             {errors.phone && (
-              <p className="mt-1 text-sm text-red-600">{errors.phone.message}</p>
+              <p className="mt-1 text-sm text-red-600" data-testid="staff-phone-error">{errors.phone.message}</p>
             )}
           </div>
 
@@ -232,13 +237,14 @@ export function StaffForm({ staff, onSubmit, onCancel, isLoading = false }: Staf
               {...register('email')}
               type="email"
               id="email"
+              data-testid="staff-email"
               className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                 errors.email ? 'border-red-500' : 'border-gray-300'
               }`}
               placeholder="staff@example.com"
             />
             {errors.email && (
-              <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>
+              <p className="mt-1 text-sm text-red-600" data-testid="staff-email-error">{errors.email.message}</p>
             )}
           </div>
         </div>
@@ -252,6 +258,7 @@ export function StaffForm({ staff, onSubmit, onCancel, isLoading = false }: Staf
               {...register('google_calendar_id')}
               type="email"
               id="google_calendar_id"
+              data-testid="staff-google-calendar-id"
               className={`flex-1 px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                 errors.google_calendar_id || calendarValidationError ? 'border-red-500' : 'border-gray-300'
               }`}
@@ -390,6 +397,7 @@ export function StaffForm({ staff, onSubmit, onCancel, isLoading = false }: Staf
         <button
           type="button"
           onClick={onCancel}
+          data-testid="staff-cancel"
           className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
           disabled={isSubmitting || isLoading}
         >
@@ -397,6 +405,7 @@ export function StaffForm({ staff, onSubmit, onCancel, isLoading = false }: Staf
         </button>
         <button
           type="submit"
+          data-testid="staff-submit"
           className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
           disabled={isSubmitting || isLoading}
         >

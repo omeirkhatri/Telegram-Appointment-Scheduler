@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Download, Database, Settings, FileText, Calendar, AlertCircle, CheckCircle } from 'lucide-react';
+import { AlertCircle, Calendar, CheckCircle, Database, Download, FileText, Settings } from 'lucide-react';
+import { useEffect, useState } from 'react';
 
 interface TableInfo {
   name: string;
@@ -30,7 +30,7 @@ export function BackupSection({ className = '' }: BackupSectionProps) {
   const [includeMetadata, setIncludeMetadata] = useState(true);
   const [dateRange, setDateRange] = useState({
     from: '',
-    to: ''
+    to: '',
   });
   const [status, setStatus] = useState<{
     type: 'success' | 'error' | 'info' | null;
@@ -52,13 +52,13 @@ export function BackupSection({ className = '' }: BackupSectionProps) {
       } else {
         setStatus({
           type: 'error',
-          message: result.error || 'Failed to load backup information'
+          message: result.error || 'Failed to load backup information',
         });
       }
     } catch (error) {
       setStatus({
         type: 'error',
-        message: 'Failed to load backup information'
+        message: 'Failed to load backup information',
       });
     }
   };
@@ -73,7 +73,7 @@ export function BackupSection({ className = '' }: BackupSectionProps) {
         tableName: selectedType === 'table' ? selectedTable : undefined,
         format: selectedFormat,
         includeMetadata,
-        dateRange: dateRange.from && dateRange.to ? dateRange : undefined
+        dateRange: dateRange.from && dateRange.to ? dateRange : undefined,
       };
 
       const response = await fetch('/api/backup/export', {
@@ -108,7 +108,7 @@ export function BackupSection({ className = '' }: BackupSectionProps) {
 
       setStatus({
         type: 'success',
-        message: `Backup exported successfully as ${filename}`
+        message: `Backup exported successfully as ${filename}`,
       });
 
       // Refresh statistics
@@ -117,7 +117,7 @@ export function BackupSection({ className = '' }: BackupSectionProps) {
     } catch (error) {
       setStatus({
         type: 'error',
-        message: error instanceof Error ? error.message : 'Export failed'
+        message: error instanceof Error ? error.message : 'Export failed',
       });
     } finally {
       setIsLoading(false);
@@ -129,31 +129,31 @@ export function BackupSection({ className = '' }: BackupSectionProps) {
       id: 'all',
       label: 'Complete Database',
       description: 'Export all tables and data',
-      icon: Database
+      icon: Database,
     },
     {
       id: 'core',
       label: 'Core Business Data',
       description: 'Patients, appointments, staff, and assignments',
-      icon: FileText
+      icon: FileText,
     },
     {
       id: 'system',
       label: 'System Configuration',
       description: 'Settings, preferences, and audit logs',
-      icon: Settings
+      icon: Settings,
     },
     {
       id: 'table',
       label: 'Specific Table',
       description: 'Export a single table',
-      icon: Calendar
-    }
+      icon: Calendar,
+    },
   ];
 
   const formats = [
     { id: 'csv', label: 'CSV', description: 'Comma-separated values (Excel compatible)' },
-    { id: 'json', label: 'JSON', description: 'JavaScript Object Notation' }
+    { id: 'json', label: 'JSON', description: 'JavaScript Object Notation' },
   ];
 
   return (
@@ -186,7 +186,7 @@ export function BackupSection({ className = '' }: BackupSectionProps) {
               {statistics.totalTables}
             </div>
           </div>
-          
+
           <div className="bg-[--card] border border-[--border] rounded-lg p-4">
             <div className="flex items-center space-x-2">
               <FileText className="h-5 w-5 text-[--primary]" />
@@ -212,7 +212,7 @@ export function BackupSection({ className = '' }: BackupSectionProps) {
       {/* Export Configuration */}
       <div className="bg-[--card] border border-[--border] rounded-xl p-6">
         <h3 className="text-lg font-semibold text-[--foreground] mb-4">Export Configuration</h3>
-        
+
         <div className="space-y-6">
           {/* Export Type */}
           <div>
@@ -334,7 +334,7 @@ export function BackupSection({ className = '' }: BackupSectionProps) {
       {/* Status Message */}
       {status.type && (
         <div className={`p-4 rounded-lg flex items-center space-x-2 ${
-          status.type === 'success' 
+          status.type === 'success'
             ? 'bg-green-50 border border-green-200 text-green-800'
             : status.type === 'error'
             ? 'bg-red-50 border border-red-200 text-red-800'
@@ -360,7 +360,7 @@ export function BackupSection({ className = '' }: BackupSectionProps) {
         >
           {isLoading ? (
             <>
-              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
               <span>Exporting...</span>
             </>
           ) : (

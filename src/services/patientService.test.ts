@@ -3,7 +3,7 @@ import {
     clearAllMocks,
     createMockPatient,
     mockSupabaseClient,
-    setupMockPatients
+    setupMockPatients,
 } from '@/utils/test-utils';
 import { patientService } from './patientService';
 
@@ -89,7 +89,7 @@ describe('PatientService', () => {
     it('should update an existing patient', async () => {
       const updatedPatient = createMockPatient({
         id: 'test-id',
-        name: 'Jane Doe'
+        name: 'Jane Doe',
       });
       mockSupabaseClient.setTableData('patients', [updatedPatient]);
 

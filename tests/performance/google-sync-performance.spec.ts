@@ -3,7 +3,7 @@ import {
     assertPerformanceMetrics,
     generatePerformanceReport,
     GOOGLE_SYNC_THRESHOLDS,
-    measureGoogleSyncPerformance
+    measureGoogleSyncPerformance,
 } from './utils/performance-helpers';
 
 test.describe('Google Calendar Sync Performance Tests', () => {
@@ -64,13 +64,13 @@ test.describe('Google Calendar Sync Performance Tests', () => {
         route.fulfill({
           status: 200,
           contentType: 'application/json',
-          body: JSON.stringify({ success: true })
+          body: JSON.stringify({ success: true }),
         });
       } else {
         route.fulfill({
           status: 500,
           contentType: 'application/json',
-          body: JSON.stringify({ error: 'Temporary failure' })
+          body: JSON.stringify({ error: 'Temporary failure' }),
         });
       }
     });
@@ -215,14 +215,14 @@ test.describe('Google Calendar Sync Performance Tests', () => {
         route.fulfill({
           status: 500,
           contentType: 'application/json',
-          body: JSON.stringify({ error: 'Service temporarily unavailable' })
+          body: JSON.stringify({ error: 'Service temporarily unavailable' }),
         });
       } else {
         // Subsequent calls succeed
         route.fulfill({
           status: 200,
           contentType: 'application/json',
-          body: JSON.stringify({ success: true })
+          body: JSON.stringify({ success: true }),
         });
       }
     });
@@ -269,14 +269,14 @@ test.describe('Google Calendar Sync Performance Tests', () => {
         'X-Goog-Resource-ID': 'test-resource',
         'X-Goog-Resource-State': 'exists',
         'X-Goog-Resource-URI': 'https://www.googleapis.com/calendar/v3/calendars/test@example.com/events',
-      }
+      },
     };
 
     const response = await page.request.post('/api/webhooks/calendar', {
       data: webhookPayload,
       headers: {
         'Content-Type': 'application/json',
-      }
+      },
     });
 
     const endTime = Date.now();

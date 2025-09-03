@@ -146,7 +146,7 @@ test.describe('Patient Management Critical Flows', () => {
     // Fill form with invalid Google Maps link
     const invalidPatient = {
       ...testData.patients.valid,
-      googleMapsLink: 'not-a-valid-url'
+      googleMapsLink: 'not-a-valid-url',
     };
     await patientPage.fillPatientForm(invalidPatient);
 

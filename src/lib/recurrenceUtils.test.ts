@@ -431,7 +431,7 @@ describe('recurrenceUtils', () => {
       const labels = DAYS_OF_WEEK.map(d => d.label);
       expect(labels).toEqual([
         'Monday', 'Tuesday', 'Wednesday', 'Thursday',
-        'Friday', 'Saturday', 'Sunday'
+        'Friday', 'Saturday', 'Sunday',
       ]);
     });
   });

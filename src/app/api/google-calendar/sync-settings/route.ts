@@ -13,21 +13,21 @@ export async function GET(request: NextRequest) {
       syncInterval: 300, // 5 minutes in seconds
       retryAttempts: 3,
       webhookEnabled: true,
-      lastUpdated: new Date().toISOString()
+      lastUpdated: new Date().toISOString(),
     };
 
     return NextResponse.json({
       success: true,
-      data: defaultSettings
+      data: defaultSettings,
     });
   } catch (error) {
     console.error('Error fetching sync settings:', error);
     return NextResponse.json(
       {
         success: false,
-        error: error instanceof Error ? error.message : 'Failed to fetch sync settings'
+        error: error instanceof Error ? error.message : 'Failed to fetch sync settings',
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -44,7 +44,7 @@ export async function PUT(request: NextRequest) {
       syncReminders,
       syncInterval,
       retryAttempts,
-      webhookEnabled
+      webhookEnabled,
     } = body;
 
     // Validate settings
@@ -83,9 +83,9 @@ export async function PUT(request: NextRequest) {
         {
           success: false,
           error: 'Validation failed',
-          details: validationErrors
+          details: validationErrors,
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -98,7 +98,7 @@ export async function PUT(request: NextRequest) {
       syncInterval,
       retryAttempts,
       webhookEnabled,
-      lastUpdated: new Date().toISOString()
+      lastUpdated: new Date().toISOString(),
     };
 
     // Here you would typically:
@@ -110,16 +110,16 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json({
       success: true,
       data: updatedSettings,
-      message: 'Sync settings updated successfully'
+      message: 'Sync settings updated successfully',
     });
   } catch (error) {
     console.error('Error updating sync settings:', error);
     return NextResponse.json(
       {
         success: false,
-        error: error instanceof Error ? error.message : 'Failed to update sync settings'
+        error: error instanceof Error ? error.message : 'Failed to update sync settings',
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

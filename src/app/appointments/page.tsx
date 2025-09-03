@@ -4,7 +4,8 @@ import { AppointmentCalendar } from '@/components/calendar';
 import { AppointmentFilters, type AppointmentFilterState } from '@/components/filters';
 import Header from '@/components/layout/Header';
 import { AppointmentContextMenu, AppointmentDetailsDrawer, AppointmentModal, CopyAppointmentModal } from '@/components/modals';
-import { ErrorMessage, SuccessMessage } from '@/components/ui';
+import { ErrorMessage } from '@/components/ui';
+import { useToastContext } from '@/components/ui/ToastContainer';
 import { useAppointmentsForDateRange, useUpdateAppointment } from '@/hooks/useAppointments';
 import { usePatients } from '@/hooks/usePatients';
 import { useStaff } from '@/hooks/useStaff';
@@ -25,10 +26,7 @@ import { useCallback, useRef, useState } from 'react';
 
 export default function AppointmentsPage() {
   const [viewMode, setViewMode] = useState<'calendar' | 'table'>('calendar');
-  const [notification, setNotification] = useState<{
-    type: 'success' | 'error';
-    message: string;
-  } | null>(null);
+  const { showToast } = useToastContext();
   const [filters, setFilters] = useState<AppointmentFilterState>({});
   const [contextMenu, setContextMenu] = useState<{
     appointment: Appointment;
@@ -72,13 +70,11 @@ export default function AppointmentsPage() {
 
   // Notification handlers
   const showNotification = (type: 'success' | 'error', message: string) => {
-    setNotification({ type, message });
-    // Auto-dismiss after 5 seconds
-    setTimeout(() => setNotification(null), 5000);
-  };
-
-  const dismissNotification = () => {
-    setNotification(null);
+    showToast({
+      type,
+      title: type === 'success' ? 'Success' : 'Error',
+      message,
+    });
   };
 
   // Debounced refetch function to avoid excessive API calls
@@ -370,24 +366,6 @@ export default function AppointmentsPage() {
           </div>
         </div>
 
-        {/* Notifications */}
-        {notification && (
-          <div className="fixed top-4 right-4 z-50 max-w-sm">
-            {notification.type === 'success' ? (
-              <SuccessMessage
-                message={notification.message}
-                onDismiss={dismissNotification}
-                variant="card"
-              />
-            ) : (
-              <ErrorMessage
-                error={notification.message}
-                onDismiss={dismissNotification}
-                variant="card"
-              />
-            )}
-          </div>
-        )}
 
         {/* Appointments Error */}
         {appointmentsError && (

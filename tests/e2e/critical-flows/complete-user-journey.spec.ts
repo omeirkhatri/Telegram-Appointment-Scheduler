@@ -172,7 +172,7 @@ test.describe('Complete User Journey - End-to-End', () => {
       route.fulfill({
         status: 500,
         contentType: 'application/json',
-        body: JSON.stringify({ error: 'Internal server error' })
+        body: JSON.stringify({ error: 'Internal server error' }),
       });
     });
 

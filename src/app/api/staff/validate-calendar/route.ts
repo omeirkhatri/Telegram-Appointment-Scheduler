@@ -17,9 +17,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate format
-    const isValidFormat = googleCalendarService.validateCalendarId(calendarId);
-    if (!isValidFormat) {
+    // Basic format validation
+    const basicFormatValid = calendarId.includes('@') && calendarId.includes('.');
+    if (!basicFormatValid) {
       return NextResponse.json(
         {
           success: false,
@@ -30,27 +30,48 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Test connection
-    const isConnected = await googleCalendarService.testCalendarConnection(calendarId);
+    // Try to validate with Google Calendar service if available
+    let isConnected = false;
+    let validationMessage = 'Google Calendar ID format is valid';
 
-    if (!isConnected) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'Unable to connect to Google Calendar',
-          details: 'Please check the calendar ID and ensure the calendar is accessible',
-        },
-        { status: 400 },
-      );
+    try {
+      const isValidFormat = googleCalendarService.validateCalendarId(calendarId);
+      if (!isValidFormat) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'Invalid Google Calendar ID format',
+            details: 'Calendar ID must be a valid email address or special Google Calendar ID',
+          },
+          { status: 400 },
+        );
+      }
+
+      // Test connection
+      isConnected = await googleCalendarService.testCalendarConnection(calendarId);
+
+      if (!isConnected) {
+        // If connection test failed, it might be due to missing Google Calendar configuration
+        // In that case, we should still allow the calendar ID if the format is valid
+        validationMessage = 'Google Calendar ID format is valid (connection test failed - may be due to missing Google Calendar configuration)';
+        isConnected = false;
+      } else {
+        validationMessage = 'Google Calendar ID is valid and accessible';
+      }
+    } catch (error) {
+      // If Google Calendar service is not configured, just validate format
+      console.warn('Google Calendar service not configured, performing basic validation only:', error);
+      validationMessage = 'Google Calendar ID format is valid (connection not tested - Google Calendar not configured)';
+      isConnected = false; // We can't verify connection without proper configuration
     }
 
     return NextResponse.json({
       success: true,
-      message: 'Google Calendar ID is valid and accessible',
+      message: validationMessage,
       data: {
         calendarId,
         isValid: true,
-        isConnected: true,
+        isConnected: isConnected,
       },
     });
   } catch (error) {

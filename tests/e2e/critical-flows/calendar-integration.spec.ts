@@ -79,7 +79,7 @@ test.describe('Calendar Integration Critical Flows', () => {
       route.fulfill({
         status: 500,
         contentType: 'application/json',
-        body: JSON.stringify({ error: 'Google Calendar API unavailable' })
+        body: JSON.stringify({ error: 'Google Calendar API unavailable' }),
       });
     });
 
@@ -107,7 +107,7 @@ test.describe('Calendar Integration Critical Flows', () => {
       route.fulfill({
         status: 500,
         contentType: 'application/json',
-        body: JSON.stringify({ error: 'Temporary failure' })
+        body: JSON.stringify({ error: 'Temporary failure' }),
       });
     });
 
@@ -176,8 +176,8 @@ test.describe('Calendar Integration Critical Flows', () => {
         contentType: 'application/json',
         body: JSON.stringify({
           success: true,
-          message: 'Webhook processed successfully'
-        })
+          message: 'Webhook processed successfully',
+        }),
       });
     });
 
@@ -243,8 +243,8 @@ test.describe('Calendar Integration Critical Flows', () => {
         contentType: 'application/json',
         body: JSON.stringify({
           error: 'Rate limit exceeded',
-          retryAfter: 60
-        })
+          retryAfter: 60,
+        }),
       });
     });
 

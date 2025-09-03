@@ -89,27 +89,34 @@ export async function POST(request: NextRequest) {
 
     // Validate Google Calendar ID if provided
     if (staffData.google_calendar_id) {
-      const isValidFormat = googleCalendarService.validateCalendarId(staffData.google_calendar_id);
-      if (!isValidFormat) {
-        return NextResponse.json(
-          {
-            success: false,
-            error: 'Invalid Google Calendar ID format',
-          },
-          { status: 400 },
-        );
-      }
+      try {
+        const isValidFormat = googleCalendarService.validateCalendarId(staffData.google_calendar_id);
+        if (!isValidFormat) {
+          return NextResponse.json(
+            {
+              success: false,
+              error: 'Invalid Google Calendar ID format',
+            },
+            { status: 400 },
+          );
+        }
 
-      // Test calendar connection
-      const isConnected = await googleCalendarService.testCalendarConnection(staffData.google_calendar_id);
-      if (!isConnected) {
-        return NextResponse.json(
-          {
-            success: false,
-            error: 'Unable to connect to Google Calendar. Please check the calendar ID and permissions.',
-          },
-          { status: 400 },
-        );
+        // Test calendar connection (only if Google Calendar is configured)
+        const isConnected = await googleCalendarService.testCalendarConnection(staffData.google_calendar_id);
+        if (!isConnected) {
+          return NextResponse.json(
+            {
+              success: false,
+              error: 'Unable to connect to Google Calendar. Please check the calendar ID and permissions.',
+            },
+            { status: 400 },
+          );
+        }
+      } catch (error) {
+        // If Google Calendar is not configured, log the error but allow staff creation to continue
+        console.warn('Google Calendar not configured, skipping calendar validation:', error);
+        // Remove the google_calendar_id to prevent issues later
+        staffData.google_calendar_id = undefined;
       }
     }
 

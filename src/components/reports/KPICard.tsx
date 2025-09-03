@@ -13,7 +13,7 @@ import {
     TrendingDown,
     TrendingUp,
     Users,
-    XCircle
+    XCircle,
 } from 'lucide-react';
 
 interface KPICardProps {
@@ -27,7 +27,7 @@ export function KPICard({
   kpi,
   className = '',
   size = 'medium',
-  showTrend = true
+  showTrend = true,
 }: KPICardProps) {
   const getIcon = (iconName?: string) => {
     const iconMap: Record<string, React.ComponentType<any>> = {
@@ -146,7 +146,7 @@ export function AppointmentKPICard({
   today,
   completionRate,
   averageDuration,
-  className = ''
+  className = '',
 }: {
   total: number;
   today: number;
@@ -162,7 +162,7 @@ export function AppointmentKPICard({
           title: 'Total Appointments',
           value: total,
           icon: 'calendar',
-          description: 'All time appointments'
+          description: 'All time appointments',
         }}
       />
 
@@ -172,7 +172,7 @@ export function AppointmentKPICard({
           title: 'Today\'s Appointments',
           value: today,
           icon: 'calendar',
-          description: 'Scheduled for today'
+          description: 'Scheduled for today',
         }}
       />
 
@@ -183,7 +183,7 @@ export function AppointmentKPICard({
           value: completionRate,
           unit: 'percentage',
           icon: 'check',
-          description: 'Successfully completed'
+          description: 'Successfully completed',
         }}
       />
 
@@ -194,7 +194,7 @@ export function AppointmentKPICard({
           value: averageDuration,
           unit: 'minutes',
           icon: 'clock',
-          description: 'Per appointment'
+          description: 'Per appointment',
         }}
       />
     </div>
@@ -205,7 +205,7 @@ export function PatientKPICard({
   total,
   newThisMonth,
   activePatients,
-  className = ''
+  className = '',
 }: {
   total: number;
   newThisMonth: number;
@@ -220,7 +220,7 @@ export function PatientKPICard({
           title: 'Total Patients',
           value: total,
           icon: 'users',
-          description: 'All registered patients'
+          description: 'All registered patients',
         }}
       />
 
@@ -230,7 +230,7 @@ export function PatientKPICard({
           title: 'New This Month',
           value: newThisMonth,
           icon: 'users',
-          description: 'Recently registered'
+          description: 'Recently registered',
         }}
       />
 
@@ -240,7 +240,7 @@ export function PatientKPICard({
           title: 'Active Patients',
           value: activePatients,
           icon: 'users',
-          description: 'With recent appointments'
+          description: 'With recent appointments',
         }}
       />
     </div>
@@ -252,7 +252,7 @@ export function StaffKPICard({
   active,
   utilizationRate,
   averageWorkload,
-  className = ''
+  className = '',
 }: {
   total: number;
   active: number;
@@ -268,7 +268,7 @@ export function StaffKPICard({
           title: 'Total Staff',
           value: total,
           icon: 'users',
-          description: 'All staff members'
+          description: 'All staff members',
         }}
       />
 
@@ -278,7 +278,7 @@ export function StaffKPICard({
           title: 'Active Staff',
           value: active,
           icon: 'users',
-          description: 'Currently working'
+          description: 'Currently working',
         }}
       />
 
@@ -289,7 +289,7 @@ export function StaffKPICard({
           value: utilizationRate,
           unit: 'percentage',
           icon: 'activity',
-          description: 'Staff efficiency'
+          description: 'Staff efficiency',
         }}
       />
 
@@ -299,7 +299,7 @@ export function StaffKPICard({
           title: 'Average Workload',
           value: averageWorkload,
           icon: 'clock',
-          description: 'Appointments per staff'
+          description: 'Appointments per staff',
         }}
       />
     </div>
@@ -311,7 +311,7 @@ export function EmailKPICard({
   successRate,
   failureRate,
   averageDeliveryTime,
-  className = ''
+  className = '',
 }: {
   totalSent: number;
   successRate: number;
@@ -327,7 +327,7 @@ export function EmailKPICard({
           title: 'Total Emails Sent',
           value: totalSent,
           icon: 'mail',
-          description: 'All time emails'
+          description: 'All time emails',
         }}
       />
 
@@ -338,7 +338,7 @@ export function EmailKPICard({
           value: successRate,
           unit: 'percentage',
           icon: 'check',
-          description: 'Successfully delivered'
+          description: 'Successfully delivered',
         }}
       />
 
@@ -349,7 +349,7 @@ export function EmailKPICard({
           value: failureRate,
           unit: 'percentage',
           icon: 'error',
-          description: 'Failed deliveries'
+          description: 'Failed deliveries',
         }}
       />
 
@@ -360,7 +360,7 @@ export function EmailKPICard({
           value: averageDeliveryTime,
           unit: 'ms',
           icon: 'clock',
-          description: 'Time to deliver'
+          description: 'Time to deliver',
         }}
       />
     </div>

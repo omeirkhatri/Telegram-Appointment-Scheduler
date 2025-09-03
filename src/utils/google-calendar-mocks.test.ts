@@ -21,7 +21,7 @@ import {
     resetMockGoogleCalendar,
     setupMockCalendar,
     setupMockCalendarEvents,
-    setupMockWebhook
+    setupMockWebhook,
 } from './google-calendar-mocks';
 
 describe('Google Calendar Mocking Utilities', () => {

@@ -83,7 +83,10 @@ export function useAppointments(options: UseAppointmentsOptions = {}): UseAppoin
   }, [options.dateFrom, options.dateTo, options.staffId, options.appointmentType, options.status]);
 
   useEffect(() => {
-    fetchAppointments();
+    // Only fetch on client-side to prevent hydration mismatches
+    if (typeof window !== 'undefined') {
+      fetchAppointments();
+    }
   }, [fetchAppointments]);
 
   return {

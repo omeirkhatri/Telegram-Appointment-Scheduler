@@ -7,4 +7,7 @@ export { LoadingSpinner } from './LoadingSpinner';
 // Error handling components
 export { ErrorBoundary } from './ErrorBoundary';
 export { ErrorMessage } from './ErrorMessage';
-export { SuccessMessage } from './SuccessMessage';
+
+// Toast components
+export { Toast } from './Toast';
+export { ToastContainer, ToastProvider, useToastContext } from './ToastContainer';

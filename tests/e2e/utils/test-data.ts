@@ -15,7 +15,7 @@ export const testData = {
       googleMapsLink: 'https://maps.google.com/?q=25.2048,55.2708',
       medicalNotes: 'Patient has diabetes and requires regular monitoring',
       emergencyContact: '+971509876543',
-      preferredTransport: 'Driver'
+      preferredTransport: 'Driver',
     },
     minimal: {
       name: 'Sarah Johnson',
@@ -23,8 +23,8 @@ export const testData = {
       flatVillaNo: 'Apt 456',
       buildingStreet: 'Sheikh Zayed Road',
       area: 'Downtown',
-      city: 'Dubai'
-    }
+      city: 'Dubai',
+    },
   },
 
   staff: {
@@ -40,7 +40,7 @@ export const testData = {
       workingHoursStart: '08:00',
       workingHoursEnd: '17:00',
       status: 'active',
-      emailNotificationsEnabled: true
+      emailNotificationsEnabled: true,
     },
     nurse: {
       firstName: 'Fatima',
@@ -54,7 +54,7 @@ export const testData = {
       workingHoursStart: '07:00',
       workingHoursEnd: '19:00',
       status: 'active',
-      emailNotificationsEnabled: true
+      emailNotificationsEnabled: true,
     },
     driver: {
       firstName: 'Hassan',
@@ -68,8 +68,8 @@ export const testData = {
       workingHoursStart: '06:00',
       workingHoursEnd: '22:00',
       status: 'active',
-      emailNotificationsEnabled: false
-    }
+      emailNotificationsEnabled: false,
+    },
   },
 
   appointments: {
@@ -85,8 +85,8 @@ export const testData = {
       customFields: {
         chiefComplaint: 'Diabetes monitoring and medication review',
         primaryDoctor: 'Dr. Mohammed Al-Ahmad',
-        assistingNurse: 'Fatima Al-Zahra'
-      }
+        assistingNurse: 'Fatima Al-Zahra',
+      },
     },
     labTest: {
       appointmentType: 'Lab Test',
@@ -102,8 +102,8 @@ export const testData = {
         labName: 'AVM',
         sampleTypes: ['Blood'],
         nurse: 'Fatima Al-Zahra',
-        fastingRequired: true
-      }
+        fastingRequired: true,
+      },
     },
     teleconsultation: {
       appointmentType: 'Teleconsultation',
@@ -117,10 +117,10 @@ export const testData = {
       customFields: {
         platform: 'Zoom',
         doctor: 'Dr. Mohammed Al-Ahmad',
-        consultationType: 'Follow-up'
-      }
-    }
-  }
+        consultationType: 'Follow-up',
+      },
+    },
+  },
 };
 
 export const selectors = {
@@ -129,7 +129,7 @@ export const selectors = {
     patients: '[data-testid="nav-patients"]',
     staff: '[data-testid="nav-staff"]',
     appointments: '[data-testid="nav-appointments"]',
-    dashboard: '[data-testid="nav-dashboard"]'
+    dashboard: '[data-testid="nav-dashboard"]',
   },
 
   // Patient form
@@ -145,7 +145,7 @@ export const selectors = {
     emergencyContact: '[data-testid="patient-emergency-contact"]',
     preferredTransport: '[data-testid="patient-preferred-transport"]',
     submitButton: '[data-testid="patient-submit"]',
-    cancelButton: '[data-testid="patient-cancel"]'
+    cancelButton: '[data-testid="patient-cancel"]',
   },
 
   // Staff form
@@ -158,7 +158,7 @@ export const selectors = {
     email: '[data-testid="staff-email"]',
     googleCalendarId: '[data-testid="staff-google-calendar-id"]',
     submitButton: '[data-testid="staff-submit"]',
-    cancelButton: '[data-testid="staff-cancel"]'
+    cancelButton: '[data-testid="staff-cancel"]',
   },
 
   // Appointment form
@@ -171,7 +171,7 @@ export const selectors = {
     transportationType: '[data-testid="appointment-transportation-type"]',
     notes: '[data-testid="appointment-notes"]',
     submitButton: '[data-testid="appointment-submit"]',
-    cancelButton: '[data-testid="appointment-cancel"]'
+    cancelButton: '[data-testid="appointment-cancel"]',
   },
 
   // Calendar
@@ -181,7 +181,7 @@ export const selectors = {
     contextMenu: '[data-testid="calendar-context-menu"]',
     copyButton: '[data-testid="context-menu-copy"]',
     editButton: '[data-testid="context-menu-edit"]',
-    deleteButton: '[data-testid="context-menu-delete"]'
+    deleteButton: '[data-testid="context-menu-delete"]',
   },
 
   // Modals
@@ -190,7 +190,7 @@ export const selectors = {
     staffModal: '[data-testid="staff-modal"]',
     appointmentModal: '[data-testid="appointment-modal"]',
     copyAppointmentModal: '[data-testid="copy-appointment-modal"]',
-    closeButton: '[data-testid="modal-close"]'
+    closeButton: '[data-testid="modal-close"]',
   },
 
   // Common
@@ -198,6 +198,6 @@ export const selectors = {
     loadingSpinner: '[data-testid="loading-spinner"]',
     errorMessage: '[data-testid="error-message"]',
     successMessage: '[data-testid="success-message"]',
-    toast: '[data-testid="toast"]'
-  }
+    toast: '[data-testid="toast"]',
+  },
 };

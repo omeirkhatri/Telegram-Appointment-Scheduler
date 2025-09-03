@@ -110,7 +110,7 @@ describe('EmailPreferencesService', () => {
       };
 
       await expect(
-        emailPreferencesService.updateGlobalEmailPreferences(invalidUpdateData)
+        emailPreferencesService.updateGlobalEmailPreferences(invalidUpdateData),
       ).rejects.toThrow('Validation failed');
     });
   });
@@ -180,7 +180,7 @@ describe('EmailPreferencesService', () => {
             smtpHost: 'smtp.example.com',
             smtpPort: 587,
             fromEmail: 'test@example.com',
-          }
+          },
         },
         error: null,
       });
@@ -199,7 +199,7 @@ describe('EmailPreferencesService', () => {
             smtpHost: '',
             smtpPort: undefined,
             fromEmail: '',
-          }
+          },
         },
         error: null,
       });
@@ -217,7 +217,7 @@ describe('EmailPreferencesService', () => {
             smtpHost: 'smtp.example.com',
             smtpPort: 587,
             fromEmail: 'invalid-email',
-          }
+          },
         },
         error: null,
       });
@@ -268,7 +268,7 @@ describe('EmailPreferencesService', () => {
 
     it('should throw error for invalid JSON', async () => {
       await expect(
-        emailPreferencesService.importPreferences('invalid json')
+        emailPreferencesService.importPreferences('invalid json'),
       ).rejects.toThrow('Failed to import preferences');
     });
 
@@ -278,7 +278,7 @@ describe('EmailPreferencesService', () => {
       };
 
       await expect(
-        emailPreferencesService.importPreferences(JSON.stringify(invalidPreferences))
+        emailPreferencesService.importPreferences(JSON.stringify(invalidPreferences)),
       ).rejects.toThrow('Failed to import preferences');
     });
   });

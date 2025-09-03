@@ -2,6 +2,7 @@
 
 import { PatientForm } from '@/components/forms';
 import { ErrorMessage } from '@/components/ui';
+import { useToastContext } from '@/components/ui/ToastContainer';
 import type { Patient } from '@/types';
 import { X } from 'lucide-react';
 import { useEffect, useState } from 'react';
@@ -21,6 +22,7 @@ export function PatientModal({
 }: PatientModalProps) {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { showToast } = useToastContext();
 
   // Reset error state when modal opens
   useEffect(() => {
@@ -58,6 +60,11 @@ export function PatientModal({
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : `Failed to ${initialPatient?.id ? 'update' : 'create'} patient`;
       setSubmitError(errorMessage);
+      showToast({
+        type: 'error',
+        title: 'Error',
+        message: errorMessage,
+      });
     } finally {
       setIsSubmitting(false);
     }

@@ -8,7 +8,7 @@ import {
     Link,
     Plus,
     Unlink,
-    X
+    X,
 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -29,7 +29,7 @@ interface StaffMember {
 export function CalendarConnectionManager({
   onConnectionAdded,
   onConnectionRemoved,
-  className = ''
+  className = '',
 }: CalendarConnectionManagerProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [staff, setStaff] = useState<StaffMember[]>([]);
@@ -71,7 +71,7 @@ export function CalendarConnectionManager({
     if (!calendarId.trim()) {
       setValidationResult({
         isValid: false,
-        message: 'Please enter a calendar ID'
+        message: 'Please enter a calendar ID',
       });
       return;
     }
@@ -83,19 +83,19 @@ export function CalendarConnectionManager({
       const response = await fetch('/api/staff/validate-calendar', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ calendarId: calendarId.trim() })
+        body: JSON.stringify({ calendarId: calendarId.trim() }),
       });
 
       const data = await response.json();
 
       setValidationResult({
         isValid: data.success,
-        message: data.success ? 'Calendar ID is valid and accessible' : data.error
+        message: data.success ? 'Calendar ID is valid and accessible' : data.error,
       });
     } catch (error) {
       setValidationResult({
         isValid: false,
-        message: 'Failed to validate calendar ID'
+        message: 'Failed to validate calendar ID',
       });
     } finally {
       setIsValidating(false);
@@ -114,8 +114,8 @@ export function CalendarConnectionManager({
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          google_calendar_id: calendarId.trim()
-        })
+          google_calendar_id: calendarId.trim(),
+        }),
       });
 
       if (response.ok) {
@@ -124,7 +124,7 @@ export function CalendarConnectionManager({
           onConnectionAdded?.({
             id: selectedStaff,
             staffName: `${staffMember.first_name} ${staffMember.last_name}`,
-            calendarId: calendarId.trim()
+            calendarId: calendarId.trim(),
           });
         }
         handleClose();
@@ -132,13 +132,13 @@ export function CalendarConnectionManager({
         const errorData = await response.json();
         setValidationResult({
           isValid: false,
-          message: errorData.error || 'Failed to connect calendar'
+          message: errorData.error || 'Failed to connect calendar',
         });
       }
     } catch (error) {
       setValidationResult({
         isValid: false,
-        message: 'Failed to connect calendar'
+        message: 'Failed to connect calendar',
       });
     } finally {
       setIsConnecting(false);
@@ -150,7 +150,7 @@ export function CalendarConnectionManager({
       const response = await fetch(`/api/staff/${staffId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ google_calendar_id: null })
+        body: JSON.stringify({ google_calendar_id: null }),
       });
 
       if (response.ok) {
@@ -306,7 +306,7 @@ export function CalendarConnectionManager({
 
                         <div className="flex items-center space-x-2">
                           <button
-                            onClick={() => window.open(`https://calendar.google.com/calendar/u/0/r`, '_blank')}
+                            onClick={() => window.open('https://calendar.google.com/calendar/u/0/r', '_blank')}
                             className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded transition-colors"
                             title="Open in Google Calendar"
                           >

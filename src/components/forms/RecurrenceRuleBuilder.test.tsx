@@ -24,7 +24,7 @@ describe('RecurrenceRuleBuilder', () => {
         value={undefined}
         onChange={mockOnChange}
         baseDate={baseDate}
-      />
+      />,
     );
 
     expect(screen.getByText('Recurring Appointment')).toBeInTheDocument();
@@ -37,7 +37,7 @@ describe('RecurrenceRuleBuilder', () => {
         value={undefined}
         onChange={mockOnChange}
         baseDate={baseDate}
-      />
+      />,
     );
 
     const checkbox = screen.getByRole('checkbox');
@@ -60,7 +60,7 @@ describe('RecurrenceRuleBuilder', () => {
         value={existingRule}
         onChange={mockOnChange}
         baseDate={baseDate}
-      />
+      />,
     );
 
     expect(screen.getByText('Recurrence Pattern')).toBeInTheDocument();
@@ -73,7 +73,7 @@ describe('RecurrenceRuleBuilder', () => {
         value={undefined}
         onChange={mockOnChange}
         baseDate={baseDate}
-      />
+      />,
     );
 
     // Enable the builder
@@ -89,7 +89,7 @@ describe('RecurrenceRuleBuilder', () => {
         expect.objectContaining({
           frequency: 'daily',
           interval: 1,
-        })
+        }),
       );
     });
   });
@@ -100,7 +100,7 @@ describe('RecurrenceRuleBuilder', () => {
         value={undefined}
         onChange={mockOnChange}
         baseDate={baseDate}
-      />
+      />,
     );
 
     // Enable the builder
@@ -124,7 +124,7 @@ describe('RecurrenceRuleBuilder', () => {
           frequency: 'weekly',
           interval: 1,
           days_of_week: [1, 3],
-        })
+        }),
       );
     });
   });
@@ -135,7 +135,7 @@ describe('RecurrenceRuleBuilder', () => {
         value={undefined}
         onChange={mockOnChange}
         baseDate={baseDate}
-      />
+      />,
     );
 
     // Enable the builder
@@ -156,7 +156,7 @@ describe('RecurrenceRuleBuilder', () => {
           frequency: 'monthly',
           interval: 1,
           day_of_month: 15,
-        })
+        }),
       );
     });
   });
@@ -167,7 +167,7 @@ describe('RecurrenceRuleBuilder', () => {
         value={undefined}
         onChange={mockOnChange}
         baseDate={baseDate}
-      />
+      />,
     );
 
     // Enable the builder
@@ -193,7 +193,7 @@ describe('RecurrenceRuleBuilder', () => {
           interval: 1,
           month_of_year: 6,
           day_of_month: 15,
-        })
+        }),
       );
     });
   });
@@ -204,7 +204,7 @@ describe('RecurrenceRuleBuilder', () => {
         value={undefined}
         onChange={mockOnChange}
         baseDate={baseDate}
-      />
+      />,
     );
 
     // Enable the builder
@@ -228,7 +228,7 @@ describe('RecurrenceRuleBuilder', () => {
           frequency: 'daily',
           interval: 1,
           end_date: '2024-12-31',
-        })
+        }),
       );
     });
   });
@@ -239,7 +239,7 @@ describe('RecurrenceRuleBuilder', () => {
         value={undefined}
         onChange={mockOnChange}
         baseDate={baseDate}
-      />
+      />,
     );
 
     // Enable the builder
@@ -263,7 +263,7 @@ describe('RecurrenceRuleBuilder', () => {
           frequency: 'daily',
           interval: 1,
           end_occurrences: 10,
-        })
+        }),
       );
     });
   });
@@ -274,7 +274,7 @@ describe('RecurrenceRuleBuilder', () => {
         value={undefined}
         onChange={mockOnChange}
         baseDate={baseDate}
-      />
+      />,
     );
 
     // Enable the builder
@@ -296,7 +296,7 @@ describe('RecurrenceRuleBuilder', () => {
         value={undefined}
         onChange={mockOnChange}
         baseDate={baseDate}
-      />
+      />,
     );
 
     // Enable the builder
@@ -320,7 +320,7 @@ describe('RecurrenceRuleBuilder', () => {
         onChange={mockOnChange}
         baseDate={baseDate}
         disabled={true}
-      />
+      />,
     );
 
     const checkbox = screen.getByRole('checkbox');
@@ -338,7 +338,7 @@ describe('RecurrenceRuleBuilder', () => {
         value={existingRule}
         onChange={mockOnChange}
         baseDate={baseDate}
-      />
+      />,
     );
 
     // Disable the builder
@@ -354,7 +354,7 @@ describe('RecurrenceRuleBuilder', () => {
         value={undefined}
         onChange={mockOnChange}
         baseDate={baseDate}
-      />
+      />,
     );
 
     // Enable the builder
@@ -374,7 +374,7 @@ describe('RecurrenceRuleBuilder', () => {
         expect.objectContaining({
           frequency: 'daily',
           interval: 3,
-        })
+        }),
       );
     });
   });
@@ -385,7 +385,7 @@ describe('RecurrenceRuleBuilder', () => {
         value={undefined}
         onChange={mockOnChange}
         baseDate={baseDate}
-      />
+      />,
     );
 
     // Enable the builder

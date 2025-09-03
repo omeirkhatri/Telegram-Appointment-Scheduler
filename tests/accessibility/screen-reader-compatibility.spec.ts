@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 import {
     assertAccessibilityCompliance,
     runAccessibilityAudit,
-    testScreenReaderCompatibility
+    testScreenReaderCompatibility,
 } from './utils/accessibility-helpers';
 
 test.describe('Screen Reader Compatibility Tests', () => {
@@ -41,7 +41,7 @@ test.describe('Screen Reader Compatibility Tests', () => {
           hasAriaLabel: !!ariaLabel,
           hasAriaLabelledBy: !!ariaLabelledBy,
           hasPlaceholder: !!placeholder,
-          isProperlyLabeled: !!(label || ariaLabel || ariaLabelledBy)
+          isProperlyLabeled: !!(label || ariaLabel || ariaLabelledBy),
         };
       });
     });
@@ -69,7 +69,7 @@ test.describe('Screen Reader Compatibility Tests', () => {
           hasHeaders,
           hasProperStructure,
           headerCount: headers.length,
-          rowCount: rows.length
+          rowCount: rows.length,
         };
       });
     });
@@ -101,7 +101,7 @@ test.describe('Screen Reader Compatibility Tests', () => {
         hasAriaLabel,
         hasRole,
         hasAriaLive,
-        isAccessible: hasAriaLabel || hasRole
+        isAccessible: hasAriaLabel || hasRole,
       };
     });
 
@@ -129,7 +129,7 @@ test.describe('Screen Reader Compatibility Tests', () => {
           hasHeading,
           hasAriaLabel,
           hasAriaLabelledBy,
-          isProperlyLabeled: hasHeading || hasAriaLabel || hasAriaLabelledBy
+          isProperlyLabeled: hasHeading || hasAriaLabel || hasAriaLabelledBy,
         };
       });
     });
@@ -146,7 +146,7 @@ test.describe('Screen Reader Compatibility Tests', () => {
     const landmarks = await page.evaluate(() => {
       const landmarkElements = document.querySelectorAll(
         '[role="banner"], [role="navigation"], [role="main"], [role="complementary"], [role="contentinfo"], ' +
-        'header, nav, main, aside, footer'
+        'header, nav, main, aside, footer',
       );
 
       return Array.from(landmarkElements).map(el => ({
@@ -154,7 +154,7 @@ test.describe('Screen Reader Compatibility Tests', () => {
         role: el.getAttribute('role') || el.tagName.toLowerCase(),
         text: el.textContent?.trim().substring(0, 50) || '',
         hasAriaLabel: el.hasAttribute('aria-label'),
-        hasAriaLabelledBy: el.hasAttribute('aria-labelledby')
+        hasAriaLabelledBy: el.hasAttribute('aria-labelledby'),
       }));
     });
 
@@ -177,7 +177,7 @@ test.describe('Screen Reader Compatibility Tests', () => {
         level: parseInt(heading.tagName.charAt(1)),
         text: heading.textContent?.trim() || '',
         id: heading.id || '',
-        hasId: !!heading.id
+        hasId: !!heading.id,
       }));
     });
 
@@ -231,7 +231,7 @@ test.describe('Screen Reader Compatibility Tests', () => {
           isRequired: required,
           hasAriaRequired: ariaRequired === 'true',
           isProperlyLabeled: !!(label || ariaLabel || ariaLabelledBy),
-          isProperlyRequired: !required || ariaRequired === 'true'
+          isProperlyRequired: !required || ariaRequired === 'true',
         };
       });
 
@@ -240,7 +240,7 @@ test.describe('Screen Reader Compatibility Tests', () => {
         formHasAriaLabelledBy: form.hasAttribute('aria-labelledby'),
         inputCount: inputs.length,
         labelCount: labels.length,
-        inputAccessibility
+        inputAccessibility,
       };
     });
 
@@ -285,7 +285,7 @@ test.describe('Screen Reader Compatibility Tests', () => {
           hasAriaLive,
           hasAriaAtomic,
           isVisible,
-          isAccessible: hasRoleAlert || hasAriaLive
+          isAccessible: hasRoleAlert || hasAriaLive,
         };
       });
     });
@@ -323,7 +323,7 @@ test.describe('Screen Reader Compatibility Tests', () => {
           isDisabled,
           hasAriaDisabled: ariaDisabled === 'true',
           isProperlyLabeled: hasText || hasAriaLabel || hasAriaLabelledBy || hasTitle,
-          isProperlyDisabled: !isDisabled || ariaDisabled === 'true'
+          isProperlyDisabled: !isDisabled || ariaDisabled === 'true',
         };
       });
     });
@@ -361,7 +361,7 @@ test.describe('Screen Reader Compatibility Tests', () => {
           isExternal,
           hasExternalIndicator,
           isProperlyLabeled: hasText || hasAriaLabel || hasAriaLabelledBy || hasTitle,
-          isProperlyExternal: !isExternal || hasExternalIndicator
+          isProperlyExternal: !isExternal || hasExternalIndicator,
         };
       });
     });
@@ -397,7 +397,7 @@ test.describe('Screen Reader Compatibility Tests', () => {
           hasAriaSort,
           headerCount: headers.length,
           isProperlyLabeled: hasCaption || hasAriaLabel || hasAriaLabelledBy,
-          hasProperHeaders: hasHeaders && (hasScope || hasAriaSort)
+          hasProperHeaders: hasHeaders && (hasScope || hasAriaSort),
         };
       });
     });

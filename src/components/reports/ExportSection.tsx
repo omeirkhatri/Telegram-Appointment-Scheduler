@@ -4,7 +4,7 @@ import type { ReportFilters } from '@/types/reports';
 import {
     AlertCircle,
     CheckCircle,
-    Download
+    Download,
 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -22,8 +22,8 @@ export function ExportSection({ className = '' }: ExportSectionProps) {
   const [filters, setFilters] = useState<ReportFilters>({
     dateRange: {
       from: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-      to: new Date().toISOString().split('T')[0]
-    }
+      to: new Date().toISOString().split('T')[0],
+    },
   });
 
   const [selectedReportType, setSelectedReportType] = useState<string>('appointments');
@@ -35,13 +35,13 @@ export function ExportSection({ className = '' }: ExportSectionProps) {
     { id: 'staff', label: 'Staff', description: 'Staff members and their details' },
     { id: 'statistics', label: 'Statistics', description: 'Summary statistics and KPIs' },
     { id: 'audit', label: 'Audit Trail', description: 'Appointment copy operations and history' },
-    { id: 'email', label: 'Email Delivery', description: 'Email delivery logs and statistics' }
+    { id: 'email', label: 'Email Delivery', description: 'Email delivery logs and statistics' },
   ];
 
   const formats = [
     { id: 'csv', label: 'CSV', description: 'Comma-separated values (Excel compatible)' },
     { id: 'xlsx', label: 'Excel', description: 'Microsoft Excel format' },
-    { id: 'pdf', label: 'PDF', description: 'Portable Document Format' }
+    { id: 'pdf', label: 'PDF', description: 'Portable Document Format' },
   ];
 
   const handleExport = async () => {
@@ -58,7 +58,7 @@ export function ExportSection({ className = '' }: ExportSectionProps) {
           type: selectedReportType,
           format: selectedFormat,
           filters,
-          dateRange: filters.dateRange
+          dateRange: filters.dateRange,
         }),
       });
 
@@ -80,13 +80,13 @@ export function ExportSection({ className = '' }: ExportSectionProps) {
 
       setExportStatus({
         type: 'success',
-        message: 'Report exported successfully!'
+        message: 'Report exported successfully!',
       });
 
     } catch (error) {
       setExportStatus({
         type: 'error',
-        message: error instanceof Error ? error.message : 'Export failed'
+        message: error instanceof Error ? error.message : 'Export failed',
       });
     } finally {
       setIsExporting(false);
@@ -98,8 +98,8 @@ export function ExportSection({ className = '' }: ExportSectionProps) {
       ...prev,
       dateRange: {
         ...prev.dateRange!,
-        [field]: value
-      }
+        [field]: value,
+      },
     }));
   };
 
@@ -248,7 +248,7 @@ export function ExportSection({ className = '' }: ExportSectionProps) {
               { label: 'Last 7 days', days: 7 },
               { label: 'Last 30 days', days: 30 },
               { label: 'Last 90 days', days: 90 },
-              { label: 'This year', days: 365 }
+              { label: 'This year', days: 365 },
             ].map(({ label, days }) => (
               <button
                 key={label}
@@ -260,8 +260,8 @@ export function ExportSection({ className = '' }: ExportSectionProps) {
                     ...prev,
                     dateRange: {
                       from: from.toISOString().split('T')[0],
-                      to: to.toISOString().split('T')[0]
-                    }
+                      to: to.toISOString().split('T')[0],
+                    },
                   }));
                 }}
                 className="px-3 py-1 text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-md transition-colors"

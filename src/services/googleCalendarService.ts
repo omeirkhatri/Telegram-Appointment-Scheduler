@@ -19,34 +19,59 @@ import { formatForGoogleCalendar } from '@/utils/date';
 export class GoogleCalendarService {
   private baseUrl = 'https://www.googleapis.com/calendar/v3';
 
+  private authInitialized = false;
+  private authError: Error | null = null;
+
   constructor() {
-    // Initialize authentication on service creation
-    this.initializeAuth();
+    // Initialize authentication on service creation (non-blocking)
+    this.initializeAuth().catch(error => {
+      this.authError = error;
+      console.warn('Google Calendar authentication failed during initialization:', error);
+    });
   }
 
   private async initializeAuth(): Promise<void> {
     try {
       // Try to initialize service account authentication first
       await googleCalendarAuth.initializeServiceAccount();
+      this.authInitialized = true;
     } catch (error) {
       console.warn('Service account authentication failed, falling back to API key:', error);
       try {
         googleCalendarAuth.initializeApiKey();
+        this.authInitialized = true;
       } catch (apiKeyError) {
         console.error('Both service account and API key authentication failed:', apiKeyError);
-        throw new Error('Google Calendar authentication not configured');
+        this.authError = new Error('Google Calendar authentication not configured');
+        throw this.authError;
       }
+    }
+  }
+
+  private ensureAuthInitialized(): void {
+    if (this.authError) {
+      throw this.authError;
+    }
+    if (!this.authInitialized) {
+      throw new Error('Google Calendar authentication not yet initialized');
     }
   }
 
   // Validate Google Calendar ID format
   validateCalendarId(calendarId: string): boolean {
-    return googleCalendarAuth.validateCalendarId(calendarId);
+    try {
+      this.ensureAuthInitialized();
+      return googleCalendarAuth.validateCalendarId(calendarId);
+    } catch (error) {
+      // If auth is not configured, just do basic format validation
+      return calendarId.includes('@') && calendarId.includes('.');
+    }
   }
 
   // Test Google Calendar connection
   async testCalendarConnection(calendarId: string): Promise<boolean> {
     try {
+      this.ensureAuthInitialized();
       return await googleCalendarAuth.testCalendarAccess(calendarId);
     } catch (error) {
       console.error('Failed to test calendar connection:', error);

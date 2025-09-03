@@ -30,13 +30,13 @@ describe('/api/google-calendar/sync-settings', () => {
         syncReminders: false,
         syncInterval: 600,
         retryAttempts: 5,
-        webhookEnabled: true
+        webhookEnabled: true,
       };
 
       const request = new NextRequest('http://localhost:3000/api/google-calendar/sync-settings', {
         method: 'PUT',
         body: JSON.stringify(validSettings),
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
       });
 
       const response = await PUT(request);
@@ -56,13 +56,13 @@ describe('/api/google-calendar/sync-settings', () => {
         syncReminders: true,
         syncInterval: 30, // Invalid: less than 60
         retryAttempts: 3,
-        webhookEnabled: true
+        webhookEnabled: true,
       };
 
       const request = new NextRequest('http://localhost:3000/api/google-calendar/sync-settings', {
         method: 'PUT',
         body: JSON.stringify(invalidSettings),
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
       });
 
       const response = await PUT(request);
@@ -82,13 +82,13 @@ describe('/api/google-calendar/sync-settings', () => {
         syncReminders: true,
         syncInterval: 300,
         retryAttempts: 15, // Invalid: greater than 10
-        webhookEnabled: true
+        webhookEnabled: true,
       };
 
       const request = new NextRequest('http://localhost:3000/api/google-calendar/sync-settings', {
         method: 'PUT',
         body: JSON.stringify(invalidSettings),
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
       });
 
       const response = await PUT(request);
@@ -108,13 +108,13 @@ describe('/api/google-calendar/sync-settings', () => {
         syncReminders: true,
         syncInterval: 300,
         retryAttempts: 3,
-        webhookEnabled: true
+        webhookEnabled: true,
       };
 
       const request = new NextRequest('http://localhost:3000/api/google-calendar/sync-settings', {
         method: 'PUT',
         body: JSON.stringify(invalidSettings),
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
       });
 
       const response = await PUT(request);
@@ -130,7 +130,7 @@ describe('/api/google-calendar/sync-settings', () => {
       const request = new NextRequest('http://localhost:3000/api/google-calendar/sync-settings', {
         method: 'PUT',
         body: 'invalid json',
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
       });
 
       const response = await PUT(request);

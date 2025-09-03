@@ -76,7 +76,7 @@
 - [x] 9.4 Recurrence rule builder (basic patterns)
 - [x] 9.5 Email preferences in Settings
 - [x] 9.6 Backup & export (CSV dumps)
-- [ ] 9.7 Unified toasts & error system
+- [x] 9.7 Unified toasts & error system
 
 ## 10.0 Google Calendar Integration (Enhancements)
 - [ ] 10.1 Event builders by role (driver vs medical)

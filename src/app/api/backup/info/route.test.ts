@@ -20,7 +20,7 @@ describe('/api/backup/info', () => {
       mockBackupService.getBackupStatistics.mockResolvedValue({
         totalTables: 5,
         totalRows: 1000,
-        tableStats: []
+        tableStats: [],
       });
 
       const request = new NextRequest('http://localhost:3000/api/backup/info');
@@ -40,12 +40,12 @@ describe('/api/backup/info', () => {
       const mockBackupService = require('@/services/backupService').backupService;
       const mockTableInfo = [
         { name: 'patients', rowCount: 500, columns: ['id', 'name', 'phone'] },
-        { name: 'appointments', rowCount: 300, columns: ['id', 'date', 'patient_id'] }
+        { name: 'appointments', rowCount: 300, columns: ['id', 'date', 'patient_id'] },
       ];
       const mockStatistics = {
         totalTables: 2,
         totalRows: 800,
-        tableStats: mockTableInfo
+        tableStats: mockTableInfo,
       };
 
       mockBackupService.getTableInfo.mockResolvedValue(mockTableInfo);

@@ -15,9 +15,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-          error: 'Report type and format are required'
+          error: 'Report type and format are required',
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -47,9 +47,9 @@ export async function POST(request: NextRequest) {
         return NextResponse.json(
           {
             success: false,
-            error: `Unsupported report type: ${type}`
+            error: `Unsupported report type: ${type}`,
           },
-          { status: 400 }
+          { status: 400 },
         );
     }
 
@@ -66,8 +66,8 @@ export async function POST(request: NextRequest) {
       headers: {
         'Content-Type': 'text/csv',
         'Content-Disposition': `attachment; filename="${filename}"`,
-        'Cache-Control': 'no-cache'
-      }
+        'Cache-Control': 'no-cache',
+      },
     });
 
   } catch (error) {
@@ -75,9 +75,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         success: false,
-        error: error instanceof Error ? error.message : 'Failed to generate report'
+        error: error instanceof Error ? error.message : 'Failed to generate report',
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -87,7 +87,7 @@ async function generateAppointmentsReport(
   dateRange?: { from: string; to: string },
   includeFields?: string[],
   sortBy?: string,
-  sortOrder?: 'asc' | 'desc'
+  sortOrder?: 'asc' | 'desc',
 ): Promise<CSVExportData> {
   let query = supabase
     .from('appointments')
@@ -147,7 +147,7 @@ async function generateAppointmentsReport(
     'Transportation Method',
     'Notes',
     'Created At',
-    'Updated At'
+    'Updated At',
   ];
 
   const headers = includeFields ? includeFields : defaultHeaders;
@@ -156,7 +156,7 @@ async function generateAppointmentsReport(
   const rows = (appointments || []).map(appointment => {
     const patient = appointment.patients;
     const staff = appointment.appointment_staff?.map((as: any) =>
-      `${as.staff?.first_name} ${as.staff?.last_name} (${as.staff?.staff_type})`
+      `${as.staff?.first_name} ${as.staff?.last_name} (${as.staff?.staff_type})`,
     ).join(', ') || '';
 
     const row: Record<string, any> = {
@@ -175,7 +175,7 @@ async function generateAppointmentsReport(
       'Transportation Method': appointment.transportation_method || '',
       'Notes': appointment.notes || '',
       'Created At': appointment.created_at,
-      'Updated At': appointment.updated_at
+      'Updated At': appointment.updated_at,
     };
 
     // Filter to only include requested fields
@@ -196,8 +196,8 @@ async function generateAppointmentsReport(
     metadata: {
       exportedAt: new Date().toISOString(),
       totalRows: rows.length,
-      filters
-    }
+      filters,
+    },
   };
 }
 
@@ -206,7 +206,7 @@ async function generatePatientsReport(
   dateRange?: { from: string; to: string },
   includeFields?: string[],
   sortBy?: string,
-  sortOrder?: 'asc' | 'desc'
+  sortOrder?: 'asc' | 'desc',
 ): Promise<CSVExportData> {
   let query = supabase.from('patients').select('*');
 
@@ -247,7 +247,7 @@ async function generatePatientsReport(
     'Preferred Transport',
     'Medical Notes',
     'Created At',
-    'Updated At'
+    'Updated At',
   ];
 
   const headers = includeFields ? includeFields : defaultHeaders;
@@ -265,7 +265,7 @@ async function generatePatientsReport(
       'Preferred Transport': patient.preferred_transport || '',
       'Medical Notes': patient.medical_notes || '',
       'Created At': patient.created_at,
-      'Updated At': patient.updated_at
+      'Updated At': patient.updated_at,
     };
 
     if (includeFields) {
@@ -285,8 +285,8 @@ async function generatePatientsReport(
     metadata: {
       exportedAt: new Date().toISOString(),
       totalRows: rows.length,
-      filters
-    }
+      filters,
+    },
   };
 }
 
@@ -295,7 +295,7 @@ async function generateStaffReport(
   dateRange?: { from: string; to: string },
   includeFields?: string[],
   sortBy?: string,
-  sortOrder?: 'asc' | 'desc'
+  sortOrder?: 'asc' | 'desc',
 ): Promise<CSVExportData> {
   let query = supabase.from('staff').select('*');
 
@@ -343,7 +343,7 @@ async function generateStaffReport(
     'Status',
     'Email Notifications Enabled',
     'Created At',
-    'Updated At'
+    'Updated At',
   ];
 
   const headers = includeFields ? includeFields : defaultHeaders;
@@ -363,7 +363,7 @@ async function generateStaffReport(
       'Status': member.status,
       'Email Notifications Enabled': member.email_notifications_enabled ? 'Yes' : 'No',
       'Created At': member.created_at,
-      'Updated At': member.updated_at
+      'Updated At': member.updated_at,
     };
 
     if (includeFields) {
@@ -383,21 +383,21 @@ async function generateStaffReport(
     metadata: {
       exportedAt: new Date().toISOString(),
       totalRows: rows.length,
-      filters
-    }
+      filters,
+    },
   };
 }
 
 async function generateStatisticsReport(
   filters?: ReportFilters,
-  dateRange?: { from: string; to: string }
+  dateRange?: { from: string; to: string },
 ): Promise<CSVExportData> {
   // This would generate a summary statistics report
   const headers = [
     'Metric',
     'Value',
     'Period',
-    'Generated At'
+    'Generated At',
   ];
 
   const rows = [
@@ -405,8 +405,8 @@ async function generateStatisticsReport(
       'Metric': 'Total Appointments',
       'Value': '0', // Would be calculated from actual data
       'Period': dateRange ? `${dateRange.from} to ${dateRange.to}` : 'All time',
-      'Generated At': new Date().toISOString()
-    }
+      'Generated At': new Date().toISOString(),
+    },
     // More statistics would be added here
   ];
 
@@ -416,8 +416,8 @@ async function generateStatisticsReport(
     metadata: {
       exportedAt: new Date().toISOString(),
       totalRows: rows.length,
-      filters
-    }
+      filters,
+    },
   };
 }
 
@@ -426,11 +426,11 @@ async function generateAuditReport(
   dateRange?: { from: string; to: string },
   includeFields?: string[],
   sortBy?: string,
-  sortOrder?: 'asc' | 'desc'
+  sortOrder?: 'asc' | 'desc',
 ): Promise<CSVExportData> {
   const result = await auditTrailService.getAuditStatistics({
     start_date: dateRange?.from || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-    end_date: dateRange?.to || new Date().toISOString().split('T')[0]
+    end_date: dateRange?.to || new Date().toISOString().split('T')[0],
   });
 
   if (!result.success) {
@@ -450,7 +450,7 @@ async function generateAuditReport(
     'Average Operation Duration (ms)',
     'Success Rate (%)',
     'Created At',
-    'Updated At'
+    'Updated At',
   ];
 
   const headers = includeFields ? includeFields : defaultHeaders;
@@ -469,7 +469,7 @@ async function generateAuditReport(
       'Average Operation Duration (ms)': stat.average_operation_duration_ms,
       'Success Rate (%)': stat.success_rate,
       'Created At': stat.created_at,
-      'Updated At': stat.updated_at
+      'Updated At': stat.updated_at,
     };
 
     if (includeFields) {
@@ -489,8 +489,8 @@ async function generateAuditReport(
     metadata: {
       exportedAt: new Date().toISOString(),
       totalRows: rows.length,
-      filters
-    }
+      filters,
+    },
   };
 }
 
@@ -499,11 +499,11 @@ async function generateEmailReport(
   dateRange?: { from: string; to: string },
   includeFields?: string[],
   sortBy?: string,
-  sortOrder?: 'asc' | 'desc'
+  sortOrder?: 'asc' | 'desc',
 ): Promise<CSVExportData> {
   const stats = await emailDeliveryService.getDeliveryStatistics({
     dateFrom: dateRange?.from,
-    dateTo: dateRange?.to
+    dateTo: dateRange?.to,
   });
 
   const defaultHeaders = [
@@ -517,7 +517,7 @@ async function generateEmailReport(
     'Average Delivery Time (ms)',
     'Total Retries',
     'Created At',
-    'Updated At'
+    'Updated At',
   ];
 
   const headers = includeFields ? includeFields : defaultHeaders;
@@ -534,7 +534,7 @@ async function generateEmailReport(
       'Average Delivery Time (ms)': stat.averageDeliveryTimeMs,
       'Total Retries': stat.totalRetries,
       'Created At': stat.createdAt,
-      'Updated At': stat.updatedAt
+      'Updated At': stat.updatedAt,
     };
 
     if (includeFields) {
@@ -554,8 +554,8 @@ async function generateEmailReport(
     metadata: {
       exportedAt: new Date().toISOString(),
       totalRows: rows.length,
-      filters
-    }
+      filters,
+    },
   };
 }
 

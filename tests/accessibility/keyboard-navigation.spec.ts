@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 import {
-    testKeyboardNavigation
+    testKeyboardNavigation,
 } from './utils/accessibility-helpers';
 
 test.describe('Keyboard Navigation Tests', () => {

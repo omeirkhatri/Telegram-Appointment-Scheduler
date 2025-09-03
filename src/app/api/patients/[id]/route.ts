@@ -78,7 +78,6 @@ export async function PUT(
     }
 
 
-
     // Update patient
     const updatedPatient = await patientService.updatePatient(id, updateData);
 

@@ -87,7 +87,7 @@ export const DAYS_OF_WEEK = [
 export function generateOccurrenceDates(
   baseDate: string,
   rule: RecurringRule,
-  count: number = 10
+  count: number = 10,
 ): string[] {
   const dates: string[] = [];
   const startDate = new Date(baseDate);
@@ -106,7 +106,7 @@ export function generateOccurrenceDates(
 export function getNextOccurrenceDate(
   baseDate: Date,
   rule: RecurringRule,
-  occurrence: number = 0
+  occurrence: number = 0,
 ): Date {
   const date = new Date(baseDate);
 
@@ -123,7 +123,7 @@ export function getNextOccurrenceDate(
         }
 
         // Find the next occurrence from the base date
-        let currentDate = new Date(baseDate);
+        const currentDate = new Date(baseDate);
         let foundOccurrences = 0;
 
         // Look ahead up to 8 weeks to find the next occurrence
@@ -306,7 +306,7 @@ export function getRecurrenceDescription(rule: RecurringRule): string {
   if (rule.frequency === 'yearly' && rule.month_of_year) {
     const monthNames = [
       'January', 'February', 'March', 'April', 'May', 'June',
-      'July', 'August', 'September', 'October', 'November', 'December'
+      'July', 'August', 'September', 'October', 'November', 'December',
     ];
     parts.push(`in ${monthNames[rule.month_of_year - 1]}`);
   }

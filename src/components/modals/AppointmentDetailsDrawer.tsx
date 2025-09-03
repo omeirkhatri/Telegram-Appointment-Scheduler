@@ -16,7 +16,7 @@ import {
     Stethoscope,
     Trash2,
     User,
-    X
+    X,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
@@ -84,7 +84,7 @@ export function AppointmentDetailsDrawer({
   // Get assigned staff members
   const assignedStaff = staff.filter(s =>
     appointment.google_event_ids &&
-    Object.keys(appointment.google_event_ids).includes(s.id)
+    Object.keys(appointment.google_event_ids).includes(s.id),
   );
 
   // Get driver if assigned

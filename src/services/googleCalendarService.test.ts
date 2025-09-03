@@ -5,7 +5,7 @@ import {
     mockGoogleCalendarAuth,
     mockGoogleCalendarClient,
     setupMockCalendar,
-    setupMockCalendarEvents
+    setupMockCalendarEvents,
 } from '@/utils/test-utils';
 import { GoogleCalendarService } from './googleCalendarService';
 

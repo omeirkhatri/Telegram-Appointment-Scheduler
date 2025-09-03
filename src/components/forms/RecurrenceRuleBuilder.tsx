@@ -5,7 +5,7 @@ import {
     generateOccurrenceDates,
     getRecurrenceDescription,
     RECURRENCE_PATTERNS,
-    validateRecurrenceRule
+    validateRecurrenceRule,
 } from '@/lib/recurrenceUtils';
 import { RecurringRule } from '@/types/appointment';
 import { AlertCircle, Calendar, CheckCircle } from 'lucide-react';
@@ -48,7 +48,7 @@ export function RecurrenceRuleBuilder({
         pattern.interval === value.interval &&
         JSON.stringify(pattern.days_of_week) === JSON.stringify(value.days_of_week) &&
         pattern.day_of_month === value.day_of_month &&
-        pattern.month_of_year === value.month_of_year
+        pattern.month_of_year === value.month_of_year,
       );
 
       if (matchingPattern) {
@@ -177,7 +177,7 @@ export function RecurrenceRuleBuilder({
     setSelectedDays(prev =>
       prev.includes(day)
         ? prev.filter(d => d !== day)
-        : [...prev, day].sort()
+        : [...prev, day].sort(),
     );
   };
 
@@ -352,7 +352,7 @@ export function RecurrenceRuleBuilder({
             >
               {[
                 'January', 'February', 'March', 'April', 'May', 'June',
-                'July', 'August', 'September', 'October', 'November', 'December'
+                'July', 'August', 'September', 'October', 'November', 'December',
               ].map((month, index) => (
                 <option key={index} value={index + 1}>
                   {month}

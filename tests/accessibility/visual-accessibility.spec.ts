@@ -3,7 +3,7 @@ import {
     assertAccessibilityCompliance,
     runAccessibilityAudit,
     testMobileAccessibility,
-    testVisualAccessibility
+    testVisualAccessibility,
 } from './utils/accessibility-helpers';
 
 test.describe('Visual Accessibility Tests', () => {
@@ -42,7 +42,7 @@ test.describe('Visual Accessibility Tests', () => {
             element: el.tagName.toLowerCase(),
             color,
             backgroundColor,
-            text: el.textContent?.trim().substring(0, 50) || ''
+            text: el.textContent?.trim().substring(0, 50) || '',
           });
         }
       });
@@ -77,7 +77,7 @@ test.describe('Visual Accessibility Tests', () => {
           hasOutline: outline !== 'none' && outlineWidth !== '0px',
           hasBoxShadow: boxShadow !== 'none',
           hasBorder: border !== 'none',
-          hasFocusIndicator: outline !== 'none' || boxShadow !== 'none' || border !== 'none'
+          hasFocusIndicator: outline !== 'none' || boxShadow !== 'none' || border !== 'none',
         };
       });
     });
@@ -116,7 +116,7 @@ test.describe('Visual Accessibility Tests', () => {
           isDecorative,
           hasLongDesc,
           hasAriaDescribedBy,
-          isAccessible: hasAlt || isDecorative || hasLongDesc || hasAriaDescribedBy
+          isAccessible: hasAlt || isDecorative || hasLongDesc || hasAriaDescribedBy,
         };
       });
     });
@@ -149,7 +149,7 @@ test.describe('Visual Accessibility Tests', () => {
           fontWeight,
           lineHeight: parseFloat(lineHeight),
           hasReadableText: text.length > 0,
-          hasReadableSize: parseFloat(fontSize) >= 12 // Minimum 12px font size
+          hasReadableSize: parseFloat(fontSize) >= 12, // Minimum 12px font size
         };
       }).filter(el => el.hasReadableText);
     });
@@ -180,7 +180,7 @@ test.describe('Visual Accessibility Tests', () => {
           top: parseFloat(styles.paddingTop),
           right: parseFloat(styles.paddingRight),
           bottom: parseFloat(styles.paddingBottom),
-          left: parseFloat(styles.paddingLeft)
+          left: parseFloat(styles.paddingLeft),
         };
 
         const effectiveWidth = rect.width + padding.left + padding.right;
@@ -193,7 +193,7 @@ test.describe('Visual Accessibility Tests', () => {
           height: rect.height,
           effectiveWidth,
           effectiveHeight,
-          isLargeEnough: effectiveWidth >= 44 && effectiveHeight >= 44
+          isLargeEnough: effectiveWidth >= 44 && effectiveHeight >= 44,
         };
       });
     });
@@ -227,7 +227,7 @@ test.describe('Visual Accessibility Tests', () => {
           color: white !important;
           border: 2px solid black !important;
         }
-      `
+      `,
     });
 
     // Check if content is still readable
@@ -246,7 +246,7 @@ test.describe('Visual Accessibility Tests', () => {
           color,
           backgroundColor,
           hasReadableText: text.length > 0,
-          hasContrast: color !== backgroundColor
+          hasContrast: color !== backgroundColor,
         };
       }).filter(el => el.hasReadableText);
     });
@@ -268,7 +268,7 @@ test.describe('Visual Accessibility Tests', () => {
     const zoomAccessibility = await page.evaluate(() => {
       const viewport = {
         width: window.innerWidth,
-        height: window.innerHeight
+        height: window.innerHeight,
       };
 
       const content = document.querySelector('main, [role="main"]');
@@ -287,7 +287,7 @@ test.describe('Visual Accessibility Tests', () => {
         isContentVisible,
         hasHorizontalScroll,
         hasVerticalScroll,
-        isAccessible: isContentVisible || (!hasHorizontalScroll && hasVerticalScroll)
+        isAccessible: isContentVisible || (!hasHorizontalScroll && hasVerticalScroll),
       };
     });
 
@@ -320,7 +320,7 @@ test.describe('Visual Accessibility Tests', () => {
             animation,
             transition,
             transform,
-            text: el.textContent?.trim().substring(0, 30) || ''
+            text: el.textContent?.trim().substring(0, 30) || '',
           });
         }
       });
@@ -332,7 +332,7 @@ test.describe('Visual Accessibility Tests', () => {
 
     // In reduced motion mode, animations should be minimal or disabled
     const problematicAnimations = motionAccessibility.filter(el =>
-      el.animation !== 'none' && !el.animation.includes('0s')
+      el.animation !== 'none' && !el.animation.includes('0s'),
     );
 
     expect(problematicAnimations.length, 'Animations should respect reduced motion preferences').toBeLessThan(5);
@@ -361,7 +361,7 @@ test.describe('Visual Accessibility Tests', () => {
           color,
           backgroundColor,
           hasReadableText: text.length > 0,
-          hasContrast: color !== backgroundColor
+          hasContrast: color !== backgroundColor,
         };
       }).filter(el => el.hasReadableText);
     });
@@ -391,7 +391,7 @@ test.describe('Visual Accessibility Tests', () => {
         isFocusInModal,
         hasFocusTrap,
         activeElementTag: activeElement?.tagName.toLowerCase(),
-        isProperlyManaged: isFocusInModal || hasFocusTrap
+        isProperlyManaged: isFocusInModal || hasFocusTrap,
       };
     });
 

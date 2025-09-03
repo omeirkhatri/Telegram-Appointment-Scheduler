@@ -47,7 +47,6 @@ export function PatientForm({ patient, onSubmit, onCancel, isLoading = false }: 
   });
 
 
-
   const handleFormSubmit = async (data: PatientFormData) => {
     try {
       await onSubmit(data);

@@ -9,7 +9,7 @@ import {
     RotateCcw,
     Save,
     Settings,
-    Shield
+    Shield,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
@@ -52,13 +52,13 @@ export function SyncSettingsPanel({ className = '' }: SyncSettingsPanelProps) {
       } else {
         setSaveStatus({
           type: 'error',
-          message: data.error || 'Failed to load settings'
+          message: data.error || 'Failed to load settings',
         });
       }
     } catch (error) {
       setSaveStatus({
         type: 'error',
-        message: 'Failed to load settings'
+        message: 'Failed to load settings',
       });
     } finally {
       setIsLoading(false);
@@ -75,7 +75,7 @@ export function SyncSettingsPanel({ className = '' }: SyncSettingsPanelProps) {
       const response = await fetch('/api/google-calendar/sync-settings', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(settings)
+        body: JSON.stringify(settings),
       });
 
       const data = await response.json();
@@ -83,19 +83,19 @@ export function SyncSettingsPanel({ className = '' }: SyncSettingsPanelProps) {
       if (data.success) {
         setSaveStatus({
           type: 'success',
-          message: 'Settings saved successfully'
+          message: 'Settings saved successfully',
         });
         setSettings(data.data);
       } else {
         setSaveStatus({
           type: 'error',
-          message: data.error || 'Failed to save settings'
+          message: data.error || 'Failed to save settings',
         });
       }
     } catch (error) {
       setSaveStatus({
         type: 'error',
-        message: 'Failed to save settings'
+        message: 'Failed to save settings',
       });
     } finally {
       setIsSaving(false);
@@ -117,7 +117,7 @@ export function SyncSettingsPanel({ className = '' }: SyncSettingsPanelProps) {
         syncInterval: 300,
         retryAttempts: 3,
         webhookEnabled: true,
-        lastUpdated: new Date().toISOString()
+        lastUpdated: new Date().toISOString(),
       });
     }
   };

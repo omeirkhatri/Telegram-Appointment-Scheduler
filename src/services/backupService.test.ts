@@ -6,13 +6,13 @@ jest.mock('@/lib/supabase', () => ({
     from: jest.fn(() => ({
       select: jest.fn(() => ({
         count: jest.fn(() => ({
-          head: jest.fn(() => Promise.resolve({ count: 10, error: null }))
+          head: jest.fn(() => Promise.resolve({ count: 10, error: null })),
         })),
-        limit: jest.fn(() => Promise.resolve({ 
-          data: [{ id: 1, name: 'test' }], 
-          error: null 
-        }))
-      }))
+        limit: jest.fn(() => Promise.resolve({
+          data: [{ id: 1, name: 'test' }],
+          error: null,
+        })),
+      })),
     })),
   },
 }));
@@ -26,9 +26,9 @@ describe('BackupService', () => {
     it('should return table information', async () => {
       const mockSupabase = require('@/lib/supabase').supabase;
       mockSupabase.from().select().count().head.mockResolvedValue({ count: 10, error: null });
-      mockSupabase.from().select().limit.mockResolvedValue({ 
-        data: [{ id: 1, name: 'test' }], 
-        error: null 
+      mockSupabase.from().select().limit.mockResolvedValue({
+        data: [{ id: 1, name: 'test' }],
+        error: null,
       });
 
       const result = await backupService.getTableInfo();
@@ -41,9 +41,9 @@ describe('BackupService', () => {
   describe('exportAllData', () => {
     it('should export all data as CSV', async () => {
       const mockSupabase = require('@/lib/supabase').supabase;
-      mockSupabase.from().select.mockResolvedValue({ 
-        data: [{ id: 1, name: 'test' }], 
-        error: null 
+      mockSupabase.from().select.mockResolvedValue({
+        data: [{ id: 1, name: 'test' }],
+        error: null,
       });
 
       const result = await backupService.exportAllData({ format: 'csv' });
@@ -56,9 +56,9 @@ describe('BackupService', () => {
 
     it('should export all data as JSON', async () => {
       const mockSupabase = require('@/lib/supabase').supabase;
-      mockSupabase.from().select.mockResolvedValue({ 
-        data: [{ id: 1, name: 'test' }], 
-        error: null 
+      mockSupabase.from().select.mockResolvedValue({
+        data: [{ id: 1, name: 'test' }],
+        error: null,
       });
 
       const result = await backupService.exportAllData({ format: 'json' });
@@ -82,9 +82,9 @@ describe('BackupService', () => {
   describe('exportTable', () => {
     it('should export specific table', async () => {
       const mockSupabase = require('@/lib/supabase').supabase;
-      mockSupabase.from().select.mockResolvedValue({ 
-        data: [{ id: 1, name: 'test' }], 
-        error: null 
+      mockSupabase.from().select.mockResolvedValue({
+        data: [{ id: 1, name: 'test' }],
+        error: null,
       });
 
       const result = await backupService.exportTable('patients', { format: 'csv' });
@@ -98,21 +98,21 @@ describe('BackupService', () => {
       const mockQuery = {
         gte: jest.fn().mockReturnThis(),
         lte: jest.fn().mockReturnThis(),
-        select: jest.fn().mockResolvedValue({ 
-          data: [{ id: 1, name: 'test' }], 
-          error: null 
-        })
+        select: jest.fn().mockResolvedValue({
+          data: [{ id: 1, name: 'test' }],
+          error: null,
+        }),
       };
       mockSupabase.from().select.mockReturnValue(mockQuery);
 
       const dateRange = {
         from: '2024-01-01',
-        to: '2024-01-31'
+        to: '2024-01-31',
       };
 
-      const result = await backupService.exportTable('appointments', { 
-        format: 'csv', 
-        dateRange 
+      const result = await backupService.exportTable('appointments', {
+        format: 'csv',
+        dateRange,
       });
 
       expect(result.success).toBe(true);
@@ -124,9 +124,9 @@ describe('BackupService', () => {
   describe('exportCoreData', () => {
     it('should export core business data', async () => {
       const mockSupabase = require('@/lib/supabase').supabase;
-      mockSupabase.from().select.mockResolvedValue({ 
-        data: [{ id: 1, name: 'test' }], 
-        error: null 
+      mockSupabase.from().select.mockResolvedValue({
+        data: [{ id: 1, name: 'test' }],
+        error: null,
       });
 
       const result = await backupService.exportCoreData({ format: 'csv' });
@@ -139,9 +139,9 @@ describe('BackupService', () => {
   describe('exportSystemData', () => {
     it('should export system configuration data', async () => {
       const mockSupabase = require('@/lib/supabase').supabase;
-      mockSupabase.from().select.mockResolvedValue({ 
-        data: [{ id: 1, name: 'test' }], 
-        error: null 
+      mockSupabase.from().select.mockResolvedValue({
+        data: [{ id: 1, name: 'test' }],
+        error: null,
       });
 
       const result = await backupService.exportSystemData({ format: 'csv' });
@@ -155,9 +155,9 @@ describe('BackupService', () => {
     it('should return backup statistics', async () => {
       const mockSupabase = require('@/lib/supabase').supabase;
       mockSupabase.from().select().count().head.mockResolvedValue({ count: 10, error: null });
-      mockSupabase.from().select().limit.mockResolvedValue({ 
-        data: [{ id: 1, name: 'test' }], 
-        error: null 
+      mockSupabase.from().select().limit.mockResolvedValue({
+        data: [{ id: 1, name: 'test' }],
+        error: null,
       });
 
       const result = await backupService.getBackupStatistics();

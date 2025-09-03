@@ -23,9 +23,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-          error: 'Export type and format are required'
+          error: 'Export type and format are required',
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -33,9 +33,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-          error: 'Table name is required for table export'
+          error: 'Table name is required for table export',
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -46,37 +46,37 @@ export async function POST(request: NextRequest) {
         result = await backupService.exportAllData({
           format,
           dateRange,
-          includeMetadata
+          includeMetadata,
         });
         break;
       case 'core':
         result = await backupService.exportCoreData({
           format,
           dateRange,
-          includeMetadata
+          includeMetadata,
         });
         break;
       case 'system':
         result = await backupService.exportSystemData({
           format,
           dateRange,
-          includeMetadata
+          includeMetadata,
         });
         break;
       case 'table':
         result = await backupService.exportTable(tableName!, {
           format,
           dateRange,
-          includeMetadata
+          includeMetadata,
         });
         break;
       default:
         return NextResponse.json(
           {
             success: false,
-            error: `Unsupported export type: ${type}`
+            error: `Unsupported export type: ${type}`,
           },
-          { status: 400 }
+          { status: 400 },
         );
     }
 
@@ -84,23 +84,23 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-          error: result.error || 'Export failed'
+          error: result.error || 'Export failed',
         },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
     // Return file download response
     const contentType = format === 'csv' ? 'text/csv' : 'application/json';
-    
+
     return new NextResponse(result.data, {
       status: 200,
       headers: {
         'Content-Type': contentType,
         'Content-Disposition': `attachment; filename="${result.filename}"`,
         'Cache-Control': 'no-cache',
-        'X-Backup-Metadata': JSON.stringify(result.metadata)
-      }
+        'X-Backup-Metadata': JSON.stringify(result.metadata),
+      },
     });
 
   } catch (error) {
@@ -108,9 +108,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         success: false,
-        error: error instanceof Error ? error.message : 'Failed to export backup'
+        error: error instanceof Error ? error.message : 'Failed to export backup',
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

@@ -23,24 +23,24 @@ describe('SyncStatusCard', () => {
       success: true,
       data: [
         { id: '1', first_name: 'John', last_name: 'Doe', google_calendar_id: 'john@example.com' },
-        { id: '2', first_name: 'Jane', last_name: 'Smith', google_calendar_id: 'jane@example.com' }
-      ]
+        { id: '2', first_name: 'Jane', last_name: 'Smith', google_calendar_id: 'jane@example.com' },
+      ],
     };
 
     const mockValidationResponse = {
       success: true,
-      data: { isValid: true, isConnected: true }
+      data: { isValid: true, isConnected: true },
     };
 
     (fetch as jest.Mock)
       .mockResolvedValueOnce({
-        json: async () => mockStaffData
+        json: async () => mockStaffData,
       })
       .mockResolvedValueOnce({
-        json: async () => mockValidationResponse
+        json: async () => mockValidationResponse,
       })
       .mockResolvedValueOnce({
-        json: async () => mockValidationResponse
+        json: async () => mockValidationResponse,
       });
 
     render(<SyncStatusCard />);
@@ -70,21 +70,21 @@ describe('SyncStatusCard', () => {
     const mockStaffData = {
       success: true,
       data: [
-        { id: '1', first_name: 'John', last_name: 'Doe', google_calendar_id: 'john@example.com' }
-      ]
+        { id: '1', first_name: 'John', last_name: 'Doe', google_calendar_id: 'john@example.com' },
+      ],
     };
 
     const mockValidationResponse = {
       success: true,
-      data: { isValid: true, isConnected: true }
+      data: { isValid: true, isConnected: true },
     };
 
     (fetch as jest.Mock)
       .mockResolvedValueOnce({
-        json: async () => mockStaffData
+        json: async () => mockStaffData,
       })
       .mockResolvedValueOnce({
-        json: async () => mockValidationResponse
+        json: async () => mockValidationResponse,
       });
 
     render(<SyncStatusCard />);
@@ -102,15 +102,15 @@ describe('SyncStatusCard', () => {
   it('handles refresh button click', async () => {
     const mockStaffData = {
       success: true,
-      data: []
+      data: [],
     };
 
     (fetch as jest.Mock)
       .mockResolvedValueOnce({
-        json: async () => mockStaffData
+        json: async () => mockStaffData,
       })
       .mockResolvedValueOnce({
-        json: async () => mockStaffData
+        json: async () => mockStaffData,
       });
 
     render(<SyncStatusCard />);

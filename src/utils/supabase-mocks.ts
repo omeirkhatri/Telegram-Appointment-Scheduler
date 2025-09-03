@@ -9,7 +9,7 @@ import type {
     Appointment,
     AppointmentStaff,
     Patient,
-    Staff
+    Staff,
 } from '@/types';
 
 // Mock response types
@@ -146,7 +146,7 @@ export const createMockPatients = (count: number = 3): Patient[] =>
       id: `patient-${i + 1}`,
       name: `Patient ${i + 1}`,
       phone: `+97150123456${i}`,
-    })
+    }),
   );
 
 export const createMockStaffMembers = (count: number = 3): Staff[] =>
@@ -156,7 +156,7 @@ export const createMockStaffMembers = (count: number = 3): Staff[] =>
       first_name: `Staff${i + 1}`,
       last_name: 'Member',
       email: `staff${i + 1}@example.com`,
-    })
+    }),
   );
 
 export const createMockAppointments = (count: number = 3): Appointment[] =>
@@ -165,7 +165,7 @@ export const createMockAppointments = (count: number = 3): Appointment[] =>
       id: `appointment-${i + 1}`,
       patient_id: `patient-${i + 1}`,
       appointment_date: `2024-01-${15 + i}`,
-    })
+    }),
   );
 
 // Mock error responses
@@ -613,7 +613,7 @@ export const setupMockAppointmentStaff = (count: number = 3) => {
       id: `appointment-staff-${i + 1}`,
       appointment_id: `appointment-${i + 1}`,
       staff_id: `staff-${i + 1}`,
-    })
+    }),
   );
   mockSupabaseClient.setTableData('appointment_staff', appointmentStaff);
   return appointmentStaff;

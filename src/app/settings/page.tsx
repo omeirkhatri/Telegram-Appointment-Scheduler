@@ -1,16 +1,9 @@
 'use client';
 
-import Header from '@/components/layout/Header';
-import { EmailTestSection, StaffPreferencesSection, AutomatedEmailSection, EmailPreferencesSection } from '@/components/email';
-import { GoogleCalendarSection, SyncStatusCard, SyncSettingsPanel } from '@/components/google-calendar';
 import { BackupSection } from '@/components/backup';
-import {
-    Bell,
-    Database,
-    Palette,
-    Shield,
-    User,
-} from 'lucide-react';
+import { AutomatedEmailSection, EmailPreferencesSection, EmailTestSection, StaffPreferencesSection } from '@/components/email';
+import { GoogleCalendarSection, SyncSettingsPanel, SyncStatusCard } from '@/components/google-calendar';
+import Header from '@/components/layout/Header';
 
 export default function SettingsPage() {
 

@@ -49,7 +49,7 @@ export async function runAccessibilityAudit(page: Page): Promise<AccessibilityRe
 export function assertAccessibilityCompliance(
   results: AccessibilityResults,
   pageName: string,
-  allowMinorViolations: boolean = false
+  allowMinorViolations: boolean = false,
 ): void {
   const { violations } = results;
 
@@ -140,7 +140,7 @@ export async function testScreenReaderCompatibility(page: Page): Promise<void> {
     return Array.from(headingElements).map(heading => ({
       tag: heading.tagName.toLowerCase(),
       text: heading.textContent?.trim(),
-      level: parseInt(heading.tagName.charAt(1))
+      level: parseInt(heading.tagName.charAt(1)),
     }));
   });
 
@@ -170,7 +170,7 @@ export async function testScreenReaderCompatibility(page: Page): Promise<void> {
         hasLabel: !!label,
         hasAriaLabel: !!ariaLabel,
         hasAriaLabelledBy: !!ariaLabelledBy,
-        isLabeled: !!(label || ariaLabel || ariaLabelledBy)
+        isLabeled: !!(label || ariaLabel || ariaLabelledBy),
       };
     });
   });
@@ -186,7 +186,7 @@ export async function testScreenReaderCompatibility(page: Page): Promise<void> {
     return Array.from(landmarkElements).map(el => ({
       role: el.getAttribute('role'),
       tag: el.tagName.toLowerCase(),
-      text: el.textContent?.trim().substring(0, 50)
+      text: el.textContent?.trim().substring(0, 50),
     }));
   });
 
@@ -214,7 +214,7 @@ export async function testVisualAccessibility(page: Page): Promise<void> {
         tag: el.tagName.toLowerCase(),
         hasOutline: outline !== 'none' && outlineWidth !== '0px',
         hasBoxShadow: boxShadow !== 'none',
-        hasFocusIndicator: outline !== 'none' || boxShadow !== 'none'
+        hasFocusIndicator: outline !== 'none' || boxShadow !== 'none',
       };
     });
   });
@@ -231,7 +231,7 @@ export async function testVisualAccessibility(page: Page): Promise<void> {
       src: img.src,
       alt: img.alt,
       hasAlt: !!img.alt,
-      isDecorative: img.alt === '' && img.getAttribute('role') === 'presentation'
+      isDecorative: img.alt === '' && img.getAttribute('role') === 'presentation',
     }));
   });
 
@@ -261,7 +261,7 @@ export async function testMobileAccessibility(page: Page): Promise<void> {
         tag: el.tagName.toLowerCase(),
         width: rect.width,
         height: rect.height,
-        isLargeEnough: rect.width >= 44 && rect.height >= 44
+        isLargeEnough: rect.width >= 44 && rect.height >= 44,
       };
     });
   });
@@ -276,7 +276,7 @@ export async function testMobileAccessibility(page: Page): Promise<void> {
     const viewportMeta = document.querySelector('meta[name="viewport"]');
     return {
       hasViewportMeta: !!viewportMeta,
-      content: viewportMeta?.getAttribute('content') || ''
+      content: viewportMeta?.getAttribute('content') || '',
     };
   });
 
@@ -294,7 +294,7 @@ export async function testMobileAccessibility(page: Page): Promise<void> {
  */
 export function generateAccessibilityReport(
   results: AccessibilityResults,
-  pageName: string
+  pageName: string,
 ): string {
   const report = {
     pageName,

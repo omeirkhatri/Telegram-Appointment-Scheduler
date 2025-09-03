@@ -5,7 +5,7 @@ import {
     AlertCircle,
     Calendar,
     CheckCircle,
-    RefreshCw
+    RefreshCw,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { ChartsSection } from './ChartsSection';
@@ -14,7 +14,7 @@ import {
     AppointmentKPICard,
     EmailKPICard,
     PatientKPICard,
-    StaffKPICard
+    StaffKPICard,
 } from './KPICard';
 
 interface ReportsDashboardProps {
@@ -28,7 +28,7 @@ export function ReportsDashboard({ className = '' }: ReportsDashboardProps) {
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [dateRange, setDateRange] = useState<DateRange>({
     from: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-    to: new Date().toISOString().split('T')[0]
+    to: new Date().toISOString().split('T')[0],
   });
 
   const fetchStatistics = async () => {
@@ -38,7 +38,7 @@ export function ReportsDashboard({ className = '' }: ReportsDashboardProps) {
 
       const params = new URLSearchParams({
         dateFrom: dateRange.from,
-        dateTo: dateRange.to
+        dateTo: dateRange.to,
       });
 
       const response = await fetch(`/api/reports/statistics?${params}`);

@@ -37,7 +37,7 @@ test.describe('Daily Agenda Email System Critical Flows', () => {
     await appointmentPage.clickNewAppointment();
     const todayAppointment = {
       ...testData.appointments.doctorOnCall,
-      appointmentDate: today
+      appointmentDate: today,
     };
     await appointmentPage.fillAppointmentForm(todayAppointment);
     await appointmentPage.submitAppointmentForm();
@@ -64,7 +64,7 @@ test.describe('Daily Agenda Email System Critical Flows', () => {
     await appointmentPage.clickNewAppointment();
     const todayAppointment = {
       ...testData.appointments.doctorOnCall,
-      appointmentDate: today
+      appointmentDate: today,
     };
     await appointmentPage.fillAppointmentForm(todayAppointment);
     await appointmentPage.submitAppointmentForm();
@@ -90,7 +90,7 @@ test.describe('Daily Agenda Email System Critical Flows', () => {
     await appointmentPage.clickNewAppointment();
     const todayAppointment = {
       ...testData.appointments.doctorOnCall,
-      appointmentDate: today
+      appointmentDate: today,
     };
     await appointmentPage.fillAppointmentForm(todayAppointment);
     await appointmentPage.submitAppointmentForm();
@@ -123,7 +123,7 @@ test.describe('Daily Agenda Email System Critical Flows', () => {
     await appointmentPage.clickNewAppointment();
     const todayAppointment = {
       ...testData.appointments.doctorOnCall,
-      appointmentDate: today
+      appointmentDate: today,
     };
     await appointmentPage.fillAppointmentForm(todayAppointment);
     await appointmentPage.submitAppointmentForm();
@@ -145,7 +145,7 @@ test.describe('Daily Agenda Email System Critical Flows', () => {
       route.fulfill({
         status: 500,
         contentType: 'application/json',
-        body: JSON.stringify({ error: 'SMTP server unavailable' })
+        body: JSON.stringify({ error: 'SMTP server unavailable' }),
       });
     });
 
@@ -155,7 +155,7 @@ test.describe('Daily Agenda Email System Critical Flows', () => {
     await appointmentPage.clickNewAppointment();
     const todayAppointment = {
       ...testData.appointments.doctorOnCall,
-      appointmentDate: today
+      appointmentDate: today,
     };
     await appointmentPage.fillAppointmentForm(todayAppointment);
     await appointmentPage.submitAppointmentForm();
@@ -182,7 +182,7 @@ test.describe('Daily Agenda Email System Critical Flows', () => {
     await appointmentPage.clickNewAppointment();
     const todayAppointment = {
       ...testData.appointments.doctorOnCall,
-      appointmentDate: today
+      appointmentDate: today,
     };
     await appointmentPage.fillAppointmentForm(todayAppointment);
     await appointmentPage.submitAppointmentForm();
@@ -195,7 +195,7 @@ test.describe('Daily Agenda Email System Critical Flows', () => {
       route.fulfill({
         status: 500,
         contentType: 'application/json',
-        body: JSON.stringify({ error: 'Temporary failure' })
+        body: JSON.stringify({ error: 'Temporary failure' }),
       });
     });
 
@@ -207,7 +207,7 @@ test.describe('Daily Agenda Email System Critical Flows', () => {
       route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify({ success: true })
+        body: JSON.stringify({ success: true }),
       });
     });
 
@@ -240,7 +240,7 @@ test.describe('Daily Agenda Email System Critical Flows', () => {
     const firstAppointment = {
       ...testData.appointments.doctorOnCall,
       appointmentDate: today,
-      startTime: '10:00'
+      startTime: '10:00',
     };
     await appointmentPage.fillAppointmentForm(firstAppointment);
     await appointmentPage.submitAppointmentForm();
@@ -250,7 +250,7 @@ test.describe('Daily Agenda Email System Critical Flows', () => {
     const secondAppointment = {
       ...testData.appointments.labTest,
       appointmentDate: today,
-      startTime: '14:00'
+      startTime: '14:00',
     };
     await appointmentPage.fillAppointmentForm(secondAppointment);
     await appointmentPage.submitAppointmentForm();
@@ -277,7 +277,7 @@ test.describe('Daily Agenda Email System Critical Flows', () => {
       ...testData.appointments.doctorOnCall,
       appointmentDate: today,
       startTime: '09:30',
-      durationMinutes: 45
+      durationMinutes: 45,
     };
     await appointmentPage.fillAppointmentForm(appointment);
     await appointmentPage.submitAppointmentForm();
@@ -300,7 +300,7 @@ test.describe('Daily Agenda Email System Critical Flows', () => {
     await appointmentPage.clickNewAppointment();
     const appointment = {
       ...testData.appointments.doctorOnCall,
-      appointmentDate: today
+      appointmentDate: today,
     };
     await appointmentPage.fillAppointmentForm(appointment);
     await appointmentPage.submitAppointmentForm();
@@ -323,7 +323,7 @@ test.describe('Daily Agenda Email System Critical Flows', () => {
     await staffPage.clickNewStaff();
     const staffWithoutCalendar = {
       ...testData.staff.nurse,
-      googleCalendarId: ''
+      googleCalendarId: '',
     };
     await staffPage.fillStaffForm(staffWithoutCalendar);
     await staffPage.submitStaffForm();
@@ -335,7 +335,7 @@ test.describe('Daily Agenda Email System Critical Flows', () => {
     await appointmentPage.clickNewAppointment();
     const todayAppointment = {
       ...testData.appointments.doctorOnCall,
-      appointmentDate: today
+      appointmentDate: today,
     };
     await appointmentPage.fillAppointmentForm(todayAppointment);
     await appointmentPage.submitAppointmentForm();

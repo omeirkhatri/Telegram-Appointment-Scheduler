@@ -4,14 +4,14 @@ import { GET } from './route';
 // Mock the services
 jest.mock('@/services', () => ({
   appointmentService: {
-    getAppointmentStatistics: jest.fn()
+    getAppointmentStatistics: jest.fn(),
   },
   auditTrailService: {
-    getAuditStatistics: jest.fn()
+    getAuditStatistics: jest.fn(),
   },
   emailDeliveryService: {
-    getDeliveryStatistics: jest.fn()
-  }
+    getDeliveryStatistics: jest.fn(),
+  },
 }));
 
 // Mock Supabase
@@ -23,13 +23,13 @@ jest.mock('@/lib/supabase', () => ({
           lte: jest.fn(() => ({
             order: jest.fn(() => ({
               data: [],
-              error: null
-            }))
-          }))
-        }))
-      }))
-    }))
-  }
+              error: null,
+            })),
+          })),
+        })),
+      })),
+    })),
+  },
 }));
 
 describe('/api/reports/statistics', () => {
@@ -44,12 +44,12 @@ describe('/api/reports/statistics', () => {
     appointmentService.getAppointmentStatistics.mockResolvedValue({
       total: 100,
       byStatus: { scheduled: 50, completed: 30, cancelled: 20 },
-      byType: { consultation: 60, follow_up: 40 }
+      byType: { consultation: 60, follow_up: 40 },
     });
 
     auditTrailService.getAuditStatistics.mockResolvedValue({
       success: true,
-      data: { statistics: [] }
+      data: { statistics: [] },
     });
 
     emailDeliveryService.getDeliveryStatistics.mockResolvedValue([]);
@@ -75,12 +75,12 @@ describe('/api/reports/statistics', () => {
     appointmentService.getAppointmentStatistics.mockResolvedValue({
       total: 50,
       byStatus: { scheduled: 25, completed: 15, cancelled: 10 },
-      byType: { consultation: 30, follow_up: 20 }
+      byType: { consultation: 30, follow_up: 20 },
     });
 
     auditTrailService.getAuditStatistics.mockResolvedValue({
       success: true,
-      data: { statistics: [] }
+      data: { statistics: [] },
     });
 
     emailDeliveryService.getDeliveryStatistics.mockResolvedValue([]);
@@ -93,7 +93,7 @@ describe('/api/reports/statistics', () => {
     expect(data.success).toBe(true);
     expect(data.dateRange).toEqual({
       from: '2024-01-01',
-      to: '2024-01-31'
+      to: '2024-01-31',
     });
   });
 
@@ -119,12 +119,12 @@ describe('/api/reports/statistics', () => {
     appointmentService.getAppointmentStatistics.mockResolvedValue({
       total: 100,
       byStatus: {},
-      byType: {}
+      byType: {},
     });
 
     auditTrailService.getAuditStatistics.mockResolvedValue({
       success: true,
-      data: { statistics: [] }
+      data: { statistics: [] },
     });
 
     emailDeliveryService.getDeliveryStatistics.mockResolvedValue([]);

@@ -27,15 +27,15 @@ describe('/api/backup/export', () => {
           exportedAt: '2024-01-15T10:00:00Z',
           totalTables: 3,
           totalRows: 100,
-          fileSize: 1024
-        }
+          fileSize: 1024,
+        },
       });
 
       const request = new NextRequest('http://localhost:3000/api/backup/export', {
         method: 'POST',
         body: JSON.stringify({
           type: 'all',
-          format: 'csv'
+          format: 'csv',
         }),
         headers: {
           'Content-Type': 'application/json',
@@ -59,15 +59,15 @@ describe('/api/backup/export', () => {
           exportedAt: '2024-01-15T10:00:00Z',
           totalTables: 2,
           totalRows: 50,
-          fileSize: 512
-        }
+          fileSize: 512,
+        },
       });
 
       const request = new NextRequest('http://localhost:3000/api/backup/export', {
         method: 'POST',
         body: JSON.stringify({
           type: 'core',
-          format: 'csv'
+          format: 'csv',
         }),
         headers: {
           'Content-Type': 'application/json',
@@ -80,7 +80,7 @@ describe('/api/backup/export', () => {
       expect(mockBackupService.exportCoreData).toHaveBeenCalledWith({
         format: 'csv',
         dateRange: undefined,
-        includeMetadata: true
+        includeMetadata: true,
       });
     });
 
@@ -94,15 +94,15 @@ describe('/api/backup/export', () => {
           exportedAt: '2024-01-15T10:00:00Z',
           totalTables: 1,
           totalRows: 10,
-          fileSize: 256
-        }
+          fileSize: 256,
+        },
       });
 
       const request = new NextRequest('http://localhost:3000/api/backup/export', {
         method: 'POST',
         body: JSON.stringify({
           type: 'system',
-          format: 'json'
+          format: 'json',
         }),
         headers: {
           'Content-Type': 'application/json',
@@ -116,7 +116,7 @@ describe('/api/backup/export', () => {
       expect(mockBackupService.exportSystemData).toHaveBeenCalledWith({
         format: 'json',
         dateRange: undefined,
-        includeMetadata: true
+        includeMetadata: true,
       });
     });
 
@@ -130,8 +130,8 @@ describe('/api/backup/export', () => {
           exportedAt: '2024-01-15T10:00:00Z',
           totalTables: 1,
           totalRows: 25,
-          fileSize: 128
-        }
+          fileSize: 128,
+        },
       });
 
       const request = new NextRequest('http://localhost:3000/api/backup/export', {
@@ -139,7 +139,7 @@ describe('/api/backup/export', () => {
         body: JSON.stringify({
           type: 'table',
           tableName: 'patients',
-          format: 'csv'
+          format: 'csv',
         }),
         headers: {
           'Content-Type': 'application/json',
@@ -152,7 +152,7 @@ describe('/api/backup/export', () => {
       expect(mockBackupService.exportTable).toHaveBeenCalledWith('patients', {
         format: 'csv',
         dateRange: undefined,
-        includeMetadata: true
+        includeMetadata: true,
       });
     });
 
@@ -160,7 +160,7 @@ describe('/api/backup/export', () => {
       const request = new NextRequest('http://localhost:3000/api/backup/export', {
         method: 'POST',
         body: JSON.stringify({
-          format: 'csv'
+          format: 'csv',
         }),
         headers: {
           'Content-Type': 'application/json',
@@ -179,7 +179,7 @@ describe('/api/backup/export', () => {
       const request = new NextRequest('http://localhost:3000/api/backup/export', {
         method: 'POST',
         body: JSON.stringify({
-          type: 'all'
+          type: 'all',
         }),
         headers: {
           'Content-Type': 'application/json',
@@ -199,7 +199,7 @@ describe('/api/backup/export', () => {
         method: 'POST',
         body: JSON.stringify({
           type: 'table',
-          format: 'csv'
+          format: 'csv',
         }),
         headers: {
           'Content-Type': 'application/json',
@@ -219,7 +219,7 @@ describe('/api/backup/export', () => {
         method: 'POST',
         body: JSON.stringify({
           type: 'invalid',
-          format: 'csv'
+          format: 'csv',
         }),
         headers: {
           'Content-Type': 'application/json',
@@ -238,14 +238,14 @@ describe('/api/backup/export', () => {
       const mockBackupService = require('@/services/backupService').backupService;
       mockBackupService.exportAllData.mockResolvedValue({
         success: false,
-        error: 'Database connection failed'
+        error: 'Database connection failed',
       });
 
       const request = new NextRequest('http://localhost:3000/api/backup/export', {
         method: 'POST',
         body: JSON.stringify({
           type: 'all',
-          format: 'csv'
+          format: 'csv',
         }),
         headers: {
           'Content-Type': 'application/json',
@@ -268,7 +268,7 @@ describe('/api/backup/export', () => {
         method: 'POST',
         body: JSON.stringify({
           type: 'all',
-          format: 'csv'
+          format: 'csv',
         }),
         headers: {
           'Content-Type': 'application/json',

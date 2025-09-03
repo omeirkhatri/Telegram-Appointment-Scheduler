@@ -2,6 +2,7 @@
 
 import Header from '@/components/layout/Header';
 import { StaffModal } from '@/components/modals';
+import { useToastContext } from '@/components/ui/ToastContainer';
 import { useStaff } from '@/hooks';
 import type { Staff } from '@/types';
 import {
@@ -13,12 +14,14 @@ import {
     UserCheck,
     Users,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 export default function StaffPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedStaff, setSelectedStaff] = useState<Staff | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [isClient, setIsClient] = useState(false);
+  const { showToast } = useToastContext();
 
   const {
     staff,
@@ -46,7 +49,28 @@ export default function StaffPage() {
 
   const handleModalSuccess = () => {
     refresh();
+    showToast({
+      type: 'success',
+      title: 'Success',
+      message: selectedStaff ? 'Staff member updated successfully' : 'Staff member created successfully',
+    });
   };
+
+  // Set client-side flag to prevent hydration mismatches
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  // Show error toast when there's an error
+  useEffect(() => {
+    if (error) {
+      showToast({
+        type: 'error',
+        title: 'Error',
+        message: error,
+      });
+    }
+  }, [error, showToast]);
 
   return (
     <div className="min-h-screen bg-[--background] text-[--foreground]">
@@ -61,7 +85,7 @@ export default function StaffPage() {
             <h1 className="text-3xl font-bold text-[--foreground]">Staff</h1>
             <p className="text-[--muted-foreground] text-lg mt-1">Manage healthcare staff and schedules</p>
           </div>
-          <button 
+          <button
             onClick={handleAddStaff}
             data-testid="new-staff-button"
             className="inline-flex items-center px-4 py-2 bg-[--primary] text-[--primary-foreground] rounded-lg hover:bg-[--primary]/90 transition-colors"
@@ -77,7 +101,7 @@ export default function StaffPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-[--muted-foreground]">Total Staff</p>
-                <p className="text-3xl font-bold text-[--foreground]">{staff.length}</p>
+                <p className="text-3xl font-bold text-[--foreground]">{isClient ? staff.length : 0}</p>
               </div>
               <Users className="w-8 h-8 text-[--medical-blue]" />
             </div>
@@ -86,7 +110,7 @@ export default function StaffPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-[--muted-foreground]">Doctors</p>
-                <p className="text-3xl font-bold text-[--foreground]">{staff.filter(s => s.staff_type === 'doctor').length}</p>
+                <p className="text-3xl font-bold text-[--foreground]">{isClient ? staff.filter(s => s.staff_type === 'doctor').length : 0}</p>
               </div>
               <UserCheck className="w-8 h-8 text-[--success]" />
             </div>
@@ -95,7 +119,7 @@ export default function StaffPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-[--muted-foreground]">Nurses</p>
-                <p className="text-3xl font-bold text-[--foreground]">{staff.filter(s => s.staff_type === 'nurse').length}</p>
+                <p className="text-3xl font-bold text-[--foreground]">{isClient ? staff.filter(s => s.staff_type === 'nurse').length : 0}</p>
               </div>
               <Plus className="w-8 h-8 text-[--warning]" />
             </div>
@@ -104,7 +128,7 @@ export default function StaffPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-[--muted-foreground]">Support Staff</p>
-                <p className="text-3xl font-bold text-[--foreground]">{staff.filter(s => !['doctor', 'nurse'].includes(s.staff_type)).length}</p>
+                <p className="text-3xl font-bold text-[--foreground]">{isClient ? staff.filter(s => !['doctor', 'nurse'].includes(s.staff_type)).length : 0}</p>
               </div>
               <UserCheck className="w-8 h-8 text-[--error]" />
             </div>
@@ -133,7 +157,7 @@ export default function StaffPage() {
         </div>
 
         {/* Staff table */}
-        <div className="bg-[--card] border border-[--border] rounded-xl overflow-hidden shadow-lg">
+        <div className="bg-[--card] border border-[--border] rounded-xl overflow-hidden shadow-lg" data-testid="staff-list">
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead className="bg-[--muted]/50">
@@ -160,6 +184,12 @@ export default function StaffPage() {
                       Error loading staff: {error}
                     </td>
                   </tr>
+                                ) : !isClient ? (
+                  <tr>
+                    <td colSpan={7} className="py-8 px-6 text-center text-[--muted-foreground]">
+                      Loading...
+                    </td>
+                  </tr>
                 ) : staff.length === 0 ? (
                   <tr>
                     <td colSpan={7} className="py-8 px-6 text-center text-[--muted-foreground]">
@@ -168,15 +198,15 @@ export default function StaffPage() {
                   </tr>
                 ) : (
                   staff
-                    .filter(member => 
-                      searchTerm === '' || 
+                    .filter(member =>
+                      searchTerm === '' ||
                       `${member.first_name} ${member.last_name}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
                       member.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                      member.staff_type.toLowerCase().includes(searchTerm.toLowerCase())
+                      member.staff_type.toLowerCase().includes(searchTerm.toLowerCase()),
                     )
                     .map((member) => (
-                    <tr 
-                      key={member.id} 
+                    <tr
+                      key={member.id}
                       className="hover:bg-[--accent]/30 transition-colors cursor-pointer"
                       onClick={() => handleEditStaff(member)}
                       data-testid={`staff-item-${member.first_name} ${member.last_name}`}
@@ -223,7 +253,7 @@ export default function StaffPage() {
                         </div>
                       </td>
                       <td className="py-4 px-6 text-right">
-                        <button 
+                        <button
                           onClick={(e) => {
                             e.stopPropagation();
                             handleEditStaff(member);

@@ -124,7 +124,7 @@ export async function measureCalendarPerformance(page: Page, eventCount: number)
       const events = document.querySelectorAll('[data-testid="calendar-event"]');
       return events.length >= expectedCount;
     },
-    eventCount
+    eventCount,
   );
 
   const endTime = Date.now();
@@ -191,7 +191,7 @@ export async function measureGoogleSyncPerformance(page: Page): Promise<Performa
 export function assertPerformanceMetrics(
   metrics: PerformanceMetrics,
   thresholds: PerformanceThresholds,
-  testName: string
+  testName: string,
 ): void {
   console.log(`\n📊 Performance Results for ${testName}:`);
   console.log(`Load Time: ${metrics.loadTime}ms (threshold: ${thresholds.loadTime}ms)`);
@@ -231,7 +231,7 @@ export function assertPerformanceMetrics(
 export function generatePerformanceReport(
   metrics: PerformanceMetrics,
   thresholds: PerformanceThresholds,
-  testName: string
+  testName: string,
 ): string {
   const report = {
     testName,
@@ -246,7 +246,7 @@ export function generatePerformanceReport(
       cumulativeLayoutShift: metrics.cumulativeLayoutShift === 0 || metrics.cumulativeLayoutShift < thresholds.cumulativeLayoutShift,
       totalBlockingTime: metrics.totalBlockingTime === 0 || metrics.totalBlockingTime < thresholds.totalBlockingTime,
       speedIndex: metrics.speedIndex === 0 || metrics.speedIndex < thresholds.speedIndex,
-    }
+    },
   };
 
   return JSON.stringify(report, null, 2);

@@ -20,14 +20,14 @@ export async function GET(request: NextRequest) {
       staffStats,
       emailStats,
       auditStats,
-      systemHealthStats
+      systemHealthStats,
     ] = await Promise.all([
       getAppointmentStatistics(dateRange),
       getPatientStatistics(dateRange),
       getStaffStatistics(dateRange),
       getEmailDeliveryStatistics(dateRange),
       getAuditTrailStatistics(dateRange),
-      getSystemHealthStatistics()
+      getSystemHealthStatistics(),
     ]);
 
     const dashboardStats: DashboardStatistics = {
@@ -36,14 +36,14 @@ export async function GET(request: NextRequest) {
       staff: staffStats,
       emailDelivery: emailStats,
       auditTrail: auditStats,
-      systemHealth: systemHealthStats
+      systemHealth: systemHealthStats,
     };
 
     return NextResponse.json({
       success: true,
       data: dashboardStats,
       dateRange,
-      generatedAt: new Date().toISOString()
+      generatedAt: new Date().toISOString(),
     });
 
   } catch (error) {
@@ -51,9 +51,9 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(
       {
         success: false,
-        error: error instanceof Error ? error.message : 'Failed to fetch statistics'
+        error: error instanceof Error ? error.message : 'Failed to fetch statistics',
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -113,8 +113,8 @@ async function getAppointmentStatistics(dateRange: DateRange) {
       trends: {
         daily: dailyTrends,
         weekly: weeklyTrends,
-        monthly: monthlyTrends
-      }
+        monthly: monthlyTrends,
+      },
     };
   } catch (error) {
     console.error('Error getting appointment statistics:', error);
@@ -165,8 +165,8 @@ async function getPatientStatistics(dateRange: DateRange) {
       byArea,
       trends: {
         daily: dailyTrends,
-        monthly: monthlyTrends
-      }
+        monthly: monthlyTrends,
+      },
     };
   } catch (error) {
     console.error('Error getting patient statistics:', error);
@@ -221,8 +221,8 @@ async function getStaffStatistics(dateRange: DateRange) {
       utilizationRate: Math.round(utilizationRate * 100) / 100,
       trends: {
         daily: dailyTrends,
-        monthly: monthlyTrends
-      }
+        monthly: monthlyTrends,
+      },
     };
   } catch (error) {
     console.error('Error getting staff statistics:', error);
@@ -234,7 +234,7 @@ async function getEmailDeliveryStatistics(dateRange: DateRange) {
   try {
     const stats = await emailDeliveryService.getDeliveryStatistics({
       dateFrom: dateRange.from,
-      dateTo: dateRange.to
+      dateTo: dateRange.to,
     });
 
     const totalSent = stats.reduce((sum, stat) => sum + stat.totalEmails, 0);
@@ -259,7 +259,7 @@ async function getEmailDeliveryStatistics(dateRange: DateRange) {
       date: stat.date,
       sent: stat.totalEmails,
       delivered: stat.successfulDeliveries,
-      failed: stat.failedDeliveries
+      failed: stat.failedDeliveries,
     }));
 
     const monthlyTrends = calculateMonthlyEmailTrends(stats);
@@ -272,8 +272,8 @@ async function getEmailDeliveryStatistics(dateRange: DateRange) {
       byType,
       trends: {
         daily: dailyTrends,
-        monthly: monthlyTrends
-      }
+        monthly: monthlyTrends,
+      },
     };
   } catch (error) {
     console.error('Error getting email delivery statistics:', error);
@@ -285,7 +285,7 @@ async function getAuditTrailStatistics(dateRange: DateRange) {
   try {
     const result = await auditTrailService.getAuditStatistics({
       start_date: dateRange.from,
-      end_date: dateRange.to
+      end_date: dateRange.to,
     });
 
     if (!result.success) {
@@ -314,7 +314,7 @@ async function getAuditTrailStatistics(dateRange: DateRange) {
       date: stat.date,
       operations: stat.total_operations,
       success: stat.successful_operations,
-      failed: stat.failed_operations
+      failed: stat.failed_operations,
     }));
 
     const monthlyTrends = calculateMonthlyAuditTrends(stats);
@@ -326,8 +326,8 @@ async function getAuditTrailStatistics(dateRange: DateRange) {
       byType,
       trends: {
         daily: dailyTrends,
-        monthly: monthlyTrends
-      }
+        monthly: monthlyTrends,
+      },
     };
   } catch (error) {
     console.error('Error getting audit trail statistics:', error);
@@ -361,7 +361,7 @@ async function getSystemHealthStatistics() {
       errorRate: Math.round(errorRate * 100) / 100,
       activeJobs,
       completedJobs,
-      failedJobs
+      failedJobs,
     };
   } catch (error) {
     console.error('Error getting system health statistics:', error);

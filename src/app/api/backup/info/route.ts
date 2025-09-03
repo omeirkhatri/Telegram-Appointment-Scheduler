@@ -16,8 +16,8 @@ export async function GET(request: NextRequest) {
         success: true,
         data: {
           statistics,
-          tableInfo
-        }
+          tableInfo,
+        },
       });
     } else {
       // Get basic statistics only
@@ -26,8 +26,8 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({
         success: true,
         data: {
-          statistics
-        }
+          statistics,
+        },
       });
     }
 
@@ -36,9 +36,9 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(
       {
         success: false,
-        error: error instanceof Error ? error.message : 'Failed to get backup information'
+        error: error instanceof Error ? error.message : 'Failed to get backup information',
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

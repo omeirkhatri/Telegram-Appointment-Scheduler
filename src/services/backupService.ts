@@ -34,18 +34,18 @@ export interface TableInfo {
 export class BackupService {
   private static readonly BACKUP_TABLES = [
     'patients',
-    'staff', 
+    'staff',
     'appointments',
     'appointment_staff',
     'appointment_copy_audit_trail',
     'email_delivery_logs',
     'email_preferences',
-    'audit_logs'
+    'audit_logs',
   ];
 
   private static readonly SYSTEM_TABLES = [
     'email_preferences',
-    'audit_logs'
+    'audit_logs',
   ];
 
   /**
@@ -73,7 +73,7 @@ export class BackupService {
             .select('*')
             .limit(1);
 
-          const columns = sampleData && sampleData.length > 0 
+          const columns = sampleData && sampleData.length > 0
             ? Object.keys(sampleData[0])
             : [];
 
@@ -81,7 +81,7 @@ export class BackupService {
             name: tableName,
             rowCount: count || 0,
             columns,
-            lastModified: new Date().toISOString()
+            lastModified: new Date().toISOString(),
           });
         } catch (error) {
           console.warn(`Error getting info for table ${tableName}:`, error);
@@ -101,10 +101,10 @@ export class BackupService {
   async exportAllData(options: BackupOptions = { format: 'csv' }): Promise<BackupResult> {
     try {
       const { includeTables, excludeTables, format, includeMetadata = true } = options;
-      
+
       const tablesToExport = includeTables || this.BACKUP_TABLES;
-      const filteredTables = tablesToExport.filter(table => 
-        !excludeTables?.includes(table)
+      const filteredTables = tablesToExport.filter(table =>
+        !excludeTables?.includes(table),
       );
 
       const exportData: Record<string, any[]> = {};
@@ -148,14 +148,14 @@ export class BackupService {
           exportedAt: new Date().toISOString(),
           totalTables: filteredTables.length,
           totalRows,
-          fileSize: new Blob([result]).size
-        }
+          fileSize: new Blob([result]).size,
+        },
       };
     } catch (error) {
       console.error('Error exporting all data:', error);
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Failed to export data'
+        error: error instanceof Error ? error.message : 'Failed to export data',
       };
     }
   }
@@ -204,14 +204,14 @@ export class BackupService {
           exportedAt: new Date().toISOString(),
           totalTables: 1,
           totalRows: (data || []).length,
-          fileSize: new Blob([result]).size
-        }
+          fileSize: new Blob([result]).size,
+        },
       };
     } catch (error) {
       console.error(`Error exporting table ${tableName}:`, error);
       return {
         success: false,
-        error: error instanceof Error ? error.message : `Failed to export table ${tableName}`
+        error: error instanceof Error ? error.message : `Failed to export table ${tableName}`,
       };
     }
   }
@@ -223,7 +223,7 @@ export class BackupService {
     const coreTables = ['patients', 'appointments', 'staff', 'appointment_staff'];
     return this.exportAllData({
       ...options,
-      includeTables: coreTables
+      includeTables: coreTables,
     });
   }
 
@@ -233,7 +233,7 @@ export class BackupService {
   async exportSystemData(options: BackupOptions = { format: 'csv' }): Promise<BackupResult> {
     return this.exportAllData({
       ...options,
-      includeTables: this.SYSTEM_TABLES
+      includeTables: this.SYSTEM_TABLES,
     });
   }
 
@@ -299,7 +299,7 @@ export class BackupService {
         exportedAt: new Date().toISOString(),
         totalTables: Object.keys(data).length,
         totalRows: Object.values(data).reduce((sum, rows) => sum + rows.length, 0),
-        version: '1.0'
+        version: '1.0',
       };
     }
 
@@ -318,7 +318,7 @@ export class BackupService {
       appointment_staff: ['created_at'],
       appointment_copy_audit_trail: ['started_at', 'completed_at', 'created_at'],
       email_delivery_logs: ['sent_at', 'created_at'],
-      audit_logs: ['created_at']
+      audit_logs: ['created_at'],
     };
 
     return tableName in dateColumns;
@@ -335,7 +335,7 @@ export class BackupService {
       appointment_staff: 'created_at',
       appointment_copy_audit_trail: 'started_at',
       email_delivery_logs: 'sent_at',
-      audit_logs: 'created_at'
+      audit_logs: 'created_at',
     };
 
     return dateColumns[tableName] || null;
@@ -357,7 +357,7 @@ export class BackupService {
       return {
         totalTables: tableInfo.length,
         totalRows,
-        tableStats: tableInfo
+        tableStats: tableInfo,
       };
     } catch (error) {
       console.error('Error getting backup statistics:', error);

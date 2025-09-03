@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 import {
     assertAccessibilityCompliance,
     generateAccessibilityReport,
-    runAccessibilityAudit
+    runAccessibilityAudit,
 } from './utils/accessibility-helpers';
 
 test.describe('Accessibility Audit Tests', () => {

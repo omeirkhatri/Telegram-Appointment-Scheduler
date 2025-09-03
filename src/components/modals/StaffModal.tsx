@@ -1,7 +1,8 @@
 'use client';
 
 import { StaffForm } from '@/components/forms';
-import { ErrorMessage, LoadingOverlay } from '@/components/ui';
+import { ErrorMessage } from '@/components/ui';
+import { useToastContext } from '@/components/ui/ToastContainer';
 import type { Staff } from '@/types';
 import { X } from 'lucide-react';
 import { useState } from 'react';
@@ -21,6 +22,7 @@ export function StaffModal({
 }: StaffModalProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const { showToast } = useToastContext();
 
   const handleSubmit = async (data: any) => {
     setIsSubmitting(true);
@@ -50,6 +52,11 @@ export function StaffModal({
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : `Failed to ${initialStaff?.id ? 'update' : 'create'} staff member`;
       setSubmitError(errorMessage);
+      showToast({
+        type: 'error',
+        title: 'Error',
+        message: errorMessage,
+      });
     } finally {
       setIsSubmitting(false);
     }

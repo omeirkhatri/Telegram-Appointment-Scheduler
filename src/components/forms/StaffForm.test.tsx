@@ -357,7 +357,7 @@ describe('StaffForm', () => {
     (global.fetch as jest.Mock).mockImplementationOnce(
       () => new Promise(resolve => setTimeout(() => resolve({
         json: async () => ({ success: true }),
-      }), 100))
+      }), 100)),
     );
 
     mockUseForm.mockReturnValue({

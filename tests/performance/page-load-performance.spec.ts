@@ -3,7 +3,7 @@ import {
     assertPerformanceMetrics,
     DEFAULT_THRESHOLDS,
     generatePerformanceReport,
-    measurePageLoadPerformance
+    measurePageLoadPerformance,
 } from './utils/performance-helpers';
 
 test.describe('Page Load Performance Tests', () => {

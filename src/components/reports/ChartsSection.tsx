@@ -7,7 +7,7 @@ import {
     Calendar,
     Mail,
     TrendingUp,
-    Users
+    Users,
 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -144,7 +144,7 @@ function AppointmentCharts({ statistics }: { statistics: DashboardStatistics }) 
                   {new Date(trend.date).toLocaleDateString('en-GB', {
                     weekday: 'short',
                     month: 'short',
-                    day: 'numeric'
+                    day: 'numeric',
                   })}
                 </span>
                 <div className="flex items-center space-x-2">
@@ -152,7 +152,7 @@ function AppointmentCharts({ statistics }: { statistics: DashboardStatistics }) 
                     <div
                       className="bg-blue-500 h-2 rounded-full transition-all duration-300"
                       style={{
-                        width: `${Math.min(100, (trend.count / Math.max(...appointments.trends.daily.map(t => t.count))) * 100)}%`
+                        width: `${Math.min(100, (trend.count / Math.max(...appointments.trends.daily.map(t => t.count))) * 100)}%`,
                       }}
                     />
                   </div>
@@ -202,7 +202,7 @@ function PatientCharts({ statistics }: { statistics: DashboardStatistics }) {
                 <span className="text-sm text-gray-600">
                   {new Date(trend.month + '-01').toLocaleDateString('en-GB', {
                     month: 'short',
-                    year: 'numeric'
+                    year: 'numeric',
                   })}
                 </span>
                 <div className="flex items-center space-x-2">
@@ -210,7 +210,7 @@ function PatientCharts({ statistics }: { statistics: DashboardStatistics }) {
                     <div
                       className="bg-green-500 h-2 rounded-full transition-all duration-300"
                       style={{
-                        width: `${Math.min(100, (trend.count / Math.max(...patients.trends.monthly.map(t => t.count))) * 100)}%`
+                        width: `${Math.min(100, (trend.count / Math.max(...patients.trends.monthly.map(t => t.count))) * 100)}%`,
                       }}
                     />
                   </div>

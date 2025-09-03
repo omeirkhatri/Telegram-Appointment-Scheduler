@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { localStorageService } from '@/services';
 
 export function useLocalStorage<T>(
   key: string,
@@ -12,8 +11,8 @@ export function useLocalStorage<T>(
     }
 
     try {
-      const item = localStorageService.get<T>(key);
-      return item !== null ? item : initialValue;
+      const item = window.localStorage.getItem(key);
+      return item ? JSON.parse(item) : initialValue;
     } catch (error) {
       console.error(`Error reading localStorage key "${key}":`, error);
       return initialValue;
@@ -29,7 +28,7 @@ export function useLocalStorage<T>(
 
       // Save to local storage
       if (typeof window !== 'undefined') {
-        localStorageService.set(key, valueToStore);
+        window.localStorage.setItem(key, JSON.stringify(valueToStore));
       }
     } catch (error) {
       console.error(`Error setting localStorage key "${key}":`, error);

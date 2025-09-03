@@ -10,7 +10,7 @@ import {
     Link,
     RefreshCw,
     Settings,
-    Unlink
+    Unlink,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
@@ -53,7 +53,7 @@ export function GoogleCalendarSection({ className = '' }: GoogleCalendarSectionP
             const statusResponse = await fetch('/api/staff/validate-calendar', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ calendarId: staff.google_calendar_id })
+              body: JSON.stringify({ calendarId: staff.google_calendar_id }),
             });
 
             const statusData = await statusResponse.json();
@@ -64,7 +64,7 @@ export function GoogleCalendarSection({ className = '' }: GoogleCalendarSectionP
               status: statusData.success ? 'connected' : 'error',
               lastSync: new Date().toISOString(),
               error: statusData.success ? undefined : statusData.error,
-              staffName: `${staff.first_name} ${staff.last_name}`
+              staffName: `${staff.first_name} ${staff.last_name}`,
             };
           } catch (error) {
             return {
@@ -72,7 +72,7 @@ export function GoogleCalendarSection({ className = '' }: GoogleCalendarSectionP
               calendarId: staff.google_calendar_id,
               status: 'error' as const,
               error: 'Connection test failed',
-              staffName: `${staff.first_name} ${staff.last_name}`
+              staffName: `${staff.first_name} ${staff.last_name}`,
             };
           }
         });
@@ -99,7 +99,7 @@ export function GoogleCalendarSection({ className = '' }: GoogleCalendarSectionP
       const response = await fetch(`/api/staff/${connectionId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ google_calendar_id: null })
+        body: JSON.stringify({ google_calendar_id: null }),
       });
 
       if (response.ok) {
@@ -299,7 +299,7 @@ export function GoogleCalendarSection({ className = '' }: GoogleCalendarSectionP
 
                     <div className="flex items-center space-x-1">
                       <button
-                        onClick={() => window.open(`https://calendar.google.com/calendar/u/0/r`, '_blank')}
+                        onClick={() => window.open('https://calendar.google.com/calendar/u/0/r', '_blank')}
                         className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded transition-colors"
                         title="Open in Google Calendar"
                       >

@@ -224,7 +224,7 @@ export function createKPI(
   id: string,
   title: string,
   value: number | string,
-  options?: Partial<Omit<KPI, 'id' | 'title' | 'value'>>
+  options?: Partial<Omit<KPI, 'id' | 'title' | 'value'>>,
 ): KPI {
   return {
     id,

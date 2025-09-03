@@ -237,7 +237,7 @@ export const createMockGoogleCalendarEvents = (count: number = 3): GoogleCalenda
       summary: `Appointment ${i + 1}`,
       start: { dateTime: `2024-01-${15 + i}T10:00:00+04:00`, timeZone: 'Asia/Dubai' },
       end: { dateTime: `2024-01-${15 + i}T11:00:00+04:00`, timeZone: 'Asia/Dubai' },
-    })
+    }),
   );
 
 export const createMockGoogleCalendarList = (count: number = 3): GoogleCalendarListEntry[] =>
@@ -246,7 +246,7 @@ export const createMockGoogleCalendarList = (count: number = 3): GoogleCalendarL
       id: `calendar-${i + 1}`,
       summary: `Calendar ${i + 1}`,
       primary: i === 0,
-    })
+    }),
   );
 
 // Error factories

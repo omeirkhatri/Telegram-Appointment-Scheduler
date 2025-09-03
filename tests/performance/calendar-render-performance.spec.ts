@@ -4,7 +4,7 @@ import {
     CALENDAR_THRESHOLDS,
     createTestDataForPerformance,
     generatePerformanceReport,
-    measureCalendarPerformance
+    measureCalendarPerformance,
 } from './utils/performance-helpers';
 
 test.describe('Calendar Render Performance Tests', () => {

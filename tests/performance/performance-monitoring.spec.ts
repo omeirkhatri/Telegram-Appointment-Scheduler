@@ -5,7 +5,7 @@ import {
     GOOGLE_SYNC_THRESHOLDS,
     measureCalendarPerformance,
     measureGoogleSyncPerformance,
-    measurePageLoadPerformance
+    measurePageLoadPerformance,
 } from './utils/performance-helpers';
 
 test.describe('Performance Monitoring and Reporting', () => {
@@ -20,7 +20,7 @@ test.describe('Performance Monitoring and Reporting', () => {
         userAgent: await page.evaluate(() => navigator.userAgent),
         viewport: await page.evaluate(() => ({ width: window.innerWidth, height: window.innerHeight })),
         connection: await page.evaluate(() => (navigator as any).connection?.effectiveType || 'unknown'),
-      }
+      },
     };
 
     // Test page load performance

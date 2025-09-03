@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
         success: false,
         error: error instanceof Error ? error.message : 'Failed to fetch email preferences',
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -35,12 +35,12 @@ export async function PUT(request: NextRequest) {
           success: false,
           error: 'Preferences object is required',
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     const updatedPreferences = await emailPreferencesService.updateGlobalEmailPreferences(
-      preferences as Partial<GlobalEmailPreferences>
+      preferences as Partial<GlobalEmailPreferences>,
     );
 
     return NextResponse.json({
@@ -55,7 +55,7 @@ export async function PUT(request: NextRequest) {
         success: false,
         error: error instanceof Error ? error.message : 'Failed to update email preferences',
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -103,7 +103,7 @@ export async function POST(request: NextRequest) {
             success: false,
             error: 'Preferences JSON string is required',
           },
-          { status: 400 }
+          { status: 400 },
         );
       }
 
@@ -121,7 +121,7 @@ export async function POST(request: NextRequest) {
         success: false,
         error: 'Invalid action. Supported actions: reset, test, export, import',
       },
-      { status: 400 }
+      { status: 400 },
     );
   } catch (error) {
     console.error('Error with email preferences action:', error);
@@ -130,7 +130,7 @@ export async function POST(request: NextRequest) {
         success: false,
         error: error instanceof Error ? error.message : 'Failed to perform action',
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

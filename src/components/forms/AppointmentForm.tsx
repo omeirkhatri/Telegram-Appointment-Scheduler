@@ -45,7 +45,6 @@ const STAFF_ROLES = [
 ] as const;
 
 
-
 export function AppointmentForm({
   appointment,
   patients = [],

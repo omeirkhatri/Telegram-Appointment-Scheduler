@@ -349,7 +349,8 @@ export function useStaff(options: UseStaffOptions = {}): UseStaffReturn {
 
   // Auto-fetch on mount and when dependencies change
   useEffect(() => {
-    if (autoFetch) {
+    // Only fetch on client-side to prevent hydration mismatches
+    if (typeof window !== 'undefined' && autoFetch) {
       if (searchTerm) {
         searchStaff(searchTerm);
       } else {

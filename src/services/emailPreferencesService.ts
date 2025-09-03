@@ -2,7 +2,7 @@ import { supabase } from '@/lib/supabase';
 import {
     DEFAULT_EMAIL_PREFERENCES,
     GlobalEmailPreferences,
-    validateEmailPreferences
+    validateEmailPreferences,
 } from '@/types/emailPreferences';
 
 export class EmailPreferencesService {
@@ -44,7 +44,7 @@ export class EmailPreferencesService {
    * Update global email preferences
    */
   async updateGlobalEmailPreferences(
-    preferences: Partial<GlobalEmailPreferences>
+    preferences: Partial<GlobalEmailPreferences>,
   ): Promise<GlobalEmailPreferences> {
     try {
       // Validate preferences
@@ -114,7 +114,7 @@ export class EmailPreferencesService {
    * Get specific preference value
    */
   async getPreference<K extends keyof GlobalEmailPreferences>(
-    key: K
+    key: K,
   ): Promise<GlobalEmailPreferences[K]> {
     const preferences = await this.getGlobalEmailPreferences();
     return preferences[key];
@@ -125,7 +125,7 @@ export class EmailPreferencesService {
    */
   async updatePreference<K extends keyof GlobalEmailPreferences>(
     key: K,
-    value: GlobalEmailPreferences[K]
+    value: GlobalEmailPreferences[K],
   ): Promise<GlobalEmailPreferences> {
     return this.updateGlobalEmailPreferences({ [key]: value } as Partial<GlobalEmailPreferences>);
   }

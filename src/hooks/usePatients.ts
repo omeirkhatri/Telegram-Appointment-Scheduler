@@ -321,7 +321,8 @@ export function usePatients(options: UsePatientsOptions = {}): UsePatientsReturn
 
   // Auto-fetch on mount and when dependencies change
   useEffect(() => {
-    if (autoFetch) {
+    // Only fetch on client-side to prevent hydration mismatches
+    if (typeof window !== 'undefined' && autoFetch) {
       if (searchTerm) {
         searchPatients(searchTerm);
       } else {

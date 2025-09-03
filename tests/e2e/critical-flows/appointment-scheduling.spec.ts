@@ -108,7 +108,7 @@ test.describe('Appointment Scheduling Critical Flows', () => {
     // Fill form with past date
     const pastAppointment = {
       ...testData.appointments.doctorOnCall,
-      appointmentDate: '2020-01-01'
+      appointmentDate: '2020-01-01',
     };
     await appointmentPage.fillAppointmentForm(pastAppointment);
 
@@ -128,7 +128,7 @@ test.describe('Appointment Scheduling Critical Flows', () => {
     // Fill form with time outside working hours
     const invalidTimeAppointment = {
       ...testData.appointments.doctorOnCall,
-      startTime: '23:00'
+      startTime: '23:00',
     };
     await appointmentPage.fillAppointmentForm(invalidTimeAppointment);
 
@@ -209,7 +209,7 @@ test.describe('Appointment Scheduling Critical Flows', () => {
     const conflictingAppointment = {
       ...testData.appointments.labTest,
       appointmentDate: testData.appointments.doctorOnCall.appointmentDate,
-      startTime: testData.appointments.doctorOnCall.startTime
+      startTime: testData.appointments.doctorOnCall.startTime,
     };
     await appointmentPage.fillAppointmentForm(conflictingAppointment);
     await appointmentPage.submitAppointmentForm();
