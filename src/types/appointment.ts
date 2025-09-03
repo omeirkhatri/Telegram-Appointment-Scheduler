@@ -2,6 +2,7 @@
 export type AppointmentType = 'doctor_on_call' | 'lab_test' | 'teleconsultation' | 'physiotherapy' | 'caregiver' | 'iv_therapy';
 export type AppointmentStatus = 'scheduled' | 'confirmed' | 'completed' | 'cancelled';
 export type TransportationType = 'driver' | 'self_transport';
+export type EditSource = 'app' | 'google_calendar' | 'webhook' | 'manual';
 
 export interface Appointment {
   id: string;
@@ -18,6 +19,11 @@ export interface Appointment {
   notes?: string;
   recurring_rule?: RecurringRule;
   google_event_ids: Record<string, string>; // staff_id -> eventId
+  // External edit tracking
+  last_external_edit?: string; // ISO timestamp of last external edit
+  last_external_edit_source?: EditSource; // Source of last external edit
+  external_edit_count?: number; // Number of external edits
+  last_edit_source?: EditSource; // Source of last edit (internal or external)
   created_at: string;
   updated_at: string;
 }
@@ -37,6 +43,11 @@ export interface CreateAppointment {
   notes?: string;
   recurring_rule?: RecurringRule;
   google_event_ids?: Record<string, string>;
+  // External edit tracking (optional for creation)
+  last_external_edit?: string;
+  last_external_edit_source?: EditSource;
+  external_edit_count?: number;
+  last_edit_source?: EditSource;
 }
 
 // Appointment update type (all fields optional except id)
@@ -55,6 +66,11 @@ export interface UpdateAppointment {
   notes?: string;
   recurring_rule?: RecurringRule;
   google_event_ids?: Record<string, string>;
+  // External edit tracking
+  last_external_edit?: string;
+  last_external_edit_source?: EditSource;
+  external_edit_count?: number;
+  last_edit_source?: EditSource;
 }
 
 // Appointment search/filter options
@@ -286,4 +302,48 @@ export function getNextOccurrenceDate(
   }
 
   return date.toISOString().split('T')[0];
+}
+
+// Helper function to check if appointment has external edits
+export function hasExternalEdits(appointment: Appointment): boolean {
+  return (appointment.external_edit_count || 0) > 0;
+}
+
+// Helper function to get external edit source display name
+export function getEditSourceDisplayName(source: EditSource): string {
+  const displayNames: Record<EditSource, string> = {
+    app: 'App',
+    google_calendar: 'Google Calendar',
+    webhook: 'Webhook',
+    manual: 'Manual',
+  };
+  return displayNames[source];
+}
+
+// Helper function to check if last edit was external
+export function isLastEditExternal(appointment: Appointment): boolean {
+  return appointment.last_edit_source === 'google_calendar' ||
+         appointment.last_edit_source === 'webhook';
+}
+
+// Helper function to get time since last external edit
+export function getTimeSinceLastExternalEdit(appointment: Appointment): string | null {
+  if (!appointment.last_external_edit) {
+    return null;
+  }
+
+  const lastEdit = new Date(appointment.last_external_edit);
+  const now = new Date();
+  const diffMs = now.getTime() - lastEdit.getTime();
+  const diffMinutes = Math.floor(diffMs / (1000 * 60));
+  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+  if (diffMinutes < 60) {
+    return `${diffMinutes} minute${diffMinutes !== 1 ? 's' : ''} ago`;
+  } else if (diffHours < 24) {
+    return `${diffHours} hour${diffHours !== 1 ? 's' : ''} ago`;
+  } else {
+    return `${diffDays} day${diffDays !== 1 ? 's' : ''} ago`;
+  }
 }

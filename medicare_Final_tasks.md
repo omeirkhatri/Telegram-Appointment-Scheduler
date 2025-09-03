@@ -79,10 +79,10 @@
 - [x] 9.7 Unified toasts & error system
 
 ## 10.0 Google Calendar Integration (Enhancements)
-- [ ] 10.1 Event builders by role (driver vs medical)
-- [ ] 10.2 Webhook dedupe/retries/backoff
-- [ ] 10.3 External edits surface in UI
-- [ ] 10.4 google_event_ids integrity checks
+- [x] 10.1 Event builders by role (driver vs medical) (✅ Complete implementation with DriverEventDescriptionBuilder and MedicalStaffEventDescriptionBuilder classes, role-based routing in GoogleCalendarService, comprehensive test coverage)
+- [x] 10.2 Webhook dedupe/retries/backoff (✅ Complete implementation with exponential backoff retry logic, operation queue with deduplication, webhook resource tracking, priority-based processing, comprehensive test coverage)
+- [x] 10.3 External edits surface in UI (✅ Complete implementation with external edit tracking fields in database schema, appointment service methods for tracking edit sources, comprehensive UI indicators and notifications, integration into calendar and appointment details, notification system with auto-dismiss, comprehensive test coverage)
+- [x] 10.4 google_event_ids integrity checks (✅ Complete implementation with comprehensive integrity validation service, database-level constraints and triggers, orphaned event detection, duplicate event ID detection, API endpoints for integrity operations, automated cleanup functionality, and comprehensive test coverage)
 
 ## 11.0 Deployment, Ops & Migration
 - [ ] 11.1 .env.example with keys & guards

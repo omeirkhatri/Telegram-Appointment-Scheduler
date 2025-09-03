@@ -1,5 +1,6 @@
 'use client';
 
+import { ExternalEditBadge } from '@/components/ui/ExternalEditIndicator';
 import { useAppointmentsForDateRange } from '@/hooks/useAppointments';
 import type { Appointment } from '@/types';
 import type { DateSelectArg, EventClickArg, EventDropArg, EventResizeArg } from '@fullcalendar/core';
@@ -221,8 +222,17 @@ export function AppointmentCalendar({
         eventContent={(eventInfo) => {
           const appointment = eventInfo.event.extendedProps.appointment as Appointment;
           return (
-            <div className="p-1 text-xs">
-              <div className="font-medium truncate">{eventInfo.event.title}</div>
+            <div className="p-1 text-xs relative">
+              <div className="flex items-center justify-between">
+                <div className="font-medium truncate flex-1">{eventInfo.event.title}</div>
+                {appointment && (
+                  <ExternalEditBadge
+                    appointment={appointment}
+                    size="sm"
+                    className="ml-1 flex-shrink-0"
+                  />
+                )}
+              </div>
               {appointment && (
                 <div className="text-gray-600 truncate">
                   {appointment.patient_id} {/* You might want to show patient name instead */}

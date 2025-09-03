@@ -1,17 +1,18 @@
 import { supabase } from '@/lib/supabase';
 import type {
-  Appointment,
-  CreateAppointment,
-  UpdateAppointment,
-  AppointmentFilters,
+    Appointment,
+    AppointmentFilters,
+    CreateAppointment,
+    EditSource,
+    UpdateAppointment,
 } from '@/types';
 import {
-  isValidAppointmentDate,
-  isValidAppointmentTime,
-  isValidDuration,
-  isValidRecurringRule,
-  validateAppointmentData,
-  getNextOccurrenceDate,
+    getNextOccurrenceDate,
+    isValidAppointmentDate,
+    isValidAppointmentTime,
+    isValidDuration,
+    isValidRecurringRule,
+    validateAppointmentData,
 } from '@/types/appointment';
 
 export class AppointmentService {
@@ -312,6 +313,24 @@ export class AppointmentService {
       throw new Error('Appointment not found');
     }
 
+    // Validate staff ID exists and is active
+    const { data: staff, error: staffError } = await supabase
+      .from('staff')
+      .select('id, status')
+      .eq('id', staffId)
+      .eq('status', 'active')
+      .single();
+
+    if (staffError || !staff) {
+      throw new Error(`Invalid staff ID: ${staffId} (not found or inactive)`);
+    }
+
+    // Validate event ID format
+    const eventIdRegex = /^[a-zA-Z0-9_-]+$/;
+    if (!eventIdRegex.test(eventId)) {
+      throw new Error(`Invalid Google Calendar event ID format: ${eventId}`);
+    }
+
     const updatedEventIds = {
       ...appointment.google_event_ids,
       [staffId]: eventId,
@@ -353,6 +372,66 @@ export class AppointmentService {
     }
 
     return data;
+  }
+
+  // Check integrity of google_event_ids for this appointment
+  async checkGoogleEventIdsIntegrity(appointmentId: string): Promise<{
+    isValid: boolean;
+    errors: string[];
+    warnings: string[];
+  }> {
+    const appointment = await this.getAppointment(appointmentId);
+    if (!appointment) {
+      throw new Error('Appointment not found');
+    }
+
+    const errors: string[] = [];
+    const warnings: string[] = [];
+
+    if (!appointment.google_event_ids || Object.keys(appointment.google_event_ids).length === 0) {
+      return { isValid: true, errors: [], warnings: [] };
+    }
+
+    // Validate structure
+    const eventIdRegex = /^[a-zA-Z0-9_-]+$/;
+    for (const [staffId, eventId] of Object.entries(appointment.google_event_ids)) {
+      // Check staff ID format (should be UUID)
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (!uuidRegex.test(staffId)) {
+        errors.push(`Invalid staff ID format: ${staffId}`);
+      }
+
+      // Check event ID format
+      if (!eventIdRegex.test(eventId)) {
+        errors.push(`Invalid Google Calendar event ID format: ${eventId}`);
+      }
+    }
+
+    // Check if staff IDs exist and are active
+    const staffIds = Object.keys(appointment.google_event_ids);
+    if (staffIds.length > 0) {
+      const { data: staff, error } = await supabase
+        .from('staff')
+        .select('id, status')
+        .in('id', staffIds);
+
+      if (error) {
+        errors.push(`Failed to validate staff IDs: ${error.message}`);
+      } else {
+        const validStaffIds = new Set(staff?.map(s => s.id) || []);
+        for (const staffId of staffIds) {
+          if (!validStaffIds.has(staffId)) {
+            errors.push(`Staff ID ${staffId} does not exist or is inactive`);
+          }
+        }
+      }
+    }
+
+    return {
+      isValid: errors.length === 0,
+      errors,
+      warnings
+    };
   }
 
   // Generate recurring appointments
@@ -430,6 +509,162 @@ export class AppointmentService {
       total: appointments.length,
       byStatus,
       byType,
+    };
+  }
+
+  // Track external edit from Google Calendar or webhook
+  async trackExternalEdit(
+    appointmentId: string,
+    source: EditSource,
+    updatedFields?: Partial<UpdateAppointment>,
+  ): Promise<Appointment> {
+    const appointment = await this.getAppointment(appointmentId);
+    if (!appointment) {
+      throw new Error('Appointment not found');
+    }
+
+    const now = new Date().toISOString();
+    const currentExternalCount = appointment.external_edit_count || 0;
+
+    const updateData: Partial<UpdateAppointment> = {
+      ...updatedFields,
+      last_external_edit: now,
+      last_external_edit_source: source,
+      external_edit_count: currentExternalCount + 1,
+      last_edit_source: source,
+    };
+
+    const { data, error } = await supabase
+      .from('appointments')
+      .update(updateData)
+      .eq('id', appointmentId)
+      .select()
+      .single();
+
+    if (error) {
+      throw new Error(`Failed to track external edit: ${error.message}`);
+    }
+
+    return data;
+  }
+
+  // Track internal edit from the app
+  async trackInternalEdit(
+    appointmentId: string,
+    updatedFields?: Partial<UpdateAppointment>,
+  ): Promise<Appointment> {
+    const updateData: Partial<UpdateAppointment> = {
+      ...updatedFields,
+      last_edit_source: 'app',
+    };
+
+    const { data, error } = await supabase
+      .from('appointments')
+      .update(updateData)
+      .eq('id', appointmentId)
+      .select()
+      .single();
+
+    if (error) {
+      throw new Error(`Failed to track internal edit: ${error.message}`);
+    }
+
+    return data;
+  }
+
+  // Get appointments with external edits
+  async getAppointmentsWithExternalEdits(filters?: AppointmentFilters): Promise<Appointment[]> {
+    let query = supabase
+      .from('appointments')
+      .select('*')
+      .gt('external_edit_count', 0)
+      .order('last_external_edit', { ascending: false });
+
+    // Apply filters
+    if (filters?.patient_id) {
+      query = query.eq('patient_id', filters.patient_id);
+    }
+
+    if (filters?.appointment_type) {
+      query = query.eq('appointment_type', filters.appointment_type);
+    }
+
+    if (filters?.status) {
+      query = query.eq('status', filters.status);
+    }
+
+    if (filters?.date_from) {
+      query = query.gte('appointment_date', filters.date_from);
+    }
+
+    if (filters?.date_to) {
+      query = query.lte('appointment_date', filters.date_to);
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      throw new Error(`Failed to fetch appointments with external edits: ${error.message}`);
+    }
+
+    return data || [];
+  }
+
+  // Get external edit statistics
+  async getExternalEditStatistics(dateFrom?: string, dateTo?: string): Promise<{
+    totalExternalEdits: number;
+    bySource: Record<EditSource, number>;
+    recentExternalEdits: number; // Last 24 hours
+  }> {
+    let query = supabase
+      .from('appointments')
+      .select('external_edit_count, last_external_edit_source, last_external_edit');
+
+    if (dateFrom) {
+      query = query.gte('appointment_date', dateFrom);
+    }
+
+    if (dateTo) {
+      query = query.lte('appointment_date', dateTo);
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      throw new Error(`Failed to fetch external edit statistics: ${error.message}`);
+    }
+
+    const appointments = data || [];
+    let totalExternalEdits = 0;
+    const bySource: Record<EditSource, number> = {
+      app: 0,
+      google_calendar: 0,
+      webhook: 0,
+      manual: 0,
+    };
+    let recentExternalEdits = 0;
+
+    const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+
+    appointments.forEach(appointment => {
+      const externalCount = appointment.external_edit_count || 0;
+      totalExternalEdits += externalCount;
+
+      if (appointment.last_external_edit_source) {
+        bySource[appointment.last_external_edit_source] =
+          (bySource[appointment.last_external_edit_source] || 0) + 1;
+      }
+
+      if (appointment.last_external_edit &&
+          new Date(appointment.last_external_edit) > oneDayAgo) {
+        recentExternalEdits++;
+      }
+    });
+
+    return {
+      totalExternalEdits,
+      bySource,
+      recentExternalEdits,
     };
   }
 }

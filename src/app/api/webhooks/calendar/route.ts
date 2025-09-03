@@ -480,7 +480,12 @@ async function updateAppointmentFromCalendarEvent(appointment: any, event: any, 
       staffName: `${staff.first_name} ${staff.last_name}`,
     });
 
-    await appointmentService.updateAppointment(updateData);
+    // Track external edit from Google Calendar
+    await appointmentService.trackExternalEdit(
+      appointment.id,
+      'google_calendar',
+      updateData,
+    );
 
     // Log successful update
     logCalendarOperation(

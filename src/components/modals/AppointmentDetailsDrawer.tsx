@@ -1,5 +1,6 @@
 'use client';
 
+import { ExternalEditIndicator } from '@/components/ui/ExternalEditIndicator';
 import type { Appointment, Patient, Staff } from '@/types';
 import { getAppointmentStatusDisplayName, getAppointmentTypeDisplayName } from '@/types/appointment';
 import {
@@ -154,6 +155,12 @@ export function AppointmentDetailsDrawer({
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-6 space-y-6">
+          {/* External Edit Indicator */}
+          <ExternalEditIndicator
+            appointment={appointment}
+            variant="detailed"
+          />
+
           {/* Patient Information */}
           <div className="bg-gray-50 rounded-lg p-4">
             <div className="flex items-center space-x-3 mb-3">

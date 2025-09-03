@@ -5,6 +5,8 @@ import { AppointmentFilters, type AppointmentFilterState } from '@/components/fi
 import Header from '@/components/layout/Header';
 import { AppointmentContextMenu, AppointmentDetailsDrawer, AppointmentModal, CopyAppointmentModal } from '@/components/modals';
 import { ErrorMessage } from '@/components/ui';
+import { ExternalEditBanner } from '@/components/ui/ExternalEditNotification';
+import { ExternalEditNotificationContainer } from '@/components/ui/ExternalEditNotificationContainer';
 import { useToastContext } from '@/components/ui/ToastContainer';
 import { useAppointmentsForDateRange, useUpdateAppointment } from '@/hooks/useAppointments';
 import { usePatients } from '@/hooks/usePatients';
@@ -377,6 +379,11 @@ export default function AppointmentsPage() {
           </div>
         )}
 
+        {/* External Edit Banner */}
+        <ExternalEditBanner
+          appointments={realAppointments}
+        />
+
         {/* Calendar View */}
         {viewMode === 'calendar' && (
           <div className="bg-[--card] border border-[--border] rounded-xl p-6 shadow-lg">
@@ -569,6 +576,9 @@ export default function AppointmentsPage() {
           onDelete={handleDeleteFromDrawer}
           onOpenInGoogleCalendar={handleOpenInGoogleCalendarFromDrawer}
         />
+
+        {/* External Edit Notifications */}
+        <ExternalEditNotificationContainer appointments={realAppointments} />
       </main>
     </div>
   );
