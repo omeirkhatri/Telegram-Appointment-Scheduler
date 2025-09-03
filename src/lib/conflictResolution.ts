@@ -41,7 +41,7 @@ export interface ConflictResolution {
 export function detectConflicts(
   appointment: Appointment,
   calendarEvent: CalendarEvent | null,
-  staff: Staff
+  staff: Staff,
 ): ConflictInfo[] {
   const conflicts: ConflictInfo[] = [];
 
@@ -134,7 +134,7 @@ export function resolveConflicts(
   conflicts: ConflictInfo[],
   appointment: Appointment,
   calendarEvent: CalendarEvent | null,
-  staff: Staff
+  staff: Staff,
 ): ConflictResolution {
   const resolution: ConflictResolution = {
     resolved: false,
@@ -187,7 +187,7 @@ export function resolveConflicts(
 export function detectDuplicateEvents(
   events: CalendarEvent[],
   appointment: Appointment,
-  staff: Staff
+  staff: Staff,
 ): ConflictInfo[] {
   const conflicts: ConflictInfo[] = [];
   const appointmentStart = new Date(`${appointment.appointment_date}T${appointment.start_time}:00Z`);

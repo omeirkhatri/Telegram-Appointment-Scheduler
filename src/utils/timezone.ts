@@ -1,5 +1,5 @@
 import { addDays, endOfDay, format, parseISO, startOfDay } from 'date-fns';
-import { utcToZonedTime, zonedTimeToUtc } from 'date-fns-tz';
+import { fromZonedTime, toZonedTime } from 'date-fns-tz';
 
 // Timezone constants
 export const DUBAI_TIMEZONE = 'Asia/Dubai';
@@ -12,14 +12,14 @@ export const DAILY_AGENDA_TIME = '06:00'; // 06:00 Asia/Dubai time
  * Convert a date to Dubai timezone
  */
 export function toDubaiTime(date: Date): Date {
-  return utcToZonedTime(date, DUBAI_TIMEZONE);
+  return toZonedTime(date, DUBAI_TIMEZONE);
 }
 
 /**
  * Convert a Dubai time to UTC
  */
 export function fromDubaiTime(date: Date): Date {
-  return zonedTimeToUtc(date, DUBAI_TIMEZONE);
+  return fromZonedTime(date, DUBAI_TIMEZONE);
 }
 
 /**
@@ -71,7 +71,7 @@ export function getDubaiDayRange(date: Date): { start: Date; end: Date } {
 
   return {
     start: fromDubaiTime(start),
-    end: fromDubaiTime(end)
+    end: fromDubaiTime(end),
   };
 }
 
@@ -143,7 +143,7 @@ export function dubaiDateStringToUtcRange(dateString: string): { start: Date; en
 export function getStaffWorkingHours(
   workingHoursStart: string,
   workingHoursEnd: string,
-  date: Date
+  date: Date,
 ): { start: Date; end: Date } {
   const dubaiDate = toDubaiTime(date);
   const dateString = format(dubaiDate, 'yyyy-MM-dd');
@@ -153,7 +153,7 @@ export function getStaffWorkingHours(
 
   return {
     start: fromDubaiTime(startTime),
-    end: fromDubaiTime(endTime)
+    end: fromDubaiTime(endTime),
   };
 }
 
@@ -162,7 +162,7 @@ export function getStaffWorkingHours(
  */
 export function isStaffAvailableOnDay(
   availableDays: number[],
-  date: Date
+  date: Date,
 ): boolean {
   const dubaiDate = toDubaiTime(date);
   const dayOfWeek = dubaiDate.getDay(); // 0 = Sunday, 1 = Monday, etc.
@@ -188,17 +188,17 @@ export function getStaffForDailyAgenda(
     status: 'active' | 'inactive';
     available_days: number[];
   }>,
-  date: Date
+  date: Date,
 ): Array<{ id: string; email: string }> {
   return staff
     .filter(member =>
       member.email_notifications_enabled &&
       member.status === 'active' &&
-      isStaffAvailableOnDay(member.available_days, date)
+      isStaffAvailableOnDay(member.available_days, date),
     )
     .map(member => ({
       id: member.id,
-      email: member.email
+      email: member.email,
     }));
 }
 
@@ -208,14 +208,14 @@ export function getStaffForDailyAgenda(
 export function formatAppointmentTime(
   appointmentDate: string,
   startTime: string,
-  durationMinutes: number
+  durationMinutes: number,
 ): { startTime: string; endTime: string } {
   const startDateTime = parseISO(`${appointmentDate}T${startTime}:00`);
   const endDateTime = new Date(startDateTime.getTime() + durationMinutes * 60000);
 
   return {
     startTime: formatDubaiTime(startDateTime),
-    endTime: formatDubaiTime(endDateTime)
+    endTime: formatDubaiTime(endDateTime),
   };
 }
 

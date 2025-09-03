@@ -24,14 +24,14 @@ export function EmailTestSection({ className = '' }: EmailTestSectionProps) {
 
   const { staff, isLoading: staffLoading, error: staffError } = useStaff({
     initialFilters: { status: 'active' },
-    autoFetch: true
+    autoFetch: true,
   });
 
   // Filter staff to only those with email notifications enabled
   const eligibleStaff = staff.filter(member =>
     member.email_notifications_enabled &&
     member.email &&
-    member.email.trim() !== ''
+    member.email.trim() !== '',
   );
 
   // Set default test date to today
@@ -46,7 +46,7 @@ export function EmailTestSection({ className = '' }: EmailTestSectionProps) {
       setTestResult({
         success: false,
         message: 'Please select a staff member',
-        error: 'No staff member selected'
+        error: 'No staff member selected',
       });
       return;
     }
@@ -63,7 +63,7 @@ export function EmailTestSection({ className = '' }: EmailTestSectionProps) {
         body: JSON.stringify({
           staffId: selectedStaffId,
           date: testDate,
-          testMode: true
+          testMode: true,
         }),
       });
 
@@ -72,20 +72,20 @@ export function EmailTestSection({ className = '' }: EmailTestSectionProps) {
       if (data.success) {
         setTestResult({
           success: true,
-          message: `Test agenda sent successfully to ${eligibleStaff.find(s => s.id === selectedStaffId)?.email}`
+          message: `Test agenda sent successfully to ${eligibleStaff.find(s => s.id === selectedStaffId)?.email}`,
         });
       } else {
         setTestResult({
           success: false,
           message: 'Failed to send test agenda',
-          error: data.error || 'Unknown error occurred'
+          error: data.error || 'Unknown error occurred',
         });
       }
     } catch (error) {
       setTestResult({
         success: false,
         message: 'Failed to send test agenda',
-        error: error instanceof Error ? error.message : 'Network error'
+        error: error instanceof Error ? error.message : 'Network error',
       });
     } finally {
       setIsLoading(false);
@@ -97,7 +97,7 @@ export function EmailTestSection({ className = '' }: EmailTestSectionProps) {
       setTestResult({
         success: false,
         message: 'Please select a staff member',
-        error: 'No staff member selected'
+        error: 'No staff member selected',
       });
       return;
     }
@@ -116,14 +116,14 @@ export function EmailTestSection({ className = '' }: EmailTestSectionProps) {
         setTestResult({
           success: false,
           message: 'Failed to load agenda preview',
-          error: data.error || 'Unknown error occurred'
+          error: data.error || 'Unknown error occurred',
         });
       }
     } catch (error) {
       setTestResult({
         success: false,
         message: 'Failed to load agenda preview',
-        error: error instanceof Error ? error.message : 'Network error'
+        error: error instanceof Error ? error.message : 'Network error',
       });
     } finally {
       setIsLoading(false);

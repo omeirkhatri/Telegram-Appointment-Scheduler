@@ -282,7 +282,7 @@ export function useStaff(options: UseStaffOptions = {}): UseStaffReturn {
     staffId: string,
     startTime: string,
     endTime: string,
-    date: string
+    date: string,
   ): Promise<boolean> => {
     try {
       const queryParams = new URLSearchParams();

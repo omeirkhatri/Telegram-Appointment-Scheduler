@@ -92,7 +92,7 @@ const RETRY_CONFIG = {
 function calculateDelay(attempt: number): number {
   const delay = Math.min(
     RETRY_CONFIG.baseDelay * Math.pow(2, attempt - 1),
-    RETRY_CONFIG.maxDelay
+    RETRY_CONFIG.maxDelay,
   );
   const jitter = Math.random() * 0.1 * delay; // 10% jitter
   return delay + jitter;
@@ -104,7 +104,7 @@ export async function executeQuery<T>(
   options: {
     retryable?: boolean;
     maxAttempts?: number;
-  } = {}
+  } = {},
 ): Promise<T> {
   const { retryable = true, maxAttempts = RETRY_CONFIG.maxAttempts } = options;
 
@@ -120,7 +120,7 @@ export async function executeQuery<T>(
           error.code,
           error.details,
           error.hint,
-          retryable && attempt < maxAttempts
+          retryable && attempt < maxAttempts,
         );
       }
 
@@ -155,7 +155,7 @@ export async function executeQuery<T>(
     lastError?.code,
     lastError?.details,
     lastError?.hint,
-    false
+    false,
   );
 }
 

@@ -7,7 +7,7 @@ import {
     isValid,
     parseISO,
     startOfWeek,
-    subDays
+    subDays,
 } from 'date-fns';
 
 // Timezone configuration
@@ -34,9 +34,15 @@ export function toUTC(date: Date | string): Date {
  */
 export function toLocal(date: Date | string): Date {
   const dateObj = typeof date === 'string' ? parseISO(date) : date;
-  // If we're already in Asia/Dubai timezone, no conversion needed
-  // The date is already in the correct timezone for display
-  return dateObj;
+
+  // If the calendar is already showing Asia/Dubai times but providing UTC dates,
+  // we need to subtract the offset to get the correct local time
+  // Calendar shows 12 AM → provides 12 AM UTC → we want 12 AM local
+  const utcTime = dateObj.getTime();
+  const dubaiOffset = 4 * 60 * 60 * 1000; // 4 hours in milliseconds
+  const localTime = new Date(utcTime - dubaiOffset);
+
+  return localTime;
 }
 
 /**
@@ -45,7 +51,7 @@ export function toLocal(date: Date | string): Date {
 export function formatDateInTimezone(
   date: Date | string,
   formatStr: string = DATE_FMT,
-  timezone: string = TZ
+  timezone: string = TZ,
 ): string {
   const dateObj = typeof date === 'string' ? parseISO(date) : date;
 
@@ -127,7 +133,7 @@ export function getAppointmentEndTimeUTC(appointmentDate: string, startTime: str
 export function formatAppointmentTimeRange(
   appointmentDate: string,
   startTime: string,
-  durationMinutes: number
+  durationMinutes: number,
 ): string {
   const startUTC = getAppointmentStartTimeUTC(appointmentDate, startTime);
   const endUTC = getAppointmentEndTimeUTC(appointmentDate, startTime, durationMinutes);
@@ -147,7 +153,7 @@ export function appointmentsOverlap(
   duration1: number,
   date2: string,
   startTime2: string,
-  duration2: number
+  duration2: number,
 ): boolean {
   const start1 = getAppointmentStartTimeUTC(date1, startTime1);
   const end1 = getAppointmentEndTimeUTC(date1, startTime1, duration1);
@@ -163,7 +169,7 @@ export function appointmentsOverlap(
 export function getWorkingHoursInTimezone(
   startTime: string,
   endTime: string,
-  timezone: string = TZ
+  timezone: string = TZ,
 ): { start: Date; end: Date } {
   const today = new Date();
   const startDate = new Date(today);
@@ -178,13 +184,13 @@ export function getWorkingHoursInTimezone(
   if (timezone === TZ) {
     return {
       start: toUTC(startDate),
-      end: toUTC(endDate)
+      end: toUTC(endDate),
     };
   }
 
   return {
     start: startDate,
-    end: endDate
+    end: endDate,
   };
 }
 
@@ -194,7 +200,7 @@ export function getWorkingHoursInTimezone(
 export function isWithinWorkingHours(
   time: string,
   startTime: string,
-  endTime: string
+  endTime: string,
 ): boolean {
   const [timeHours, timeMinutes] = time.split(':').map(Number);
   const [startHours, startMinutes] = startTime.split(':').map(Number);

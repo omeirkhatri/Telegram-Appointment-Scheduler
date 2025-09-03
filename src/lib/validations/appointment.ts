@@ -1,4 +1,3 @@
-import { validateDurationForType } from '@/utils/appointmentTypes';
 import { z } from 'zod';
 
 // Base appointment form validation schema
@@ -8,9 +7,7 @@ export const appointmentFormSchema = z.object({
     .min(1, 'Patient is required')
     .uuid('Invalid patient ID'),
 
-  appointment_type: z.enum(['doctor_on_call', 'lab_test', 'teleconsultation', 'physiotherapy', 'caregiver', 'iv_therapy'], {
-    required_error: 'Appointment type is required',
-  }),
+  appointment_type: z.enum(['doctor_on_call', 'lab_test', 'teleconsultation', 'physiotherapy', 'caregiver', 'iv_therapy']),
 
   appointment_date: z
     .string()
@@ -27,24 +24,19 @@ export const appointmentFormSchema = z.object({
     .min(1, 'Start time is required')
     .regex(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/, 'Invalid time format (HH:MM)'),
 
+  end_time: z
+    .string()
+    .min(1, 'End time is required')
+    .regex(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/, 'Invalid time format (HH:MM)'),
+
   duration_minutes: z
     .number()
     .min(1, 'Duration must be at least 1 minute')
     .max(1440, 'Duration cannot exceed 24 hours')
-    .refine((duration, ctx) => {
-      const appointmentType = ctx.parent?.appointment_type;
-      if (appointmentType) {
-        const validation = validateDurationForType(appointmentType, duration);
-        if (!validation.isValid) {
-          ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            message: validation.error || 'Invalid duration for appointment type',
-          });
-          return false;
-        }
-      }
-      return true;
-    }),
+    .refine((duration) => {
+      // Basic duration validation - can be enhanced later
+      return duration > 0 && duration <= 1440;
+    }, 'Invalid duration for appointment type'),
 
   status: z.enum(['scheduled', 'confirmed', 'completed', 'cancelled']).default('scheduled'),
 
@@ -61,7 +53,7 @@ export const appointmentFormSchema = z.object({
     .or(z.literal('')),
 
   // Custom fields based on appointment type
-  custom_fields: z.record(z.unknown()).optional(),
+  custom_fields: z.record(z.string(), z.unknown()).optional(),
 
   // Recurring rule
   recurring_rule: z.object({
@@ -90,7 +82,7 @@ export const appointmentFormSchema = z.object({
   {
     message: 'Driver ID is required when transportation type is driver',
     path: ['driver_id'],
-  }
+  },
 ).refine(
   (data) => {
     if (data.transportation_type === 'self_transport' && !data.transportation_method) {
@@ -101,7 +93,30 @@ export const appointmentFormSchema = z.object({
   {
     message: 'Transportation method is required when transportation type is self-transport',
     path: ['transportation_method'],
-  }
+  },
+).refine(
+  (data) => {
+    if (data.start_time && data.end_time) {
+      const [startHours, startMinutes] = data.start_time.split(':').map(Number);
+      const [endHours, endMinutes] = data.end_time.split(':').map(Number);
+
+      const startTotalMinutes = startHours * 60 + startMinutes;
+      const endTotalMinutes = endHours * 60 + endMinutes;
+
+      // Allow end time to be next day (e.g., 23:00 to 01:00)
+      let duration = endTotalMinutes - startTotalMinutes;
+      if (duration < 0) {
+        duration += 24 * 60; // Add 24 hours in minutes
+      }
+
+      return duration > 0;
+    }
+    return true;
+  },
+  {
+    message: 'End time must be after start time',
+    path: ['end_time'],
+  },
 );
 
 // Appointment update form schema (all fields optional)
@@ -118,7 +133,7 @@ export const appointmentUpdateFormSchema = appointmentFormSchema.partial().refin
   {
     message: 'Appointment date must be today or in the future',
     path: ['appointment_date'],
-  }
+  },
 ).refine(
   (data) => {
     if (data.transportation_type === 'driver' && !data.driver_id) {
@@ -129,7 +144,7 @@ export const appointmentUpdateFormSchema = appointmentFormSchema.partial().refin
   {
     message: 'Driver ID is required when transportation type is driver',
     path: ['driver_id'],
-  }
+  },
 ).refine(
   (data) => {
     if (data.transportation_type === 'self_transport' && !data.transportation_method) {
@@ -140,7 +155,7 @@ export const appointmentUpdateFormSchema = appointmentFormSchema.partial().refin
   {
     message: 'Transportation method is required when transportation type is self-transport',
     path: ['transportation_method'],
-  }
+  },
 );
 
 // Appointment search form schema

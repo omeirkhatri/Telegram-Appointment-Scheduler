@@ -7,7 +7,7 @@ import type {
     JobLog,
     JobLogger,
     JobSchedulerConfig,
-    JobStats
+    JobStats,
 } from '@/types/job';
 import * as cron from 'node-cron';
 import { v4 as uuidv4 } from 'uuid';
@@ -355,7 +355,7 @@ export class JobSchedulerService {
         {
           scheduled: false,
           timezone: job.timezone,
-        }
+        },
       );
 
       this.cronTasks.set(job.id, task);

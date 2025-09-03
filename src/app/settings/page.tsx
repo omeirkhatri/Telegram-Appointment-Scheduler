@@ -7,7 +7,7 @@ import {
     Database,
     Palette,
     Shield,
-    User
+    User,
 } from 'lucide-react';
 
 export default function SettingsPage() {
@@ -21,8 +21,8 @@ export default function SettingsPage() {
       items: [
         { name: 'Personal Information', description: 'Update your name, email, and contact details' },
         { name: 'Password', description: 'Change your account password' },
-        { name: 'Notifications', description: 'Configure email and push notifications' }
-      ]
+        { name: 'Notifications', description: 'Configure email and push notifications' },
+      ],
     },
     {
       id: 'appearance',
@@ -32,8 +32,8 @@ export default function SettingsPage() {
       items: [
         { name: 'Theme', description: 'Choose between light and dark themes' },
         { name: 'Language', description: 'Select your preferred language' },
-        { name: 'Time Zone', description: 'Set your local time zone' }
-      ]
+        { name: 'Time Zone', description: 'Set your local time zone' },
+      ],
     },
     {
       id: 'security',
@@ -43,8 +43,8 @@ export default function SettingsPage() {
       items: [
         { name: 'Two-Factor Authentication', description: 'Enable 2FA for enhanced security' },
         { name: 'Session Management', description: 'View and manage active sessions' },
-        { name: 'Privacy Settings', description: 'Control data sharing and privacy options' }
-      ]
+        { name: 'Privacy Settings', description: 'Control data sharing and privacy options' },
+      ],
     },
     {
       id: 'notifications',
@@ -54,8 +54,8 @@ export default function SettingsPage() {
       items: [
         { name: 'Email Notifications', description: 'Manage email notification preferences' },
         { name: 'Push Notifications', description: 'Configure push notification settings' },
-        { name: 'SMS Notifications', description: 'Set up SMS alerts for urgent matters' }
-      ]
+        { name: 'SMS Notifications', description: 'Set up SMS alerts for urgent matters' },
+      ],
     },
     {
       id: 'system',
@@ -65,9 +65,9 @@ export default function SettingsPage() {
       items: [
         { name: 'Data Export', description: 'Export your data in various formats' },
         { name: 'Backup Settings', description: 'Configure automatic backup preferences' },
-        { name: 'API Access', description: 'Manage API keys and integrations' }
-      ]
-    }
+        { name: 'API Access', description: 'Manage API keys and integrations' },
+      ],
+    },
   ];
 
   return (
@@ -128,7 +128,7 @@ export default function SettingsPage() {
                     <p className="text-xs text-[--muted-foreground]">Receive notifications via email</p>
                   </div>
                   <button className="w-12 h-6 bg-[--primary] rounded-full relative">
-                    <div className="w-4 h-4 bg-white rounded-full absolute right-1 top-1 transition-transform"></div>
+                    <div className="w-4 h-4 bg-white rounded-full absolute right-1 top-1 transition-transform" />
                   </button>
                 </div>
                 <div className="flex items-center justify-between">
@@ -137,7 +137,7 @@ export default function SettingsPage() {
                     <p className="text-xs text-[--muted-foreground]">Receive notifications via SMS</p>
                   </div>
                   <button className="w-12 h-6 bg-[--muted] rounded-full relative">
-                    <div className="w-4 h-4 bg-white rounded-full absolute left-1 top-1 transition-transform"></div>
+                    <div className="w-4 h-4 bg-white rounded-full absolute left-1 top-1 transition-transform" />
                   </button>
                 </div>
                 <div className="flex items-center justify-between">
@@ -146,7 +146,7 @@ export default function SettingsPage() {
                     <p className="text-xs text-[--muted-foreground]">Send appointment reminders</p>
                   </div>
                   <button className="w-12 h-6 bg-[--primary] rounded-full relative">
-                    <div className="w-4 h-4 bg-white rounded-full absolute right-1 top-1 transition-transform"></div>
+                    <div className="w-4 h-4 bg-white rounded-full absolute right-1 top-1 transition-transform" />
                   </button>
                 </div>
               </div>

@@ -196,7 +196,7 @@ export function createJobDefinition(
   name: string,
   cronExpression: string,
   handler: string,
-  options: Partial<JobDefinition> = {}
+  options: Partial<JobDefinition> = {},
 ): Omit<JobDefinition, 'id' | 'createdAt' | 'updatedAt'> {
   return {
     name,
@@ -218,7 +218,7 @@ export function createJobExecutionContext(
   jobId: string,
   executionId: string,
   parameters: Record<string, any> = {},
-  logger: JobLogger
+  logger: JobLogger,
 ): JobExecutionContext {
   return {
     jobId,

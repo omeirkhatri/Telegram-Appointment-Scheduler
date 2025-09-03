@@ -24,7 +24,7 @@ export class RetryError extends Error {
     message: string,
     public readonly attempts: number,
     public readonly lastError: Error,
-    public readonly totalTime: number
+    public readonly totalTime: number,
   ) {
     super(message);
     this.name = 'RetryError';
@@ -48,7 +48,7 @@ export const DEFAULT_RETRY_CONFIG: RetryConfig = {
 function calculateDelay(attempt: number, config: RetryConfig): number {
   const delay = Math.min(
     config.baseDelay * Math.pow(config.backoffMultiplier, attempt - 1),
-    config.maxDelay
+    config.maxDelay,
   );
 
   if (config.jitter) {
@@ -106,7 +106,7 @@ export function isRetryableError(error: any): boolean {
  */
 export async function retryWithBackoff<T>(
   operation: () => Promise<T>,
-  config: Partial<RetryConfig> = {}
+  config: Partial<RetryConfig> = {},
 ): Promise<RetryResult<T>> {
   const finalConfig = { ...DEFAULT_RETRY_CONFIG, ...config };
   const startTime = Date.now();
@@ -152,7 +152,7 @@ export async function retryWithBackoff<T>(
       `Operation failed after ${finalConfig.maxAttempts} attempts`,
       finalConfig.maxAttempts,
       lastError!,
-      Date.now() - startTime
+      Date.now() - startTime,
     ),
     attempts: finalConfig.maxAttempts,
     totalTime: Date.now() - startTime,

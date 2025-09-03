@@ -11,7 +11,7 @@ export function LoadingOverlay({
   isLoading,
   message = 'Loading...',
   spinnerSize = 'lg',
-  className = ''
+  className = '',
 }: LoadingOverlayProps) {
   if (!isLoading) return null;
 

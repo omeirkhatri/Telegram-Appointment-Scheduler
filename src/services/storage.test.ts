@@ -8,10 +8,10 @@ jest.mock('@/lib/supabase', () => ({
         upload: jest.fn(),
         createSignedUrl: jest.fn(),
         remove: jest.fn(),
-        list: jest.fn()
-      }))
-    }
-  }
+        list: jest.fn(),
+      })),
+    },
+  },
 }));
 
 describe('StorageService', () => {
@@ -25,7 +25,7 @@ describe('StorageService', () => {
         new File([''], 'test.jpg', { type: 'image/jpeg' }),
         new File([''], 'test.png', { type: 'image/png' }),
         new File([''], 'test.pdf', { type: 'application/pdf' }),
-        new File([''], 'test.webp', { type: 'image/webp' })
+        new File([''], 'test.webp', { type: 'image/webp' }),
       ];
 
       validFiles.forEach(file => {
@@ -74,12 +74,12 @@ describe('StorageService', () => {
     it('should upload valid files successfully', async () => {
       const mockUpload = jest.fn().mockResolvedValue({
         data: { path: 'id-documents/test-file.jpg' },
-        error: null
+        error: null,
       });
 
       const { supabase } = require('@/lib/supabase');
       supabase.storage.from.mockReturnValue({
-        upload: mockUpload
+        upload: mockUpload,
       });
 
       const file = new File(['test content'], 'test.jpg', { type: 'image/jpeg' });
@@ -95,8 +95,8 @@ describe('StorageService', () => {
         file,
         expect.objectContaining({
           cacheControl: '3600',
-          upsert: false
-        })
+          upsert: false,
+        }),
       );
     });
 
@@ -123,12 +123,12 @@ describe('StorageService', () => {
     it('should handle upload errors', async () => {
       const mockUpload = jest.fn().mockResolvedValue({
         data: null,
-        error: { message: 'Upload failed' }
+        error: { message: 'Upload failed' },
       });
 
       const { supabase } = require('@/lib/supabase');
       supabase.storage.from.mockReturnValue({
-        upload: mockUpload
+        upload: mockUpload,
       });
 
       const file = new File(['test content'], 'test.jpg', { type: 'image/jpeg' });
@@ -145,12 +145,12 @@ describe('StorageService', () => {
     it('should return signed URL for valid file path', async () => {
       const mockSignedUrl = jest.fn().mockResolvedValue({
         data: { signedUrl: 'https://example.com/signed-url' },
-        error: null
+        error: null,
       });
 
       const { supabase } = require('@/lib/supabase');
       supabase.storage.from.mockReturnValue({
-        createSignedUrl: mockSignedUrl
+        createSignedUrl: mockSignedUrl,
       });
 
       const filePath = 'id-documents/test-file.jpg';
@@ -163,12 +163,12 @@ describe('StorageService', () => {
     it('should return null for errors', async () => {
       const mockSignedUrl = jest.fn().mockResolvedValue({
         data: null,
-        error: { message: 'Failed to create signed URL' }
+        error: { message: 'Failed to create signed URL' },
       });
 
       const { supabase } = require('@/lib/supabase');
       supabase.storage.from.mockReturnValue({
-        createSignedUrl: mockSignedUrl
+        createSignedUrl: mockSignedUrl,
       });
 
       const filePath = 'id-documents/test-file.jpg';
@@ -181,12 +181,12 @@ describe('StorageService', () => {
   describe('deletePatientDocument', () => {
     it('should delete document successfully', async () => {
       const mockRemove = jest.fn().mockResolvedValue({
-        error: null
+        error: null,
       });
 
       const { supabase } = require('@/lib/supabase');
       supabase.storage.from.mockReturnValue({
-        remove: mockRemove
+        remove: mockRemove,
       });
 
       const filePath = 'id-documents/test-file.jpg';
@@ -198,12 +198,12 @@ describe('StorageService', () => {
 
     it('should return false for errors', async () => {
       const mockRemove = jest.fn().mockResolvedValue({
-        error: { message: 'Delete failed' }
+        error: { message: 'Delete failed' },
       });
 
       const { supabase } = require('@/lib/supabase');
       supabase.storage.from.mockReturnValue({
-        remove: mockRemove
+        remove: mockRemove,
       });
 
       const filePath = 'id-documents/test-file.jpg';
@@ -222,15 +222,15 @@ describe('StorageService', () => {
             name: 'document1.jpg',
             metadata: { size: 1024, mimetype: 'image/jpeg' },
             created_at: '2024-01-01T00:00:00Z',
-            updated_at: '2024-01-01T00:00:00Z'
-          }
+            updated_at: '2024-01-01T00:00:00Z',
+          },
         ],
-        error: null
+        error: null,
       });
 
       const { supabase } = require('@/lib/supabase');
       supabase.storage.from.mockReturnValue({
-        list: mockList
+        list: mockList,
       });
 
       const patientId = '123e4567-e89b-12d3-a456-426614174000';
@@ -240,19 +240,19 @@ describe('StorageService', () => {
       expect(result[0].name).toBe('document1.jpg');
       expect(result[0].size).toBe(1024);
       expect(mockList).toHaveBeenCalledWith('id-documents', {
-        search: patientId
+        search: patientId,
       });
     });
 
     it('should return empty array for errors', async () => {
       const mockList = jest.fn().mockResolvedValue({
         data: null,
-        error: { message: 'List failed' }
+        error: { message: 'List failed' },
       });
 
       const { supabase } = require('@/lib/supabase');
       supabase.storage.from.mockReturnValue({
-        list: mockList
+        list: mockList,
       });
 
       const patientId = '123e4567-e89b-12d3-a456-426614174000';

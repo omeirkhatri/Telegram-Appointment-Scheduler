@@ -6,14 +6,14 @@ import type {
     AgendaEmailData,
     AppointmentWithDetails,
     EmailDeliveryStatus,
-    StaffEmailPreferences
+    StaffEmailPreferences,
 } from '@/types/email';
 import {
     formatAppointmentTime,
     formatDubaiDate,
     getAgendaDate,
     getDubaiDayRange,
-    getStaffForDailyAgenda
+    getStaffForDailyAgenda,
 } from '@/utils/timezone';
 import { emailService } from './emailService';
 
@@ -68,7 +68,7 @@ export class StaffAggregationService {
             to: staff.email,
             subject: agendaData.subject,
             html: emailTemplateEngine.renderAgendaTemplate(agendaData),
-            from: `MediCare Scheduler <noreply@medicare.com>`,
+            from: 'MediCare Scheduler <noreply@medicare.com>',
           }, {
             emailType: 'daily_agenda',
             staffId: staff.id,
@@ -116,7 +116,7 @@ export class StaffAggregationService {
 
       const successRate = eligibleStaff.length > 0 ? (emailsSent / eligibleStaff.length) * 100 : 100;
 
-      console.log(`📊 Daily agenda generation completed:`, {
+      console.log('📊 Daily agenda generation completed:', {
         totalStaff: eligibleStaff.length,
         emailsSent,
         emailsFailed,
@@ -163,7 +163,7 @@ export class StaffAggregationService {
 
     // Transform appointments to agenda format
     const agendaAppointments: AgendaAppointment[] = await Promise.all(
-      appointments.map(appointment => this.transformAppointmentToAgenda(appointment))
+      appointments.map(appointment => this.transformAppointmentToAgenda(appointment)),
     );
 
     // Sort appointments by start time
@@ -281,7 +281,7 @@ export class StaffAggregationService {
           ...appointment,
           driver,
         } as AppointmentWithDetails;
-      })
+      }),
     );
 
     return appointmentsWithDrivers;
@@ -294,7 +294,7 @@ export class StaffAggregationService {
     const { startTime, endTime } = formatAppointmentTime(
       appointment.appointment_date,
       appointment.start_time,
-      appointment.duration_minutes
+      appointment.duration_minutes,
     );
 
     const appointmentTypeDisplay = appointment.appointment_type
@@ -388,7 +388,7 @@ export class StaffAggregationService {
    */
   async updateStaffEmailPreferences(
     staffId: string,
-    preferences: Partial<StaffEmailPreferences>
+    preferences: Partial<StaffEmailPreferences>,
   ): Promise<StaffEmailPreferences> {
     const updateData: any = {};
 
@@ -452,11 +452,11 @@ export class StaffAggregationService {
           .from('appointments')
           .select('id')
           .eq('appointment_date', dateString)
-          .eq('status', 'scheduled')
+          .eq('status', 'scheduled'),
       );
 
     const uniqueStaffWithAppointments = new Set(
-      staffWithAppointmentsData?.map(item => item.staff_id) || []
+      staffWithAppointmentsData?.map(item => item.staff_id) || [],
     ).size;
 
     return {

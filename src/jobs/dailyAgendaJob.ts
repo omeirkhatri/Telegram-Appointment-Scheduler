@@ -4,7 +4,7 @@ import type {
     DailyAgendaJobParameters,
     DailyAgendaJobResult,
     JobExecutionContext,
-    JobHandler
+    JobHandler,
 } from '@/types/job';
 import { formatDubaiDate, getAgendaDate, getNextDailyAgendaTime } from '@/utils/timezone';
 
@@ -128,7 +128,7 @@ async function generateStaffSpecificAgenda(
   staffId: string,
   date: Date,
   testMode: boolean,
-  logger: JobExecutionContext['logger']
+  logger: JobExecutionContext['logger'],
 ): Promise<{
   success: boolean;
   stats: {
@@ -177,7 +177,7 @@ async function generateStaffSpecificAgenda(
   } catch (error) {
     logger.error('Failed to generate staff-specific agenda', {
       staffId,
-      error: error instanceof Error ? error.message : 'Unknown error'
+      error: error instanceof Error ? error.message : 'Unknown error',
     });
 
     return {

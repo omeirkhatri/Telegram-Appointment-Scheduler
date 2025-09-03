@@ -35,7 +35,7 @@ export class EmailDeliveryService implements IEmailDeliveryService {
    * Log a delivery attempt
    */
   async logDeliveryAttempt(
-    logData: Omit<EmailDeliveryLog, 'id' | 'createdAt' | 'updatedAt'>
+    logData: Omit<EmailDeliveryLog, 'id' | 'createdAt' | 'updatedAt'>,
   ): Promise<EmailDeliveryLog> {
     try {
       const { data, error } = await supabase
@@ -81,7 +81,7 @@ export class EmailDeliveryService implements IEmailDeliveryService {
   async updateDeliveryStatus(
     logId: string,
     status: EmailDeliveryLog['status'],
-    error?: string
+    error?: string,
   ): Promise<EmailDeliveryLog> {
     try {
       const updateData: any = {
@@ -128,7 +128,7 @@ export class EmailDeliveryService implements IEmailDeliveryService {
    */
   async addDeliveryAttempt(
     logId: string,
-    attemptData: Omit<EmailDeliveryAttempt, 'id' | 'deliveryLogId'>
+    attemptData: Omit<EmailDeliveryAttempt, 'id' | 'deliveryLogId'>,
   ): Promise<EmailDeliveryAttempt> {
     try {
       const { data, error } = await supabase

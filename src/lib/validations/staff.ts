@@ -16,9 +16,7 @@ export const staffFormSchema = z.object({
     .max(50, 'Last name must be less than 50 characters')
     .regex(/^[a-zA-Z\s]+$/, 'Last name can only contain letters and spaces'),
 
-  staff_type: z.enum(['doctor', 'nurse', 'physiotherapist', 'caregiver', 'driver', 'lab_technician'], {
-    required_error: 'Staff type is required',
-  }),
+  staff_type: z.enum(['doctor', 'nurse', 'physiotherapist', 'caregiver', 'driver', 'lab_technician']),
 
   specialization: z
     .string()
@@ -58,9 +56,7 @@ export const staffFormSchema = z.object({
     .string()
     .regex(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/, 'Invalid time format (HH:MM)'),
 
-  status: z.enum(['active', 'inactive'], {
-    required_error: 'Status is required',
-  }),
+  status: z.enum(['active', 'inactive']),
 
   email_notifications_enabled: z.boolean().default(true),
 }).refine(
@@ -72,7 +68,7 @@ export const staffFormSchema = z.object({
   {
     message: 'Working hours start must be before end time',
     path: ['working_hours_end'],
-  }
+  },
 );
 
 // Staff update form schema (all fields optional)
@@ -88,7 +84,7 @@ export const staffUpdateFormSchema = staffFormSchema.partial().refine(
   {
     message: 'Working hours start must be before end time',
     path: ['working_hours_end'],
-  }
+  },
 );
 
 // Staff search form schema

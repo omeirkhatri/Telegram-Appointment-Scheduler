@@ -6,13 +6,11 @@ export const patientFormSchema = z.object({
     .string()
     .min(1, 'Name is required')
     .min(2, 'Name must be at least 2 characters')
-    .max(100, 'Name must be less than 100 characters')
-    .regex(/^[a-zA-Z\s]+$/, 'Name can only contain letters and spaces'),
+    .max(100, 'Name must be less than 100 characters'),
 
   phone: z
     .string()
     .min(1, 'Phone number is required')
-    .regex(/^[+]?[0-9\s\-\(\)]+$/, 'Invalid phone number format')
     .min(8, 'Phone number must be at least 8 digits')
     .max(20, 'Phone number must be less than 20 characters'),
 
@@ -38,7 +36,6 @@ export const patientFormSchema = z.object({
 
   google_maps_link: z
     .string()
-    .url('Invalid Google Maps URL')
     .optional()
     .or(z.literal('')),
 
@@ -60,14 +57,11 @@ export const patientFormSchema = z.object({
     .optional()
     .or(z.literal('')),
 
-  id_document: z
-    .instanceof(File)
-    .refine((file) => file.size <= 10 * 1024 * 1024, 'File size must be less than 10MB')
-    .refine(
-      (file) => ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'application/pdf', 'image/webp'].includes(file.type),
-      'File must be JPEG, PNG, GIF, PDF, or WebP'
-    )
-    .optional(),
+  id_document_url: z
+    .string()
+    .url('Please enter a valid URL')
+    .optional()
+    .or(z.literal('')),
 });
 
 // Patient update form schema (all fields optional)

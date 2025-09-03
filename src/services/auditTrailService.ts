@@ -72,7 +72,7 @@ export class AuditTrailService implements IAuditTrailService {
    */
   async updateAuditTrail(
     audit_trail_id: string,
-    request: UpdateAuditTrailRequest
+    request: UpdateAuditTrailRequest,
   ): Promise<AuditTrailOperationResult> {
     try {
       const updateData: any = {
@@ -387,7 +387,7 @@ export class AuditTrailService implements IAuditTrailService {
       override_conflicts?: boolean;
       metadata?: Record<string, any>;
       notes?: string;
-    }
+    },
   ): Promise<string> {
     const operationId = this.generateOperationId();
 
@@ -430,7 +430,7 @@ export class AuditTrailService implements IAuditTrailService {
         error: string;
       }>;
       notes?: string;
-    }
+    },
   ): Promise<void> {
     const completedAt = new Date().toISOString();
 

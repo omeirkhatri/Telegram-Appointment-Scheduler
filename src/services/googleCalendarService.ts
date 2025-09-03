@@ -4,7 +4,7 @@ import {
     resolveConflicts,
     validateAppointmentForSync,
     type CalendarEvent,
-    type ConflictInfo
+    type ConflictInfo,
 } from '@/lib/conflictResolution';
 import { googleCalendarAuth } from '@/lib/googleCalendarAuth';
 import { operationQueue } from '@/lib/operationQueue';
@@ -69,7 +69,7 @@ export class GoogleCalendarService {
         timeMax: endDate,
         singleEvents: true,
         orderBy: 'startTime',
-        maxResults: 2500
+        maxResults: 2500,
       });
 
       return response.data.items || [];
@@ -94,7 +94,7 @@ export class GoogleCalendarService {
       staffId?: string;
       priority?: 'low' | 'medium' | 'high' | 'critical';
       useQueue?: boolean;
-    } = {}
+    } = {},
   ): Promise<string> {
     const { appointmentId, staffId, priority = 'medium', useQueue = false } = options;
 
@@ -125,7 +125,7 @@ export class GoogleCalendarService {
       const response = await calendar.events.insert({
         calendarId: calendarId,
         requestBody: eventData,
-        sendUpdates: 'all' // Notify attendees
+        sendUpdates: 'all', // Notify attendees
       });
 
       return response.data.id!;
@@ -171,7 +171,7 @@ export class GoogleCalendarService {
       staffId?: string;
       priority?: 'low' | 'medium' | 'high' | 'critical';
       useQueue?: boolean;
-    } = {}
+    } = {},
   ): Promise<void> {
     const { appointmentId, staffId, priority = 'medium', useQueue = false } = options;
 
@@ -199,7 +199,7 @@ export class GoogleCalendarService {
         calendarId: calendarId,
         eventId: eventId,
         requestBody: eventData,
-        sendUpdates: 'all' // Notify attendees
+        sendUpdates: 'all', // Notify attendees
       });
     }, RETRY_CONFIGS.write);
 
@@ -237,7 +237,7 @@ export class GoogleCalendarService {
       staffId?: string;
       priority?: 'low' | 'medium' | 'high' | 'critical';
       useQueue?: boolean;
-    } = {}
+    } = {},
   ): Promise<void> {
     const { appointmentId, staffId, priority = 'medium', useQueue = false } = options;
 
@@ -263,7 +263,7 @@ export class GoogleCalendarService {
       await calendar.events.delete({
         calendarId: calendarId,
         eventId: eventId,
-        sendUpdates: 'all' // Notify attendees
+        sendUpdates: 'all', // Notify attendees
       });
     }, RETRY_CONFIGS.critical); // Use critical config for deletions
 
@@ -374,7 +374,7 @@ export class GoogleCalendarService {
     return {
       hasServiceAccount: googleCalendarAuth.hasServiceAccountAuth(),
       hasApiKey: googleCalendarAuth.hasApiKeyAuth(),
-      isInitialized: googleCalendarAuth.hasServiceAccountAuth() || googleCalendarAuth.hasApiKeyAuth()
+      isInitialized: googleCalendarAuth.hasServiceAccountAuth() || googleCalendarAuth.hasApiKeyAuth(),
     };
   }
 
@@ -422,14 +422,14 @@ export class GoogleCalendarService {
     appointment: Appointment,
     patient: Patient,
     staff?: Staff,
-    assignedStaff?: Staff[]
+    assignedStaff?: Staff[],
   ): Promise<string> {
     try {
       const eventData = CalendarEventFormatter.createEventData(
         appointment,
         patient,
         staff,
-        assignedStaff
+        assignedStaff,
       );
 
       const calendarId = staff?.google_calendar_id;
@@ -448,7 +448,7 @@ export class GoogleCalendarService {
   async createStaffSpecificEvent(
     appointment: Appointment,
     patient: Patient,
-    staff: Staff
+    staff: Staff,
   ): Promise<string> {
     try {
       switch (staff.staff_type) {
@@ -475,7 +475,7 @@ export class GoogleCalendarService {
   async createEventsForAllStaff(
     appointment: Appointment,
     patient: Patient,
-    assignedStaff: Staff[]
+    assignedStaff: Staff[],
   ): Promise<Record<string, string>> {
     const eventIds: Record<string, string> = {};
 
@@ -496,7 +496,7 @@ export class GoogleCalendarService {
   async createDriverEvent(
     appointment: Appointment,
     patient: Patient,
-    driver: Staff
+    driver: Staff,
   ): Promise<string> {
     try {
       const eventData = {
@@ -504,7 +504,7 @@ export class GoogleCalendarService {
         description: CalendarEventFormatter.createDriverEventDescription(
           appointment,
           patient,
-          driver
+          driver,
         ),
         start: {
           dateTime: formatForGoogleCalendar(appointment.appointment_date, appointment.start_time),
@@ -513,7 +513,7 @@ export class GoogleCalendarService {
         end: {
           dateTime: formatForGoogleCalendar(
             appointment.appointment_date,
-            getAppointmentEndTime(appointment.start_time, appointment.duration_minutes)
+            getAppointmentEndTime(appointment.start_time, appointment.duration_minutes),
           ),
           timeZone: 'Asia/Dubai',
         },
@@ -537,7 +537,7 @@ export class GoogleCalendarService {
   async createMedicalStaffEvent(
     appointment: Appointment,
     patient: Patient,
-    medicalStaff: Staff
+    medicalStaff: Staff,
   ): Promise<string> {
     try {
       const eventData = {
@@ -545,7 +545,7 @@ export class GoogleCalendarService {
         description: CalendarEventFormatter.createMedicalStaffEventDescription(
           appointment,
           patient,
-          medicalStaff
+          medicalStaff,
         ),
         start: {
           dateTime: formatForGoogleCalendar(appointment.appointment_date, appointment.start_time),
@@ -554,7 +554,7 @@ export class GoogleCalendarService {
         end: {
           dateTime: formatForGoogleCalendar(
             appointment.appointment_date,
-            getAppointmentEndTime(appointment.start_time, appointment.duration_minutes)
+            getAppointmentEndTime(appointment.start_time, appointment.duration_minutes),
           ),
           timeZone: 'Asia/Dubai',
         },
@@ -648,7 +648,7 @@ export class GoogleCalendarService {
   async checkAppointmentConflicts(
     appointment: Appointment,
     staff: Staff,
-    calendarEvents: CalendarEvent[]
+    calendarEvents: CalendarEvent[],
   ): Promise<ConflictInfo[]> {
     // Find the corresponding calendar event for this appointment
     const eventId = appointment.google_event_ids?.[staff.id];
@@ -674,7 +674,7 @@ export class GoogleCalendarService {
   async resolveAppointmentConflicts(
     appointment: Appointment,
     staff: Staff,
-    calendarEvents: CalendarEvent[]
+    calendarEvents: CalendarEvent[],
   ): Promise<{
     resolved: boolean;
     action: string;
@@ -728,7 +728,7 @@ export class GoogleCalendarService {
     options: {
       forceSync?: boolean;
       priority?: 'low' | 'medium' | 'high' | 'critical';
-    } = {}
+    } = {},
   ): Promise<{
     success: boolean;
     eventId?: string;
@@ -746,14 +746,14 @@ export class GoogleCalendarService {
       const calendarEvents = await this.getCalendarEvents(
         staff.google_calendar_id!,
         startDate.toISOString(),
-        endDate.toISOString()
+        endDate.toISOString(),
       );
 
       // Check for conflicts
       const conflictResult = await this.resolveAppointmentConflicts(
         appointment,
         staff,
-        calendarEvents
+        calendarEvents,
       );
 
       if (conflictResult.requiresManualReview && !forceSync) {
@@ -774,7 +774,7 @@ export class GoogleCalendarService {
           { name: appointment.patient_name || 'Unknown' } as any, // Simplified patient object
           staff,
           undefined,
-          { staffId: staff.id, appointmentId: appointment.id, priority }
+          { staffId: staff.id, appointmentId: appointment.id, priority },
         );
 
         return {
@@ -797,12 +797,12 @@ export class GoogleCalendarService {
             end: {
               dateTime: formatForGoogleCalendar(
                 appointment.appointment_date,
-                getAppointmentEndTime(appointment.start_time, appointment.duration_minutes)
+                getAppointmentEndTime(appointment.start_time, appointment.duration_minutes),
               ),
               timeZone: 'Asia/Dubai',
             },
           },
-          { staffId: staff.id, appointmentId: appointment.id, priority }
+          { staffId: staff.id, appointmentId: appointment.id, priority },
         );
 
         return {

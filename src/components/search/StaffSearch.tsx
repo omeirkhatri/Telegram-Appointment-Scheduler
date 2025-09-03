@@ -116,7 +116,7 @@ function StaffSearchForm({ onSearch, onReset, isLoading }: StaffSearchFormProps)
             value={filters.has_google_calendar ? 'true' : filters.has_google_calendar === false ? 'false' : ''}
             onChange={(e) => setFilters(prev => ({
               ...prev,
-              has_google_calendar: e.target.value === 'true' ? true : e.target.value === 'false' ? false : undefined
+              has_google_calendar: e.target.value === 'true' ? true : e.target.value === 'false' ? false : undefined,
             }))}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
@@ -335,7 +335,7 @@ export function StaffSearch({ onStaffSelect, showFilters = true, className = '' 
       {/* Loading State */}
       {isLoading && (
         <div className="flex justify-center py-8">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
         </div>
       )}
 

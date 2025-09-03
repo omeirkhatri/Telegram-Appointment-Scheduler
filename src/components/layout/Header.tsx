@@ -8,7 +8,7 @@ import {
     Sun,
     UserCheck,
     Users,
-    X
+    X,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 

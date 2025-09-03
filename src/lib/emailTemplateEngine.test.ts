@@ -34,7 +34,7 @@ describe('EmailTemplateEngine', () => {
         subject: 'Test',
         content: '',
         date: '2024-01-01',
-        title: 'Test Title'
+        title: 'Test Title',
       });
 
       expect(mockReadFileSync).toHaveBeenCalledWith('src/templates/email/base.html', 'utf-8');
@@ -50,7 +50,7 @@ describe('EmailTemplateEngine', () => {
         subject: 'Test',
         content: '',
         date: '2024-01-01',
-        title: 'Test Title'
+        title: 'Test Title',
       });
 
       // Second call should use cache
@@ -58,7 +58,7 @@ describe('EmailTemplateEngine', () => {
         subject: 'Test',
         content: '',
         date: '2024-01-01',
-        title: 'Test Title'
+        title: 'Test Title',
       });
 
       expect(mockReadFileSync).toHaveBeenCalledTimes(1);
@@ -73,7 +73,7 @@ describe('EmailTemplateEngine', () => {
         templateEngine.renderBaseTemplate({
           subject: 'Test',
           content: '',
-          date: '2024-01-01'
+          date: '2024-01-01',
         });
       }).toThrow('Failed to load email template: base.html');
     });
@@ -86,14 +86,14 @@ describe('EmailTemplateEngine', () => {
 
       const data: TemplateVariables = {
         title: 'Test Title',
-        description: 'Test Description'
+        description: 'Test Description',
       };
 
       const result = templateEngine.renderBaseTemplate({
         subject: 'Test',
         content: '',
         date: '2024-01-01',
-        ...data
+        ...data,
       });
 
       expect(result).toBe('<h1>Test Title</h1><p>Test Description</p>');
@@ -106,15 +106,15 @@ describe('EmailTemplateEngine', () => {
       const data: TemplateVariables = {
         user: {
           name: 'John Doe',
-          email: 'john@example.com'
-        }
+          email: 'john@example.com',
+        },
       };
 
       const result = templateEngine.renderBaseTemplate({
         subject: 'Test',
         content: '',
         date: '2024-01-01',
-        ...data
+        ...data,
       });
 
       expect(result).toBe('<h1>John Doe</h1><p>john@example.com</p>');
@@ -133,14 +133,14 @@ describe('EmailTemplateEngine', () => {
 
       const data: TemplateVariables = {
         showTitle: true,
-        title: 'Test Title'
+        title: 'Test Title',
       };
 
       const result = templateEngine.renderBaseTemplate({
         subject: 'Test',
         content: '',
         date: '2024-01-01',
-        ...data
+        ...data,
       });
 
       expect(result).toContain('<h1>Test Title</h1>');
@@ -160,14 +160,14 @@ describe('EmailTemplateEngine', () => {
 
       const data: TemplateVariables = {
         showTitle: false,
-        title: 'Test Title'
+        title: 'Test Title',
       };
 
       const result = templateEngine.renderBaseTemplate({
         subject: 'Test',
         content: '',
         date: '2024-01-01',
-        ...data
+        ...data,
       });
 
       expect(result).not.toContain('<h1>Test Title</h1>');
@@ -187,15 +187,15 @@ describe('EmailTemplateEngine', () => {
       const data: TemplateVariables = {
         items: [
           { name: 'Item 1', value: 'Value 1' },
-          { name: 'Item 2', value: 'Value 2' }
-        ]
+          { name: 'Item 2', value: 'Value 2' },
+        ],
       };
 
       const result = templateEngine.renderBaseTemplate({
         subject: 'Test',
         content: '',
         date: '2024-01-01',
-        ...data
+        ...data,
       });
 
       expect(result).toContain('<li>Item 1 - Value 1</li>');
@@ -213,14 +213,14 @@ describe('EmailTemplateEngine', () => {
       mockReadFileSync.mockReturnValue(mockTemplate);
 
       const data: TemplateVariables = {
-        items: []
+        items: [],
       };
 
       const result = templateEngine.renderBaseTemplate({
         subject: 'Test',
         content: '',
         date: '2024-01-01',
-        ...data
+        ...data,
       });
 
       expect(result).toBe('<ul></ul>');
@@ -262,11 +262,11 @@ describe('EmailTemplateEngine', () => {
             patientName: 'John Doe',
             patientPhone: '+971501234567',
             patientAddress: '123 Main St, Dubai',
-            notes: 'Regular checkup'
-          }
+            notes: 'Regular checkup',
+          },
         ],
         totalAppointments: 1,
-        multipleAppointments: false
+        multipleAppointments: false,
       };
 
       const result = templateEngine.renderAgendaTemplate(agendaData);
@@ -301,7 +301,7 @@ describe('EmailTemplateEngine', () => {
         staffEmail: 'dr.smith@example.com',
         appointments: [],
         totalAppointments: 0,
-        multipleAppointments: false
+        multipleAppointments: false,
       };
 
       const result = templateEngine.renderAgendaTemplate(agendaData);
@@ -321,7 +321,7 @@ describe('EmailTemplateEngine', () => {
         subject: 'Test',
         content: '',
         date: '2024-01-01',
-        title: 'Test'
+        title: 'Test',
       });
 
       expect(templateEngine.getCachedTemplates()).toContain('base.html');
@@ -394,9 +394,9 @@ describe('EmailTemplateUtils', () => {
           {
             startTime: '09:00',
             endTime: '10:00',
-            patientName: 'John Doe'
-          }
-        ]
+            patientName: 'John Doe',
+          },
+        ],
       };
 
       const result = EmailTemplateUtils.validateTemplateData(data);
@@ -411,8 +411,8 @@ describe('EmailTemplateUtils', () => {
           {
             startTime: '09:00',
             // Missing endTime and patientName
-          }
-        ]
+          },
+        ],
       };
 
       const result = EmailTemplateUtils.validateTemplateData(data);
@@ -423,7 +423,7 @@ describe('EmailTemplateUtils', () => {
 
     it('should return error for missing date', () => {
       const data: TemplateVariables = {
-        appointments: []
+        appointments: [],
       };
 
       const result = EmailTemplateUtils.validateTemplateData(data);

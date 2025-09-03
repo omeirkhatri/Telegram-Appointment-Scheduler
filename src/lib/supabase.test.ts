@@ -82,7 +82,7 @@ describe('Supabase Client', () => {
         'TEST_CODE',
         'Test details',
         'Test hint',
-        true
+        true,
       );
 
       expect(error.message).toBe('Test error');

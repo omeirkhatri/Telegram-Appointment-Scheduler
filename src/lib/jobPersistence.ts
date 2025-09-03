@@ -78,7 +78,7 @@ export class JobPersistence {
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
       const recentExecutions = executions.filter(exec =>
-        new Date(exec.startedAt) > thirtyDaysAgo
+        new Date(exec.startedAt) > thirtyDaysAgo,
       );
 
       writeFileSync(this.executionsFile, JSON.stringify(recentExecutions, null, 2));

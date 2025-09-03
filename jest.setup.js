@@ -44,34 +44,56 @@ jest.mock('next/navigation', () => ({
   },
 }));
 
-// Mock Supabase
-jest.mock('./src/lib/supabase', () => ({
-  supabase: {
-    from: jest.fn(() => ({
-      select: jest.fn(() => ({
-        eq: jest.fn(() => ({
-          single: jest.fn(() => Promise.resolve({ data: null, error: null })),
-        })),
-        limit: jest.fn(() => Promise.resolve({ data: [], error: null })),
-      })),
-      insert: jest.fn(() => Promise.resolve({ data: null, error: null })),
-      update: jest.fn(() => Promise.resolve({ data: null, error: null })),
-      delete: jest.fn(() => Promise.resolve({ data: null, error: null })),
-    })),
-    auth: {
-      getUser: jest.fn(() => Promise.resolve({ data: { user: null }, error: null })),
-      signInWithPassword: jest.fn(() => Promise.resolve({ data: null, error: null })),
-      signOut: jest.fn(() => Promise.resolve({ error: null })),
-    },
+// Mock Next.js server-side APIs
+jest.mock('next/server', () => ({
+  NextRequest: class MockNextRequest {
+    constructor(url, init = {}) {
+      this.url = url;
+      this.method = init.method || 'GET';
+      this.headers = new Map(Object.entries(init.headers || {}));
+      this._body = init.body;
+    }
+
+    async json() {
+      if (this._body) {
+        return JSON.parse(this._body);
+      }
+      return {};
+    }
+
+    async text() {
+      return this._body || '';
+    }
+
+    async formData() {
+      return new FormData();
+    }
   },
-  getServiceRoleClient: jest.fn(() => ({
-    from: jest.fn(() => ({
-      select: jest.fn(() => Promise.resolve({ data: [], error: null })),
-      insert: jest.fn(() => Promise.resolve({ data: null, error: null })),
-      update: jest.fn(() => Promise.resolve({ data: null, error: null })),
-      delete: jest.fn(() => Promise.resolve({ data: null, error: null })),
+  NextResponse: {
+    json: jest.fn((data, init = {}) => ({
+      json: () => Promise.resolve(data),
+      status: init.status || 200,
+      headers: new Map(Object.entries(init.headers || {})),
     })),
-  })),
+    text: jest.fn((text, init = {}) => ({
+      text: () => Promise.resolve(text),
+      status: init.status || 200,
+      headers: new Map(Object.entries(init.headers || {})),
+    })),
+  },
+}));
+
+// Mock Supabase with comprehensive query builder support
+const { mockSupabaseClient, resetMockSupabase } = require('./src/utils/supabase-mocks');
+
+// Initialize mock data
+resetMockSupabase();
+
+jest.mock('./src/lib/supabase', () => ({
+  supabase: mockSupabaseClient,
+  getServiceRoleClient: jest.fn(() => mockSupabaseClient),
+  checkConnection: jest.fn(() => Promise.resolve(true)),
+  executeQuery: jest.fn((queryFn) => queryFn()),
 }));
 
 // Mock environment configuration

@@ -49,7 +49,7 @@ describe('PatientForm', () => {
         onSubmit={mockOnSubmit}
         onCancel={mockOnCancel}
         isLoading={false}
-      />
+      />,
     );
 
     expect(screen.getByText('Basic Information')).toBeInTheDocument();
@@ -76,7 +76,7 @@ describe('PatientForm', () => {
         onSubmit={mockOnSubmit}
         onCancel={mockOnCancel}
         isLoading={false}
-      />
+      />,
     );
 
     expect(screen.getByText('Update Patient')).toBeInTheDocument();
@@ -97,7 +97,7 @@ describe('PatientForm', () => {
         onSubmit={mockOnSubmit}
         onCancel={mockOnCancel}
         isLoading={true}
-      />
+      />,
     );
 
     expect(screen.getByText('Saving...')).toBeInTheDocument();
@@ -121,7 +121,7 @@ describe('PatientForm', () => {
         onSubmit={mockOnSubmit}
         onCancel={mockOnCancel}
         isLoading={false}
-      />
+      />,
     );
 
     const fileInput = screen.getByLabelText(/Upload ID Document/i);
@@ -150,7 +150,7 @@ describe('PatientForm', () => {
         onSubmit={mockOnSubmit}
         onCancel={mockOnCancel}
         isLoading={false}
-      />
+      />,
     );
 
     const fileInput = screen.getByLabelText(/Upload ID Document/i);
@@ -178,7 +178,7 @@ describe('PatientForm', () => {
         onSubmit={mockOnSubmit}
         onCancel={mockOnCancel}
         isLoading={false}
-      />
+      />,
     );
 
     const cancelButton = screen.getByText('Cancel');
@@ -207,7 +207,7 @@ describe('PatientForm', () => {
         onSubmit={mockOnSubmit}
         onCancel={mockOnCancel}
         isLoading={false}
-      />
+      />,
     );
 
     expect(screen.getByText('Name is required')).toBeInTheDocument();
@@ -229,7 +229,7 @@ describe('PatientForm', () => {
         onSubmit={mockOnSubmit}
         onCancel={mockOnCancel}
         isLoading={false}
-      />
+      />,
     );
 
     // Check for all form sections
@@ -263,7 +263,7 @@ describe('PatientForm', () => {
         onSubmit={mockOnSubmit}
         onCancel={mockOnCancel}
         isLoading={false}
-      />
+      />,
     );
 
     const transportSelect = screen.getByLabelText(/Preferred Transportation Method/i);

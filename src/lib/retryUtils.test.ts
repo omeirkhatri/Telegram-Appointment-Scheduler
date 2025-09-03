@@ -3,7 +3,7 @@ import {
     isRetryableError,
     RETRY_CONFIGS,
     retryWithBackoff,
-    type RetryConfig
+    type RetryConfig,
 } from './retryUtils';
 
 // Use real timers for retry tests since fake timers don't work well with async retry logic
@@ -35,14 +35,14 @@ describe('retryUtils', () => {
     it('should identify quota errors as retryable', () => {
       expect(isRetryableError({
         code: 403,
-        message: 'quota exceeded'
+        message: 'quota exceeded',
       })).toBe(true);
     });
 
     it('should identify timeout errors as retryable', () => {
       expect(isRetryableError({ code: 'TIMEOUT' })).toBe(true);
       expect(isRetryableError({
-        message: 'request timeout'
+        message: 'request timeout',
       })).toBe(true);
     });
 
@@ -55,7 +55,7 @@ describe('retryUtils', () => {
     it('should not identify validation errors as retryable', () => {
       expect(isRetryableError({
         code: 400,
-        message: 'invalid input'
+        message: 'invalid input',
       })).toBe(false);
     });
   });
@@ -99,7 +99,7 @@ describe('retryUtils', () => {
     it('should not retry non-retryable errors', async () => {
       const operation = jest.fn().mockRejectedValue({
         code: 400,
-        message: 'bad request'
+        message: 'bad request',
       });
 
       const result = await retryWithBackoff(operation);

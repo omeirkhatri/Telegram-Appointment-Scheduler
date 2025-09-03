@@ -73,6 +73,200 @@
   outline-offset: 2px;
 }
 
+/* Calendar styling for better readability */
+.fc {
+  font-family: inherit;
+}
+
+/* Header toolbar styling */
+.fc-toolbar {
+  background-color: #374151 !important;
+  color: #ffffff !important;
+  padding: 1rem !important;
+  border-radius: 0.5rem 0.5rem 0 0 !important;
+}
+
+.fc-toolbar-title {
+  color: #ffffff !important;
+  font-weight: 600 !important;
+  font-size: 1.25rem !important;
+}
+
+.fc-button {
+  background-color: #4b5563 !important;
+  border-color: #4b5563 !important;
+  color: #ffffff !important;
+  font-weight: 500 !important;
+}
+
+.fc-button:hover {
+  background-color: #6b7280 !important;
+  border-color: #6b7280 !important;
+}
+
+.fc-button:focus {
+  box-shadow: 0 0 0 2px #3b82f6 !important;
+}
+
+.fc-button-active {
+  background-color: #3b82f6 !important;
+  border-color: #3b82f6 !important;
+}
+
+/* Day headers styling */
+.fc-col-header-cell {
+  background-color: #f9fafb !important;
+  color: #374151 !important;
+  font-weight: 600 !important;
+  font-size: 0.875rem !important;
+  padding: 0.75rem 0.5rem !important;
+  border-color: #e5e7eb !important;
+}
+
+.fc-col-header-cell-cushion {
+  color: #374151 !important;
+  font-weight: 600 !important;
+}
+
+/* Day cells styling */
+.fc-daygrid-day {
+  background-color: #ffffff !important;
+  border-color: #e5e7eb !important;
+}
+
+.fc-daygrid-day-number {
+  color: #374151 !important;
+  font-weight: 500 !important;
+  font-size: 0.875rem !important;
+  padding: 0.5rem !important;
+}
+
+.fc-day-today {
+  background-color: #fef3c7 !important;
+}
+
+.fc-day-today .fc-daygrid-day-number {
+  color: #92400e !important;
+  font-weight: 700 !important;
+}
+
+/* Time grid styling */
+.fc-timegrid-slot {
+  border-color: #e5e7eb !important;
+}
+
+.fc-timegrid-slot-label {
+  color: #6b7280 !important;
+  font-size: 0.75rem !important;
+  font-weight: 500 !important;
+}
+
+.fc-timegrid-axis {
+  background-color: #f9fafb !important;
+  border-color: #e5e7eb !important;
+}
+
+/* Event styling */
+.fc-event {
+  border: none !important;
+  border-radius: 0.25rem !important;
+  font-size: 0.75rem !important;
+  font-weight: 500 !important;
+  padding: 0.125rem 0.25rem !important;
+}
+
+.fc-event-title {
+  color: #ffffff !important;
+  font-weight: 600 !important;
+}
+
+/* More link styling */
+.fc-more-link {
+  color: #3b82f6 !important;
+  font-weight: 500 !important;
+}
+
+.fc-more-link:hover {
+  color: #1d4ed8 !important;
+}
+
+/* Popover styling */
+.fc-popover {
+  border: 1px solid #e5e7eb !important;
+  border-radius: 0.5rem !important;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
+}
+
+.fc-popover-header {
+  background-color: #f9fafb !important;
+  color: #374151 !important;
+  font-weight: 600 !important;
+  border-bottom: 1px solid #e5e7eb !important;
+}
+
+.fc-popover-body {
+  background-color: #ffffff !important;
+  color: #374151 !important;
+}
+
+/* Form input styling for better readability */
+input[type="text"],
+input[type="email"],
+input[type="tel"],
+input[type="number"],
+input[type="date"],
+input[type="time"],
+input[type="datetime-local"],
+textarea,
+select {
+  color: #1f2937 !important;
+  font-weight: 500 !important;
+  font-size: 0.875rem !important;
+  line-height: 1.25rem !important;
+}
+
+input[type="text"]:focus,
+input[type="email"]:focus,
+input[type="tel"]:focus,
+input[type="number"]:focus,
+input[type="date"]:focus,
+input[type="time"]:focus,
+input[type="datetime-local"]:focus,
+textarea:focus,
+select:focus {
+  color: #111827 !important;
+  font-weight: 600 !important;
+}
+
+/* Placeholder text styling */
+input::placeholder,
+textarea::placeholder {
+  color: #6b7280 !important;
+  font-weight: 400 !important;
+  opacity: 1 !important;
+}
+
+/* Select option styling */
+select option {
+  color: #1f2937 !important;
+  font-weight: 500 !important;
+  background-color: #ffffff !important;
+}
+
+/* Form labels */
+label {
+  color: #374151 !important;
+  font-weight: 600 !important;
+  font-size: 0.875rem !important;
+}
+
+/* Error message styling */
+.text-red-600 {
+  color: #dc2626 !important;
+  font-weight: 500 !important;
+  font-size: 0.875rem !important;
+}
+
 /* Print styles */
 @media print {
   .no-print {

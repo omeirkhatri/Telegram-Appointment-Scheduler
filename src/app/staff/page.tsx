@@ -8,7 +8,7 @@ import {
     Plus,
     Search,
     UserCheck,
-    Users
+    Users,
 } from 'lucide-react';
 
 export default function StaffPage() {
@@ -24,7 +24,7 @@ export default function StaffPage() {
       status: 'Active',
       schedule: 'Mon-Fri, 9AM-5PM',
       patients: 45,
-      avatar: 'SS'
+      avatar: 'SS',
     },
     {
       id: 2,
@@ -36,7 +36,7 @@ export default function StaffPage() {
       status: 'Active',
       schedule: 'Mon-Fri, 8AM-4PM',
       patients: 38,
-      avatar: 'MJ'
+      avatar: 'MJ',
     },
     {
       id: 3,
@@ -48,7 +48,7 @@ export default function StaffPage() {
       status: 'Active',
       schedule: 'Mon-Fri, 10AM-6PM',
       patients: 52,
-      avatar: 'EB'
+      avatar: 'EB',
     },
     {
       id: 4,
@@ -60,7 +60,7 @@ export default function StaffPage() {
       status: 'Active',
       schedule: 'Rotating shifts',
       patients: 28,
-      avatar: 'JW'
+      avatar: 'JW',
     },
     {
       id: 5,
@@ -72,8 +72,8 @@ export default function StaffPage() {
       status: 'On Leave',
       schedule: 'Mon-Fri, 9AM-5PM',
       patients: 0,
-      avatar: 'RD'
-    }
+      avatar: 'RD',
+    },
   ];
 
   return (

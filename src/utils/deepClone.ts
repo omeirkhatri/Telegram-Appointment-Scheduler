@@ -33,7 +33,7 @@ export function deepClone<T>(obj: T): T {
  */
 export function deepCloneAppointmentForCopy<T extends Record<string, any>>(
   sourceAppointment: T,
-  overrides: Partial<T> = {}
+  overrides: Partial<T> = {},
 ): Omit<T, 'id' | 'created_at' | 'updated_at'> {
   const cloned = deepClone(sourceAppointment);
 

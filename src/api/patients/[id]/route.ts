@@ -5,8 +5,8 @@ import { NextRequest, NextResponse } from 'next/server';
 
 // GET /api/patients/[id] - Get a single patient by ID
 export async function GET(
-  request: NextRequest,
-  { params }: { params: { id: string } }
+  _request: NextRequest,
+  { params }: { params: { id: string } },
 ) {
   try {
     const patient = await patientService.getPatient(params.id);
@@ -15,9 +15,9 @@ export async function GET(
       return NextResponse.json(
         {
           success: false,
-          error: 'Patient not found'
+          error: 'Patient not found',
         },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -31,16 +31,16 @@ export async function GET(
 
     return NextResponse.json({
       success: true,
-      data: patient
+      data: patient,
     });
   } catch (error) {
     console.error('Error fetching patient:', error);
     return NextResponse.json(
       {
         success: false,
-        error: error instanceof Error ? error.message : 'Failed to fetch patient'
+        error: error instanceof Error ? error.message : 'Failed to fetch patient',
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -48,7 +48,7 @@ export async function GET(
 // PUT /api/patients/[id] - Update an existing patient
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: { id: string } },
 ) {
   try {
     const formData = await request.formData();
@@ -81,9 +81,9 @@ export async function PUT(
         {
           success: false,
           error: 'Validation failed',
-          details: validationErrors
+          details: validationErrors,
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -96,9 +96,9 @@ export async function PUT(
         return NextResponse.json(
           {
             success: false,
-            error: 'Patient not found'
+            error: 'Patient not found',
           },
-          { status: 404 }
+          { status: 404 },
         );
       }
 
@@ -108,13 +108,13 @@ export async function PUT(
         uploadResult = await storageService.updatePatientDocument(
           params.id,
           currentPatient.id_document_url,
-          idDocument
+          idDocument,
         );
       } else {
         // Upload new document
         uploadResult = await storageService.uploadPatientDocument(
           params.id,
-          idDocument
+          idDocument,
         );
       }
 
@@ -126,9 +126,9 @@ export async function PUT(
           {
             success: false,
             error: 'Failed to upload ID document',
-            uploadError: uploadResult.error
+            uploadError: uploadResult.error,
           },
-          { status: 500 }
+          { status: 500 },
         );
       }
     }
@@ -139,24 +139,24 @@ export async function PUT(
     return NextResponse.json({
       success: true,
       data: updatedPatient,
-      message: 'Patient updated successfully'
+      message: 'Patient updated successfully',
     });
   } catch (error) {
     console.error('Error updating patient:', error);
     return NextResponse.json(
       {
         success: false,
-        error: error instanceof Error ? error.message : 'Failed to update patient'
+        error: error instanceof Error ? error.message : 'Failed to update patient',
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
 
 // DELETE /api/patients/[id] - Delete a patient
 export async function DELETE(
-  request: NextRequest,
-  { params }: { params: { id: string } }
+  _request: NextRequest,
+  { params }: { params: { id: string } },
 ) {
   try {
     // Get current patient to check for ID document
@@ -165,9 +165,9 @@ export async function DELETE(
       return NextResponse.json(
         {
           success: false,
-          error: 'Patient not found'
+          error: 'Patient not found',
         },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -181,16 +181,16 @@ export async function DELETE(
 
     return NextResponse.json({
       success: true,
-      message: 'Patient deleted successfully'
+      message: 'Patient deleted successfully',
     });
   } catch (error) {
     console.error('Error deleting patient:', error);
     return NextResponse.json(
       {
         success: false,
-        error: error instanceof Error ? error.message : 'Failed to delete patient'
+        error: error instanceof Error ? error.message : 'Failed to delete patient',
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

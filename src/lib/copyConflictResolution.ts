@@ -39,7 +39,7 @@ export async function checkCopyConflicts(
     staff_assignments?: StaffAssignment[];
   },
   existingAppointments: Appointment[],
-  staffMembers: Staff[]
+  staffMembers: Staff[],
 ): Promise<CopyConflictResolution> {
   const conflicts: CopyConflictInfo[] = [];
 
@@ -68,7 +68,7 @@ export async function checkCopyConflicts(
       newStart,
       newEnd,
       existingAppointments,
-      sourceAppointment.id // Exclude the source appointment from conflicts
+      sourceAppointment.id, // Exclude the source appointment from conflicts
     );
 
     conflicts.push(...staffConflicts);
@@ -79,7 +79,7 @@ export async function checkCopyConflicts(
     newStart,
     newEnd,
     existingAppointments,
-    sourceAppointment.id
+    sourceAppointment.id,
   );
 
   conflicts.push(...timeSlotConflicts);
@@ -113,7 +113,7 @@ async function checkStaffAvailability(
   startTime: Date,
   endTime: Date,
   existingAppointments: Appointment[],
-  excludeAppointmentId?: string
+  excludeAppointmentId?: string,
 ): Promise<CopyConflictInfo[]> {
   const conflicts: CopyConflictInfo[] = [];
 
@@ -159,7 +159,7 @@ function checkTimeSlotConflicts(
   startTime: Date,
   endTime: Date,
   existingAppointments: Appointment[],
-  excludeAppointmentId?: string
+  excludeAppointmentId?: string,
 ): CopyConflictInfo[] {
   const conflicts: CopyConflictInfo[] = [];
 

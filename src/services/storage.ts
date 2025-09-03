@@ -1,4 +1,4 @@
-import { supabase } from '@/lib/supabase';
+import { getServiceRoleClient, supabase } from '@/lib/supabase';
 
 export interface UploadResult {
   success: boolean;
@@ -19,12 +19,22 @@ export interface DocumentMetadata {
 export class StorageService {
   private bucketName = 'patient-documents';
 
+  // Get the appropriate Supabase client (service role for server-side operations)
+  private getClient() {
+    // If we're in a server environment, use service role client
+    if (typeof window === 'undefined') {
+      return getServiceRoleClient();
+    }
+    // Otherwise use the regular client for client-side operations
+    return supabase;
+  }
+
   /**
    * Upload a patient ID document
    */
   async uploadPatientDocument(
     patientId: string,
-    file: File
+    file: File,
   ): Promise<UploadResult> {
     try {
       // Validate file type
@@ -34,13 +44,13 @@ export class StorageService {
         'image/png',
         'image/gif',
         'application/pdf',
-        'image/webp'
+        'image/webp',
       ];
 
       if (!allowedTypes.includes(file.type)) {
         return {
           success: false,
-          error: 'Invalid file type. Allowed types: JPEG, PNG, GIF, PDF, WebP'
+          error: 'Invalid file type. Allowed types: JPEG, PNG, GIF, PDF, WebP',
         };
       }
 
@@ -49,7 +59,7 @@ export class StorageService {
       if (file.size > maxSize) {
         return {
           success: false,
-          error: 'File size too large. Maximum size is 10MB'
+          error: 'File size too large. Maximum size is 10MB',
         };
       }
 
@@ -61,31 +71,32 @@ export class StorageService {
       const filePath = `id-documents/${fileName}`;
 
       // Upload file to Supabase Storage
-      const { data, error } = await supabase.storage
+      const client = this.getClient();
+      const { data, error } = await client.storage
         .from(this.bucketName)
         .upload(filePath, file, {
           cacheControl: '3600',
-          upsert: false
+          upsert: false,
         });
 
       if (error) {
         console.error('Storage upload error:', error);
         return {
           success: false,
-          error: error.message
+          error: error.message,
         };
       }
 
       return {
         success: true,
         filePath: filePath,
-        fileId: data.path
+        fileId: data.path,
       };
     } catch (error) {
       console.error('Upload error:', error);
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error occurred'
+        error: error instanceof Error ? error.message : 'Unknown error occurred',
       };
     }
   }
@@ -95,7 +106,8 @@ export class StorageService {
    */
   async getDocumentUrl(filePath: string, expiresIn: number = 3600): Promise<string | null> {
     try {
-      const { data, error } = await supabase.storage
+      const client = this.getClient();
+      const { data, error } = await client.storage
         .from(this.bucketName)
         .createSignedUrl(filePath, expiresIn);
 
@@ -116,7 +128,8 @@ export class StorageService {
    */
   async deletePatientDocument(filePath: string): Promise<boolean> {
     try {
-      const { error } = await supabase.storage
+      const client = this.getClient();
+      const { error } = await client.storage
         .from(this.bucketName)
         .remove([filePath]);
 
@@ -137,10 +150,11 @@ export class StorageService {
    */
   async listPatientDocuments(patientId: string): Promise<DocumentMetadata[]> {
     try {
-      const { data, error } = await supabase.storage
+      const client = this.getClient();
+      const { data, error } = await client.storage
         .from(this.bucketName)
         .list('id-documents', {
-          search: patientId
+          search: patientId,
         });
 
       if (error) {
@@ -154,7 +168,7 @@ export class StorageService {
         size: file.metadata?.size || 0,
         mime_type: file.metadata?.mimetype || '',
         created_at: file.created_at,
-        updated_at: file.updated_at
+        updated_at: file.updated_at,
       }));
     } catch (error) {
       console.error('List error:', error);
@@ -168,7 +182,7 @@ export class StorageService {
   async updatePatientDocument(
     patientId: string,
     oldFilePath: string,
-    newFile: File
+    newFile: File,
   ): Promise<UploadResult> {
     try {
       // First, delete the old file
@@ -180,7 +194,7 @@ export class StorageService {
       console.error('Update error:', error);
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error occurred'
+        error: error instanceof Error ? error.message : 'Unknown error occurred',
       };
     }
   }
@@ -196,13 +210,13 @@ export class StorageService {
       'image/png',
       'image/gif',
       'application/pdf',
-      'image/webp'
+      'image/webp',
     ];
 
     if (!allowedTypes.includes(file.type)) {
       return {
         isValid: false,
-        error: 'Invalid file type. Allowed types: JPEG, PNG, GIF, PDF, WebP'
+        error: 'Invalid file type. Allowed types: JPEG, PNG, GIF, PDF, WebP',
       };
     }
 
@@ -211,7 +225,7 @@ export class StorageService {
     if (file.size > maxSize) {
       return {
         isValid: false,
-        error: 'File size too large. Maximum size is 10MB'
+        error: 'File size too large. Maximum size is 10MB',
       };
     }
 

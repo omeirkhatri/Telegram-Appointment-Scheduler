@@ -35,16 +35,16 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      data: patients
+      data: patients,
     });
   } catch (error) {
     console.error('Error fetching patients:', error);
     return NextResponse.json(
       {
         success: false,
-        error: error instanceof Error ? error.message : 'Failed to fetch patients'
+        error: error instanceof Error ? error.message : 'Failed to fetch patients',
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -75,9 +75,9 @@ export async function POST(request: NextRequest) {
         {
           success: false,
           error: 'Validation failed',
-          details: validationErrors
+          details: validationErrors,
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -89,7 +89,7 @@ export async function POST(request: NextRequest) {
     if (idDocument && idDocument.size > 0) {
       const uploadResult = await storageService.uploadPatientDocument(
         patient.id,
-        idDocument
+        idDocument,
       );
 
       if (uploadResult.success && uploadResult.filePath) {
@@ -104,7 +104,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({
           success: true,
           data: updatedPatient,
-          message: 'Patient created successfully with ID document'
+          message: 'Patient created successfully with ID document',
         });
       } else {
         // Patient created but file upload failed
@@ -113,9 +113,9 @@ export async function POST(request: NextRequest) {
             success: true,
             data: patient,
             warning: 'Patient created but ID document upload failed',
-            uploadError: uploadResult.error
+            uploadError: uploadResult.error,
           },
-          { status: 201 }
+          { status: 201 },
         );
       }
     }
@@ -123,16 +123,16 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       data: patient,
-      message: 'Patient created successfully'
+      message: 'Patient created successfully',
     }, { status: 201 });
   } catch (error) {
     console.error('Error creating patient:', error);
     return NextResponse.json(
       {
         success: false,
-        error: error instanceof Error ? error.message : 'Failed to create patient'
+        error: error instanceof Error ? error.message : 'Failed to create patient',
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

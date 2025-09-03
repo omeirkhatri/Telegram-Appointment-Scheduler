@@ -9,6 +9,7 @@ import { useAppointmentsForDateRange, useUpdateAppointment } from '@/hooks/useAp
 import { usePatients } from '@/hooks/usePatients';
 import { useStaff } from '@/hooks/useStaff';
 import type { Appointment } from '@/types';
+import { utcToDateString, utcToTimeString } from '@/utils/date';
 import {
     Calendar,
     CheckCircle,
@@ -18,7 +19,7 @@ import {
     MoreHorizontal,
     Plus,
     Search,
-    XCircle
+    XCircle,
 } from 'lucide-react';
 import { useCallback, useRef, useState } from 'react';
 
@@ -48,23 +49,23 @@ export default function AppointmentsPage() {
     appointments: realAppointments,
     isLoading: isLoadingAppointments,
     error: appointmentsError,
-    refetch: refetchAppointments
+    refetch: refetchAppointments,
   } = useAppointmentsForDateRange(
     new Date(new Date().setMonth(new Date().getMonth() - 1)), // 1 month ago
-    new Date(new Date().setMonth(new Date().getMonth() + 2))   // 2 months ahead
+    new Date(new Date().setMonth(new Date().getMonth() + 2)),   // 2 months ahead
   );
 
   // Fetch patients and staff data for the modal
   const {
     patients,
     isLoading: isLoadingPatients,
-    error: patientsError
+    error: patientsError,
   } = usePatients({ autoFetch: true });
 
   const {
     staff,
     isLoading: isLoadingStaff,
-    error: staffError
+    error: staffError,
   } = useStaff({ autoFetch: true });
 
   // Notification handlers
@@ -146,7 +147,7 @@ export default function AppointmentsPage() {
     event.preventDefault();
     setContextMenu({
       appointment,
-      position: { x: event.clientX, y: event.clientY }
+      position: { x: event.clientX, y: event.clientY },
     });
   };
 
@@ -215,6 +216,19 @@ export default function AppointmentsPage() {
   };
 
   const handleCalendarDateSelect = (start: Date, end: Date) => {
+    // Debug logging to understand the time conversion
+    console.log('Calendar date selection:', {
+      startUTC: start.toISOString(),
+      endUTC: end.toISOString(),
+      startLocal: start.toString(),
+      endLocal: end.toString(),
+      appointmentDate: utcToDateString(start),
+      startTime: utcToTimeString(start),
+      // Also try direct formatting for comparison
+      directDate: start.toISOString().split('T')[0],
+      directTime: start.toTimeString().slice(0, 5),
+    });
+
     setSelectedDate({ start, end });
     setIsAppointmentModalOpen(true);
   };
@@ -223,7 +237,7 @@ export default function AppointmentsPage() {
   const staffOptions = staff.map(s => ({
     id: s.id,
     name: `${s.first_name} ${s.last_name}`,
-    staff_type: s.staff_type
+    staff_type: s.staff_type,
   }));
 
   return (
@@ -503,8 +517,8 @@ export default function AppointmentsPage() {
           onClose={handleCloseAppointmentModal}
           onSuccess={handleAppointmentModalSuccess}
           initialAppointment={selectedDate ? {
-            appointment_date: selectedDate.start.toISOString().split('T')[0],
-            start_time: selectedDate.start.toTimeString().slice(0, 5),
+            appointment_date: utcToDateString(selectedDate.start),
+            start_time: utcToTimeString(selectedDate.start),
             duration_minutes: Math.round((selectedDate.end.getTime() - selectedDate.start.getTime()) / (1000 * 60)),
           } : undefined}
           patients={patients}

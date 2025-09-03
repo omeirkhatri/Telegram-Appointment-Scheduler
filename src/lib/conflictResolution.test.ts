@@ -5,7 +5,7 @@ import {
     resolveConflicts,
     validateAppointmentForSync,
     type CalendarEvent,
-    type ConflictInfo
+    type ConflictInfo,
 } from './conflictResolution';
 
 describe('conflictResolution', () => {

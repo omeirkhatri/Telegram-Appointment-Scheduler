@@ -56,10 +56,25 @@ export function AppointmentForm({
   staff = [],
   onSubmit,
   onCancel,
-  isLoading = false
+  isLoading = false,
 }: AppointmentFormProps) {
   const [showRecurringOptions, setShowRecurringOptions] = useState(false);
   const [showCustomFields, setShowCustomFields] = useState(false);
+
+  // Helper function to calculate end time from start time and duration
+  const calculateEndTime = (startTime: string, durationMinutes: number): string => {
+    if (!startTime) return '';
+
+    const [hours, minutes] = startTime.split(':').map(Number);
+    const startTotalMinutes = hours * 60 + minutes;
+    const endTotalMinutes = startTotalMinutes + durationMinutes;
+
+    // Handle overflow to next day
+    const endHours = Math.floor((endTotalMinutes % (24 * 60)) / 60);
+    const endMins = endTotalMinutes % 60;
+
+    return `${endHours.toString().padStart(2, '0')}:${endMins.toString().padStart(2, '0')}`;
+  };
 
   const {
     register,
@@ -76,6 +91,7 @@ export function AppointmentForm({
       appointment_type: appointment?.appointment_type || 'doctor_on_call',
       appointment_date: appointment?.appointment_date || '',
       start_time: appointment?.start_time || '',
+      end_time: appointment?.end_time || calculateEndTime(appointment?.start_time || '', appointment?.duration_minutes || 60),
       duration_minutes: appointment?.duration_minutes || 60,
       status: appointment?.status || 'scheduled',
       transportation_type: appointment?.transportation_type || undefined,
@@ -96,6 +112,31 @@ export function AppointmentForm({
   const watchedAppointmentType = watch('appointment_type');
   const watchedTransportationType = watch('transportation_type');
   const watchedRecurringRule = watch('recurring_rule');
+
+  // Calculate duration from start and end times
+  const calculateDuration = () => {
+    const startTime = watch('start_time');
+    const endTime = watch('end_time');
+
+    if (startTime && endTime) {
+      const [startHours, startMinutes] = startTime.split(':').map(Number);
+      const [endHours, endMinutes] = endTime.split(':').map(Number);
+
+      const startTotalMinutes = startHours * 60 + startMinutes;
+      const endTotalMinutes = endHours * 60 + endMinutes;
+
+      let duration = endTotalMinutes - startTotalMinutes;
+
+      // Handle case where end time is next day (e.g., 23:00 to 01:00)
+      if (duration < 0) {
+        duration += 24 * 60; // Add 24 hours in minutes
+      }
+
+      if (duration > 0) {
+        setValue('duration_minutes', duration);
+      }
+    }
+  };
 
   // Filter staff by appointment type
   const filteredStaff = staff.filter(s => {
@@ -172,7 +213,7 @@ export function AppointmentForm({
             <select
               {...register('patient_id')}
               id="patient_id"
-              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-900 font-medium ${
                 errors.patient_id ? 'border-red-500' : 'border-gray-300'
               }`}
             >
@@ -195,7 +236,7 @@ export function AppointmentForm({
             <select
               {...register('appointment_type')}
               id="appointment_type"
-              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-900 font-medium ${
                 errors.appointment_type ? 'border-red-500' : 'border-gray-300'
               }`}
             >
@@ -218,7 +259,7 @@ export function AppointmentForm({
               {...register('appointment_date')}
               type="date"
               id="appointment_date"
-              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-900 font-medium ${
                 errors.appointment_date ? 'border-red-500' : 'border-gray-300'
               }`}
             />
@@ -235,12 +276,37 @@ export function AppointmentForm({
               {...register('start_time')}
               type="time"
               id="start_time"
-              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-900 font-medium ${
                 errors.start_time ? 'border-red-500' : 'border-gray-300'
               }`}
+              onChange={(e) => {
+                register('start_time').onChange(e);
+                calculateDuration();
+              }}
             />
             {errors.start_time && (
               <p className="mt-1 text-sm text-red-600">{errors.start_time.message}</p>
+            )}
+          </div>
+
+          <div>
+            <label htmlFor="end_time" className="block text-sm font-medium text-gray-700 mb-1">
+              End Time *
+            </label>
+            <input
+              {...register('end_time')}
+              type="time"
+              id="end_time"
+              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-900 font-medium ${
+                errors.end_time ? 'border-red-500' : 'border-gray-300'
+              }`}
+              onChange={(e) => {
+                register('end_time').onChange(e);
+                calculateDuration();
+              }}
+            />
+            {errors.end_time && (
+              <p className="mt-1 text-sm text-red-600">{errors.end_time.message}</p>
             )}
           </div>
 
@@ -254,10 +320,12 @@ export function AppointmentForm({
               id="duration_minutes"
               min="1"
               max="1440"
-              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+              readOnly
+              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 text-gray-900 font-medium ${
                 errors.duration_minutes ? 'border-red-500' : 'border-gray-300'
               }`}
             />
+            <p className="mt-1 text-xs text-gray-500">Automatically calculated from start and end times</p>
             {errors.duration_minutes && (
               <p className="mt-1 text-sm text-red-600">{errors.duration_minutes.message}</p>
             )}

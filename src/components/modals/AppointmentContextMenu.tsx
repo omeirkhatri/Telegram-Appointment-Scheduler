@@ -23,7 +23,7 @@ export function AppointmentContextMenu({
   onCopy,
   onCancel,
   onOpenInGoogleCalendar,
-  onDelete
+  onDelete,
 }: AppointmentContextMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null);
   const [adjustedPosition, setAdjustedPosition] = useState(position);

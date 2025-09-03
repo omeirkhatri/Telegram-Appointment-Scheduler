@@ -111,7 +111,7 @@ function AppointmentSearchForm({ onSearch, onReset, isLoading }: AppointmentSear
             value={filters.has_recurring_rule ? 'true' : filters.has_recurring_rule === false ? 'false' : ''}
             onChange={(e) => setFilters(prev => ({
               ...prev,
-              has_recurring_rule: e.target.value === 'true' ? true : e.target.value === 'false' ? false : undefined
+              has_recurring_rule: e.target.value === 'true' ? true : e.target.value === 'false' ? false : undefined,
             }))}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
@@ -347,7 +347,7 @@ export function AppointmentSearch({ onAppointmentSelect, showFilters = true, cla
       {/* Loading State */}
       {isLoading && (
         <div className="flex justify-center py-8">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
         </div>
       )}
 

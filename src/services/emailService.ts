@@ -5,7 +5,7 @@ import type {
     AgendaEmailData,
     EmailConfig,
     EmailResult,
-    EmailService as IEmailService
+    EmailService as IEmailService,
 } from '@/types/email';
 import { formatDubaiDate } from '@/utils/timezone';
 import { v4 as uuidv4 } from 'uuid';
@@ -77,7 +77,7 @@ export class EmailService implements IEmailService {
           maxAttempts: 3,
           baseDelay: 1000,
           maxDelay: 10000,
-        }
+        },
       );
 
       const responseTime = Date.now() - startTime;
@@ -210,7 +210,7 @@ export class EmailService implements IEmailService {
             patientPhone: '+971501234567',
             patientAddress: '123 Test Street, Dubai',
             notes: 'This is a test appointment',
-          }
+          },
         ],
         totalAppointments: 1,
         multipleAppointments: false,

@@ -131,7 +131,7 @@ export function StaffForm({ staff, onSubmit, onCancel, isLoading = false }: Staf
               {...register('first_name')}
               type="text"
               id="first_name"
-              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-900 font-medium ${
                 errors.first_name ? 'border-red-500' : 'border-gray-300'
               }`}
               placeholder="Enter first name"
@@ -149,7 +149,7 @@ export function StaffForm({ staff, onSubmit, onCancel, isLoading = false }: Staf
               {...register('last_name')}
               type="text"
               id="last_name"
-              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-900 font-medium ${
                 errors.last_name ? 'border-red-500' : 'border-gray-300'
               }`}
               placeholder="Enter last name"

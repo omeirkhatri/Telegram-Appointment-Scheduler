@@ -37,7 +37,7 @@ export class WebhookService {
       // Set up webhook with Google Calendar
       const webhookId = await googleCalendarService.setupCalendarWebhook(
         staff.google_calendar_id,
-        webhookUrl
+        webhookUrl,
       );
 
       // Store webhook information (in a real implementation, this would be in a database)
@@ -47,13 +47,13 @@ export class WebhookService {
 
       return {
         success: true,
-        webhookId
+        webhookId,
       };
     } catch (error) {
       console.error('Error setting up webhook for staff:', error);
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : 'Unknown error',
       };
     }
   }
@@ -81,7 +81,7 @@ export class WebhookService {
       // Stop webhook with Google Calendar
       await googleCalendarService.stopCalendarWebhook(
         staff.google_calendar_id,
-        webhookInfo.webhookId
+        webhookInfo.webhookId,
       );
 
       // Remove webhook information
@@ -94,7 +94,7 @@ export class WebhookService {
       console.error('Error removing webhook for staff:', error);
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : 'Unknown error',
       };
     }
   }
@@ -120,7 +120,7 @@ export class WebhookService {
       console.error('Error refreshing webhook for staff:', error);
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : 'Unknown error',
       };
     }
   }
@@ -142,7 +142,7 @@ export class WebhookService {
       // Get all staff members with Google Calendar integration
       const staffMembers = await staffService.getStaffMembers({
         has_google_calendar: true,
-        status: 'active'
+        status: 'active',
       });
 
       const results = [];
@@ -154,7 +154,7 @@ export class WebhookService {
           staffName: `${staff.first_name} ${staff.last_name}`,
           success: result.success,
           webhookId: result.webhookId,
-          error: result.error
+          error: result.error,
         });
       }
 
@@ -163,13 +163,13 @@ export class WebhookService {
 
       return {
         success: successCount > 0,
-        results
+        results,
       };
     } catch (error) {
       console.error('Error setting up webhooks for all staff:', error);
       return {
         success: false,
-        results: []
+        results: [],
       };
     }
   }
@@ -198,7 +198,7 @@ export class WebhookService {
           hasGoogleCalendar: !!staff.google_calendar_id,
           hasWebhook: !!webhookInfo,
           webhookId: webhookInfo?.webhookId,
-          lastSync: webhookInfo?.lastSync
+          lastSync: webhookInfo?.lastSync,
         });
       }
 
@@ -225,7 +225,7 @@ export class WebhookService {
           success: false,
           calendarAccess: false,
           webhookSetup: false,
-          error: 'Staff member not found'
+          error: 'Staff member not found',
         };
       }
 
@@ -242,7 +242,7 @@ export class WebhookService {
       return {
         success: calendarAccess && webhookSetup,
         calendarAccess,
-        webhookSetup
+        webhookSetup,
       };
     } catch (error) {
       console.error('Error testing webhook connectivity:', error);
@@ -250,7 +250,7 @@ export class WebhookService {
         success: false,
         calendarAccess: false,
         webhookSetup: false,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : 'Unknown error',
       };
     }
   }
@@ -318,7 +318,7 @@ export class WebhookService {
     try {
       const staffMembers = await staffService.getStaffMembers({
         has_google_calendar: true,
-        status: 'active'
+        status: 'active',
       });
 
       const warnings = [];
@@ -335,7 +335,7 @@ export class WebhookService {
               staffId: staff.id,
               staffName: `${staff.first_name} ${staff.last_name}`,
               expiresAt: webhookInfo.expiresAt,
-              daysUntilExpiry
+              daysUntilExpiry,
             });
           }
         }

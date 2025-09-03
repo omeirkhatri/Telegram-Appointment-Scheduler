@@ -14,7 +14,7 @@ export function ErrorMessage({
   onRetry,
   onDismiss,
   variant = 'card',
-  className = ''
+  className = '',
 }: ErrorMessageProps) {
   if (!error) return null;
 

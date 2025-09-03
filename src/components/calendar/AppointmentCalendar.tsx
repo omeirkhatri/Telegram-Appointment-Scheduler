@@ -44,12 +44,12 @@ export function AppointmentCalendar({
   // Get date range for current view
   const getDateRange = useCallback(() => {
     const calendar = calendarRef.current;
-    if (!calendar) return { start: new Date(), end: new Date() };
+    if (!calendar || !calendar.view) return { start: new Date(), end: new Date() };
 
     const view = calendar.view;
     return {
-      start: view.activeStart,
-      end: view.activeEnd,
+      start: view.activeStart || new Date(),
+      end: view.activeEnd || new Date(),
     };
   }, []);
 
@@ -167,25 +167,25 @@ export function AppointmentCalendar({
         headerToolbar={{
           left: 'prev,next today',
           center: 'title',
-          right: 'dayGridMonth,timeGridWeek,timeGridDay,listWeek'
+          right: 'dayGridMonth,timeGridWeek,timeGridDay,listWeek',
         }}
         buttonText={{
           today: 'Today',
           month: 'Month',
           week: 'Week',
           day: 'Day',
-          list: 'List'
+          list: 'List',
         }}
         // Time and date settings
         slotDuration="00:15:00" // 15-minute slots
         slotLabelInterval="01:00:00" // Show hour labels
-        slotMinTime="06:00:00" // Start at 6 AM
-        slotMaxTime="22:00:00" // End at 10 PM
+        slotMinTime="00:00:00" // Start at midnight (full day)
+        slotMaxTime="24:00:00" // End at midnight (full day)
         timeZone="Asia/Dubai"
         eventTimeFormat={{
           hour: '2-digit',
           minute: '2-digit',
-          hour12: false
+          hour12: false,
         }}
         // Event settings
         events={events}

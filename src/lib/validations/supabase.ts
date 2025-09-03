@@ -41,7 +41,7 @@ export const staffInsertSchema = z.object({
   email_notifications_enabled: z.boolean().default(true),
 }).refine(
   (data) => data.working_hours_start < data.working_hours_end,
-  { message: 'Working hours start must be before end', path: ['working_hours_end'] }
+  { message: 'Working hours start must be before end', path: ['working_hours_end'] },
 );
 
 export const staffUpdateSchema = staffInsertSchema.partial();
@@ -54,13 +54,13 @@ export const appointmentInsertSchema = z.object({
   start_time: timeSchema,
   duration_minutes: z.number().int().min(1).max(1440, 'Duration must be between 1 minute and 24 hours'),
   status: z.enum(['scheduled', 'confirmed', 'completed', 'cancelled'] as const).default('scheduled'),
-  custom_fields: z.record(z.unknown()).default({}),
+  custom_fields: z.record(z.string(), z.unknown()).default({}),
   transportation_type: z.enum(['driver', 'self_transport'] as const).nullable().optional(),
   transportation_method: z.string().nullable().optional(),
   driver_id: uuidSchema.nullable().optional(),
   notes: z.string().nullable().optional(),
-  recurring_rule: z.record(z.unknown()).nullable().optional(),
-  google_event_ids: z.record(z.string()).default({}),
+  recurring_rule: z.record(z.string(), z.unknown()).nullable().optional(),
+  google_event_ids: z.record(z.string(), z.string()).default({}),
 }).refine(
   (data) => {
     if (data.transportation_type === 'driver') {
@@ -71,7 +71,7 @@ export const appointmentInsertSchema = z.object({
     }
     return true;
   },
-  { message: 'Driver ID required when transportation type is driver, or method required for self-transport', path: ['transportation_type'] }
+  { message: 'Driver ID required when transportation type is driver, or method required for self-transport', path: ['transportation_type'] },
 ).refine(
   (data) => {
     if (data.recurring_rule) {
@@ -79,7 +79,7 @@ export const appointmentInsertSchema = z.object({
     }
     return true;
   },
-  { message: 'Recurring rule must include frequency and interval', path: ['recurring_rule'] }
+  { message: 'Recurring rule must include frequency and interval', path: ['recurring_rule'] },
 );
 
 export const appointmentUpdateSchema = appointmentInsertSchema.partial();
@@ -111,7 +111,7 @@ export const dateRangeSchema = z.object({
   end_date: dateSchema,
 }).refine(
   (data) => data.start_date <= data.end_date,
-  { message: 'Start date must be before or equal to end date', path: ['end_date'] }
+  { message: 'Start date must be before or equal to end date', path: ['end_date'] },
 );
 
 // Filter schemas

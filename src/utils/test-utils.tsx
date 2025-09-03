@@ -22,52 +22,29 @@ export * from '@testing-library/react';
 // Override render method
 export { customRender as render };
 
-// Test data factories
-export const createMockPatient = (overrides = {}) => ({
-  id: 'test-patient-id',
-  name: 'John Doe',
-  email: 'john.doe@example.com',
-  phone: '+971501234567',
-  date_of_birth: '1990-01-01',
-  address: '123 Healthcare Street, Dubai, UAE',
-  emergency_contact: '+971509876543',
-  medical_history: 'No known allergies',
-  id_document_url: null,
-  created_at: '2024-01-01T00:00:00Z',
-  updated_at: '2024-01-01T00:00:00Z',
-  ...overrides,
-});
+// Re-export comprehensive mock factories from supabase-mocks
+export {
+  createMockPatient,
+  createMockStaff,
+  createMockAppointment,
+  createMockAppointmentStaff,
+  createMockPatients,
+  createMockStaffMembers,
+  createMockAppointments,
+  createMockError,
+  createMockNetworkError,
+  createMockAuthError,
+  mockSupabaseClient,
+  setupMockPatients,
+  setupMockStaff,
+  setupMockAppointments,
+  setupMockAppointmentStaff,
+  clearAllMocks,
+  resetMockSupabase,
+  MockSupabaseQueryBuilderFactory,
+} from './supabase-mocks';
 
-export const createMockStaff = (overrides = {}) => ({
-  id: 'test-staff-id',
-  name: 'Dr. Jane Smith',
-  email: 'jane.smith@example.com',
-  phone: '+971501234568',
-  staff_type: 'medical' as const,
-  google_calendar_id: 'test-calendar-id',
-  is_active: true,
-  created_at: '2024-01-01T00:00:00Z',
-  updated_at: '2024-01-01T00:00:00Z',
-  ...overrides,
-});
-
-export const createMockAppointment = (overrides = {}) => ({
-  id: 'test-appointment-id',
-  patient_id: 'test-patient-id',
-  appointment_type: 'consultation' as const,
-  start_time: '2024-01-01T10:00:00Z',
-  end_time: '2024-01-01T11:00:00Z',
-  status: 'scheduled' as const,
-  notes: 'Regular checkup',
-  custom_fields: {},
-  recurring_rule: null,
-  google_calendar_event_id: 'test-event-id',
-  created_at: '2024-01-01T00:00:00Z',
-  updated_at: '2024-01-01T00:00:00Z',
-  ...overrides,
-});
-
-// Mock Supabase responses
+// Legacy compatibility - keep these for existing tests
 export const mockSupabaseResponse = {
   data: null,
   error: null,

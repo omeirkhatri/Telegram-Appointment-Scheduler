@@ -60,10 +60,10 @@
 - [x] 7.6 Copy audit trail
 
 ## 8.0 Testing and Quality Assurance
-- [ ] 8.1 Unit tests for utils
-- [ ] 8.2 Component tests for forms
-- [ ] 8.3 Integration tests for APIs
-- [ ] 8.4 Supabase query mocking
+- [x] 8.1 Unit tests for utils
+- [x] 8.2 Component tests for forms
+- [x] 8.3 Integration tests for APIs
+- [x] 8.4 Supabase query mocking
 - [ ] 8.5 Google Calendar API mocking
 - [ ] 8.6 End-to-end tests for critical flows
 - [ ] 8.7 Performance testing

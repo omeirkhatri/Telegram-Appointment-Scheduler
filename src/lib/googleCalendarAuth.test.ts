@@ -5,7 +5,7 @@ const mockEnv = {
   GOOGLE_CALENDAR_SERVICE_ACCOUNT_EMAIL: 'test@project.iam.gserviceaccount.com',
   GOOGLE_CALENDAR_PRIVATE_KEY: '-----BEGIN PRIVATE KEY-----\nMOCK_KEY\n-----END PRIVATE KEY-----\n',
   GOOGLE_CALENDAR_PROJECT_ID: 'test-project',
-  GOOGLE_CALENDAR_API_KEY: 'mock-api-key'
+  GOOGLE_CALENDAR_API_KEY: 'mock-api-key',
 };
 
 describe('GoogleCalendarAuth', () => {
@@ -55,7 +55,7 @@ describe('GoogleCalendarAuth', () => {
 
     it('should throw error when API key is missing', () => {
       expect(() => auth.initializeApiKey()).toThrow(
-        'Google Calendar API key not configured'
+        'Google Calendar API key not configured',
       );
     });
   });
@@ -63,7 +63,7 @@ describe('GoogleCalendarAuth', () => {
   describe('initializeServiceAccount', () => {
     it('should throw error when service account credentials are missing', async () => {
       await expect(auth.initializeServiceAccount()).rejects.toThrow(
-        'Google Calendar service account credentials not configured'
+        'Google Calendar service account credentials not configured',
       );
     });
 
@@ -71,7 +71,7 @@ describe('GoogleCalendarAuth', () => {
       process.env.GOOGLE_CALENDAR_SERVICE_ACCOUNT_EMAIL = mockEnv.GOOGLE_CALENDAR_SERVICE_ACCOUNT_EMAIL;
 
       await expect(auth.initializeServiceAccount()).rejects.toThrow(
-        'Google Calendar service account credentials not configured'
+        'Google Calendar service account credentials not configured',
       );
     });
   });

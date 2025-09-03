@@ -18,7 +18,7 @@ export class CalendarEventFormatter {
   static formatEventTitle(
     appointment: Appointment,
     patient: Patient,
-    staff?: Staff
+    staff?: Staff,
   ): string {
     const appointmentType = getAppointmentTypeDisplayName(appointment.appointment_type);
     const patientName = patient.name;
@@ -38,12 +38,12 @@ export class CalendarEventFormatter {
     appointment: Appointment,
     patient: Patient,
     staff?: Staff,
-    assignedStaff?: Staff[]
+    assignedStaff?: Staff[],
   ): string {
     const lines: string[] = [];
 
     // Basic appointment information
-    lines.push(`📅 **Appointment Details**`);
+    lines.push('📅 **Appointment Details**');
     lines.push(`Type: ${getAppointmentTypeDisplayName(appointment.appointment_type)}`);
     lines.push(`Date: ${this.formatDate(appointment.appointment_date)}`);
     lines.push(`Time: ${appointment.start_time} - ${this.getEndTime(appointment.start_time, appointment.duration_minutes)}`);
@@ -51,8 +51,8 @@ export class CalendarEventFormatter {
     lines.push(`Status: ${appointment.status}`);
 
     // Patient information
-    lines.push(``);
-    lines.push(`👤 **Patient Information**`);
+    lines.push('');
+    lines.push('👤 **Patient Information**');
     lines.push(`Name: ${patient.name}`);
     lines.push(`Phone: ${patient.phone}`);
     lines.push(`Address: ${getPatientFullAddress(patient)}`);
@@ -67,8 +67,8 @@ export class CalendarEventFormatter {
 
     // Staff assignment information
     if (assignedStaff && assignedStaff.length > 0) {
-      lines.push(``);
-      lines.push(`👨‍⚕️ **Assigned Staff**`);
+      lines.push('');
+      lines.push('👨‍⚕️ **Assigned Staff**');
       assignedStaff.forEach(staffMember => {
         const staffType = this.getStaffTypeDisplayName(staffMember.staff_type);
         const staffName = getStaffFullName(staffMember);
@@ -78,8 +78,8 @@ export class CalendarEventFormatter {
 
     // Transportation information
     if (appointment.transportation_type) {
-      lines.push(``);
-      lines.push(`🚗 **Transportation**`);
+      lines.push('');
+      lines.push('🚗 **Transportation**');
       lines.push(`Type: ${this.getTransportationTypeDisplayName(appointment.transportation_type)}`);
 
       if (appointment.transportation_type === 'driver' && appointment.driver_id) {
@@ -97,22 +97,22 @@ export class CalendarEventFormatter {
     // Custom fields based on appointment type
     const customFieldsDescription = this.formatCustomFields(appointment);
     if (customFieldsDescription) {
-      lines.push(``);
-      lines.push(`📋 **Additional Details**`);
+      lines.push('');
+      lines.push('📋 **Additional Details**');
       lines.push(customFieldsDescription);
     }
 
     // Notes
     if (appointment.notes) {
-      lines.push(``);
-      lines.push(`📝 **Notes**`);
+      lines.push('');
+      lines.push('📝 **Notes**');
       lines.push(appointment.notes);
     }
 
     // Recurring information
     if (appointment.recurring_rule) {
-      lines.push(``);
-      lines.push(`🔄 **Recurring Appointment**`);
+      lines.push('');
+      lines.push('🔄 **Recurring Appointment**');
       lines.push(this.formatRecurringRule(appointment.recurring_rule));
     }
 
@@ -245,7 +245,7 @@ export class CalendarEventFormatter {
         if (recurringRule.month_of_year) {
           const monthNames = [
             'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-            'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+            'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
           ];
           description += ` in ${monthNames[recurringRule.month_of_year - 1]}`;
         }
@@ -310,7 +310,7 @@ export class CalendarEventFormatter {
     appointment: Appointment,
     patient: Patient,
     staff?: Staff,
-    assignedStaff?: Staff[]
+    assignedStaff?: Staff[],
   ): {
     summary: string;
     description: string;
@@ -326,7 +326,7 @@ export class CalendarEventFormatter {
     const startDateTime = formatForGoogleCalendar(appointment.appointment_date, appointment.start_time);
     const endDateTime = formatForGoogleCalendar(
       appointment.appointment_date,
-      this.getEndTime(appointment.start_time, appointment.duration_minutes)
+      this.getEndTime(appointment.start_time, appointment.duration_minutes),
     );
 
     const eventData: any = {
@@ -367,7 +367,7 @@ export class CalendarEventFormatter {
   static createDriverEventDescription(
     appointment: Appointment,
     patient: Patient,
-    driver: Staff
+    driver: Staff,
   ): string {
     return new DriverEventDescriptionBuilder(appointment, patient, driver).build();
   }
@@ -378,7 +378,7 @@ export class CalendarEventFormatter {
   static createMedicalStaffEventDescription(
     appointment: Appointment,
     patient: Patient,
-    medicalStaff: Staff
+    medicalStaff: Staff,
   ): string {
     return new MedicalStaffEventDescriptionBuilder(appointment, patient, medicalStaff).build();
   }
@@ -412,15 +412,15 @@ class DriverEventDescriptionBuilder {
   }
 
   private addDriverHeader(): void {
-    this.lines.push(`🚗 **Driver Assignment**`);
+    this.lines.push('🚗 **Driver Assignment**');
     this.lines.push(`Driver: ${getStaffFullName(this.driver)}`);
     this.lines.push(`Phone: ${this.driver.phone}`);
     this.lines.push(`Vehicle: ${this.driver.specialization || 'Company Vehicle'}`);
-    this.lines.push(``);
+    this.lines.push('');
   }
 
   private addPickupDetails(): void {
-    this.lines.push(`📍 **Pickup Details**`);
+    this.lines.push('📍 **Pickup Details**');
     this.lines.push(`Patient: ${this.patient.name}`);
     this.lines.push(`Phone: ${this.patient.phone}`);
     this.lines.push(`Pickup Address: ${getPatientFullAddress(this.patient)}`);
@@ -430,20 +430,20 @@ class DriverEventDescriptionBuilder {
     }
 
     this.lines.push(`Pickup Time: ${this.appointment.start_time}`);
-    this.lines.push(``);
+    this.lines.push('');
   }
 
   private addAppointmentDetails(): void {
-    this.lines.push(`🏥 **Appointment Details**`);
+    this.lines.push('🏥 **Appointment Details**');
     this.lines.push(`Appointment Time: ${this.appointment.start_time} - ${CalendarEventFormatter['getEndTime'](this.appointment.start_time, this.appointment.duration_minutes)}`);
     this.lines.push(`Appointment Type: ${getAppointmentTypeDisplayName(this.appointment.appointment_type)}`);
     this.lines.push(`Duration: ${this.appointment.duration_minutes} minutes`);
     this.lines.push(`Date: ${CalendarEventFormatter['formatDate'](this.appointment.appointment_date)}`);
-    this.lines.push(``);
+    this.lines.push('');
   }
 
   private addPatientInstructions(): void {
-    this.lines.push(`📋 **Patient Instructions**`);
+    this.lines.push('📋 **Patient Instructions**');
 
     if (this.patient.medical_notes) {
       this.lines.push(`Medical Notes: ${this.patient.medical_notes}`);
@@ -459,25 +459,25 @@ class DriverEventDescriptionBuilder {
       this.lines.push(instructions);
     }
 
-    this.lines.push(``);
+    this.lines.push('');
   }
 
   private addTransportationNotes(): void {
     if (this.appointment.transportation_type === 'driver') {
-      this.lines.push(`🚐 **Transportation Notes**`);
-      this.lines.push(`• Ensure patient is comfortable during transport`);
-      this.lines.push(`• Assist with entering/exiting vehicle if needed`);
-      this.lines.push(`• Wait for appointment completion if required`);
-      this.lines.push(`• Return patient to pickup location after appointment`);
-      this.lines.push(``);
+      this.lines.push('🚐 **Transportation Notes**');
+      this.lines.push('• Ensure patient is comfortable during transport');
+      this.lines.push('• Assist with entering/exiting vehicle if needed');
+      this.lines.push('• Wait for appointment completion if required');
+      this.lines.push('• Return patient to pickup location after appointment');
+      this.lines.push('');
     }
   }
 
   private addGeneralNotes(): void {
     if (this.appointment.notes) {
-      this.lines.push(`📝 **Additional Notes**`);
+      this.lines.push('📝 **Additional Notes**');
       this.lines.push(this.appointment.notes);
-      this.lines.push(``);
+      this.lines.push('');
     }
   }
 
@@ -536,7 +536,7 @@ class MedicalStaffEventDescriptionBuilder {
   }
 
   private addMedicalHeader(): void {
-    this.lines.push(`👨‍⚕️ **Medical Appointment**`);
+    this.lines.push('👨‍⚕️ **Medical Appointment**');
     this.lines.push(`Staff: ${getStaffFullName(this.medicalStaff)}`);
     this.lines.push(`Role: ${this.getStaffTypeDisplayName(this.medicalStaff.staff_type)}`);
     this.lines.push(`Phone: ${this.medicalStaff.phone}`);
@@ -545,11 +545,11 @@ class MedicalStaffEventDescriptionBuilder {
       this.lines.push(`Specialization: ${this.medicalStaff.specialization}`);
     }
 
-    this.lines.push(``);
+    this.lines.push('');
   }
 
   private addPatientInformation(): void {
-    this.lines.push(`👤 **Patient Information**`);
+    this.lines.push('👤 **Patient Information**');
     this.lines.push(`Name: ${this.patient.name}`);
     this.lines.push(`Phone: ${this.patient.phone}`);
     this.lines.push(`Address: ${getPatientFullAddress(this.patient)}`);
@@ -558,50 +558,50 @@ class MedicalStaffEventDescriptionBuilder {
       this.lines.push(`Emergency Contact: ${this.patient.emergency_contact}`);
     }
 
-    this.lines.push(``);
+    this.lines.push('');
   }
 
   private addAppointmentDetails(): void {
-    this.lines.push(`📅 **Appointment Details**`);
+    this.lines.push('📅 **Appointment Details**');
     this.lines.push(`Type: ${getAppointmentTypeDisplayName(this.appointment.appointment_type)}`);
     this.lines.push(`Date: ${CalendarEventFormatter['formatDate'](this.appointment.appointment_date)}`);
     this.lines.push(`Time: ${this.appointment.start_time} - ${CalendarEventFormatter['getEndTime'](this.appointment.start_time, this.appointment.duration_minutes)}`);
     this.lines.push(`Duration: ${this.appointment.duration_minutes} minutes`);
     this.lines.push(`Status: ${this.appointment.status}`);
-    this.lines.push(``);
+    this.lines.push('');
   }
 
   private addMedicalContext(): void {
     if (this.patient.medical_notes) {
-      this.lines.push(`🏥 **Medical Context**`);
+      this.lines.push('🏥 **Medical Context**');
       this.lines.push(`Medical Notes: ${this.patient.medical_notes}`);
-      this.lines.push(``);
+      this.lines.push('');
     }
   }
 
   private addCustomFields(): void {
     const customFieldsDescription = CalendarEventFormatter['formatCustomFields'](this.appointment);
     if (customFieldsDescription) {
-      this.lines.push(`📋 **Appointment Specifics**`);
+      this.lines.push('📋 **Appointment Specifics**');
       this.lines.push(customFieldsDescription);
-      this.lines.push(``);
+      this.lines.push('');
     }
   }
 
   private addPreparationNotes(): void {
     const preparationNotes = this.getPreparationNotes();
     if (preparationNotes) {
-      this.lines.push(`🔧 **Preparation Required**`);
+      this.lines.push('🔧 **Preparation Required**');
       this.lines.push(preparationNotes);
-      this.lines.push(``);
+      this.lines.push('');
     }
   }
 
   private addGeneralNotes(): void {
     if (this.appointment.notes) {
-      this.lines.push(`📝 **Notes**`);
+      this.lines.push('📝 **Notes**');
       this.lines.push(this.appointment.notes);
-      this.lines.push(``);
+      this.lines.push('');
     }
   }
 

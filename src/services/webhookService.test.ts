@@ -134,7 +134,7 @@ describe('WebhookService', () => {
       expect(result.success).toBe(true);
       expect(googleCalendarService.stopCalendarWebhook).toHaveBeenCalledWith(
         'dr.sarah@medicare.com',
-        'webhook-123'
+        'webhook-123',
       );
     });
 

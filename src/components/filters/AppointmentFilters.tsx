@@ -25,7 +25,7 @@ export function AppointmentFilters({
   onFiltersChange,
   onClearFilters,
   staffOptions = [],
-  className = ''
+  className = '',
 }: AppointmentFiltersProps) {
   const [isExpanded, setIsExpanded] = useState(false);
 
@@ -48,7 +48,7 @@ export function AppointmentFilters({
   const handleFilterChange = (key: keyof AppointmentFilterState, value: string | undefined) => {
     onFiltersChange({
       ...filters,
-      [key]: value
+      [key]: value,
     });
   };
 

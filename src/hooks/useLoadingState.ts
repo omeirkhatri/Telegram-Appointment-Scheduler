@@ -34,7 +34,7 @@ export function useLoadingState(): UseLoadingStateReturn {
 
   const withLoading = useCallback(async <T>(
     asyncFn: () => Promise<T>,
-    message?: string
+    message?: string,
   ): Promise<T> => {
     startLoading(message);
     try {

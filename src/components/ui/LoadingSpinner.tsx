@@ -22,7 +22,7 @@ const colorClasses = {
 export function LoadingSpinner({
   size = 'md',
   color = 'primary',
-  className = ''
+  className = '',
 }: LoadingSpinnerProps) {
   return (
     <div

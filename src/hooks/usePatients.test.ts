@@ -49,7 +49,7 @@ describe('usePatients', () => {
       const initialFilters = { city: 'Dubai' };
       const { result } = renderHook(() => usePatients({
         initialFilters,
-        autoFetch: false
+        autoFetch: false,
       }));
 
       expect(result.current.filters).toEqual(initialFilters);
@@ -120,7 +120,7 @@ describe('usePatients', () => {
       });
 
       expect(mockFetch).toHaveBeenCalledWith(
-        expect.stringContaining('city=Dubai&area=Dubai%20Marina')
+        expect.stringContaining('city=Dubai&area=Dubai%20Marina'),
       );
     });
   });
@@ -342,7 +342,7 @@ describe('usePatients', () => {
       const initialFilters = { city: 'Dubai' };
       const { result } = renderHook(() => usePatients({
         initialFilters,
-        autoFetch: false
+        autoFetch: false,
       }));
 
       act(() => {

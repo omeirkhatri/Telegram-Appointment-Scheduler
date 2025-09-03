@@ -12,7 +12,7 @@ import {
     RefreshCw,
     Settings,
     Square,
-    Zap
+    Zap,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
@@ -129,7 +129,7 @@ export function AutomatedEmailSection({ className = '' }: AutomatedEmailSectionP
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          action: action === 'start' ? 'start_scheduler' : 'stop_scheduler'
+          action: action === 'start' ? 'start_scheduler' : 'stop_scheduler',
         }),
       });
 
@@ -138,21 +138,21 @@ export function AutomatedEmailSection({ className = '' }: AutomatedEmailSectionP
       if (data.success) {
         setResult({
           success: true,
-          message: `Scheduler ${action === 'start' ? 'started' : 'stopped'} successfully`
+          message: `Scheduler ${action === 'start' ? 'started' : 'stopped'} successfully`,
         });
         loadSchedulerStatus();
       } else {
         setResult({
           success: false,
           message: `Failed to ${action} scheduler`,
-          error: data.error || 'Unknown error'
+          error: data.error || 'Unknown error',
         });
       }
     } catch (error) {
       setResult({
         success: false,
         message: `Failed to ${action} scheduler`,
-        error: error instanceof Error ? error.message : 'Network error'
+        error: error instanceof Error ? error.message : 'Network error',
       });
     } finally {
       setIsSaving(false);
@@ -178,7 +178,7 @@ export function AutomatedEmailSection({ className = '' }: AutomatedEmailSectionP
         body: JSON.stringify({
           action: 'update_schedule',
           cronExpression,
-          enabled: isEnabled
+          enabled: isEnabled,
         }),
       });
 
@@ -187,21 +187,21 @@ export function AutomatedEmailSection({ className = '' }: AutomatedEmailSectionP
       if (data.success) {
         setResult({
           success: true,
-          message: 'Schedule updated successfully'
+          message: 'Schedule updated successfully',
         });
         loadJobStatus();
       } else {
         setResult({
           success: false,
           message: 'Failed to update schedule',
-          error: data.error || 'Unknown error'
+          error: data.error || 'Unknown error',
         });
       }
     } catch (error) {
       setResult({
         success: false,
         message: 'Failed to update schedule',
-        error: error instanceof Error ? error.message : 'Network error'
+        error: error instanceof Error ? error.message : 'Network error',
       });
     } finally {
       setIsSaving(false);
@@ -221,7 +221,7 @@ export function AutomatedEmailSection({ className = '' }: AutomatedEmailSectionP
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          forceSend: true
+          forceSend: true,
         }),
       });
 
@@ -230,7 +230,7 @@ export function AutomatedEmailSection({ className = '' }: AutomatedEmailSectionP
       if (data.success) {
         setResult({
           success: true,
-          message: 'Manual execution triggered successfully'
+          message: 'Manual execution triggered successfully',
         });
         // Refresh data after a short delay
         setTimeout(() => {
@@ -241,14 +241,14 @@ export function AutomatedEmailSection({ className = '' }: AutomatedEmailSectionP
         setResult({
           success: false,
           message: 'Failed to trigger manual execution',
-          error: data.error || 'Unknown error'
+          error: data.error || 'Unknown error',
         });
       }
     } catch (error) {
       setResult({
         success: false,
         message: 'Failed to trigger manual execution',
-        error: error instanceof Error ? error.message : 'Network error'
+        error: error instanceof Error ? error.message : 'Network error',
       });
     } finally {
       setIsSaving(false);
@@ -262,7 +262,7 @@ export function AutomatedEmailSection({ className = '' }: AutomatedEmailSectionP
       day: 'numeric',
       hour: '2-digit',
       minute: '2-digit',
-      timeZone: 'Asia/Dubai'
+      timeZone: 'Asia/Dubai',
     });
   };
 
@@ -321,12 +321,12 @@ export function AutomatedEmailSection({ className = '' }: AutomatedEmailSectionP
             <div className="flex items-center space-x-2">
               {schedulerStatus?.isRunning ? (
                 <div className="flex items-center space-x-2 text-[--success]">
-                  <div className="w-2 h-2 bg-[--success] rounded-full animate-pulse"></div>
+                  <div className="w-2 h-2 bg-[--success] rounded-full animate-pulse" />
                   <span className="text-sm font-medium">Running</span>
                 </div>
               ) : (
                 <div className="flex items-center space-x-2 text-[--muted-foreground]">
-                  <div className="w-2 h-2 bg-[--muted-foreground] rounded-full"></div>
+                  <div className="w-2 h-2 bg-[--muted-foreground] rounded-full" />
                   <span className="text-sm font-medium">Stopped</span>
                 </div>
               )}
@@ -411,7 +411,7 @@ export function AutomatedEmailSection({ className = '' }: AutomatedEmailSectionP
                     onChange={(e) => setIsEnabled(e.target.checked)}
                     className="sr-only peer"
                   />
-                  <div className="w-11 h-6 bg-[--muted] peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-[--ring] rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-[--border] after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[--primary]"></div>
+                  <div className="w-11 h-6 bg-[--muted] peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-[--ring] rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-[--border] after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[--primary]" />
                   <span className="ml-3 text-sm text-[--foreground]">
                     {isEnabled ? 'Enabled' : 'Disabled'}
                   </span>

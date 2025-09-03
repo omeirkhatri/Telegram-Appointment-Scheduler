@@ -106,7 +106,7 @@ describe('GoogleCalendarService', () => {
     it('should fetch calendar events', async () => {
       const mockEvents = [{ id: '1', summary: 'Test Event' }];
       mockCalendarClient.events.list.mockResolvedValue({
-        data: { items: mockEvents }
+        data: { items: mockEvents },
       });
 
       const result = await service.getCalendarEvents('test@example.com', '2024-01-01T00:00:00Z', '2024-01-02T00:00:00Z');
@@ -117,7 +117,7 @@ describe('GoogleCalendarService', () => {
         timeMax: '2024-01-02T00:00:00Z',
         singleEvents: true,
         orderBy: 'startTime',
-        maxResults: 2500
+        maxResults: 2500,
       });
       expect(result).toEqual(mockEvents);
     });
@@ -140,7 +140,7 @@ describe('GoogleCalendarService', () => {
       };
 
       mockCalendarClient.events.insert.mockResolvedValue({
-        data: { id: 'event-123' }
+        data: { id: 'event-123' },
       });
 
       const result = await service.createCalendarEvent('test@example.com', eventData);
@@ -148,7 +148,7 @@ describe('GoogleCalendarService', () => {
       expect(mockCalendarClient.events.insert).toHaveBeenCalledWith({
         calendarId: 'test@example.com',
         requestBody: eventData,
-        sendUpdates: 'all'
+        sendUpdates: 'all',
       });
       expect(result).toBe('event-123');
     });
@@ -169,7 +169,7 @@ describe('GoogleCalendarService', () => {
         calendarId: 'test@example.com',
         eventId: 'event-123',
         requestBody: eventData,
-        sendUpdates: 'all'
+        sendUpdates: 'all',
       });
     });
   });
@@ -183,7 +183,7 @@ describe('GoogleCalendarService', () => {
       expect(mockCalendarClient.events.delete).toHaveBeenCalledWith({
         calendarId: 'test@example.com',
         eventId: 'event-123',
-        sendUpdates: 'all'
+        sendUpdates: 'all',
       });
     });
   });

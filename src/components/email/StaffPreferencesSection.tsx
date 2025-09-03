@@ -10,7 +10,7 @@ import {
     RefreshCw,
     Save,
     Settings,
-    Users
+    Users,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
@@ -44,7 +44,7 @@ export function StaffPreferencesSection({ className = '' }: StaffPreferencesSect
   const [selectedStaffIds, setSelectedStaffIds] = useState<string[]>([]);
 
   const { staff, isLoading: staffLoading, error: staffError, refresh: refreshStaff } = useStaff({
-    autoFetch: true
+    autoFetch: true,
   });
 
   // Load preferences when staff is selected
@@ -70,7 +70,7 @@ export function StaffPreferencesSection({ className = '' }: StaffPreferencesSect
           emailNotificationsEnabled: data.data.preferences.emailNotificationsEnabled,
           dailyAgendaEnabled: data.data.preferences.dailyAgendaEnabled,
           agendaTime: data.data.preferences.agendaTime || '06:00',
-          timezone: data.data.preferences.timezone || 'Asia/Dubai'
+          timezone: data.data.preferences.timezone || 'Asia/Dubai',
         });
       } else {
         // Set default preferences if none exist
@@ -79,14 +79,14 @@ export function StaffPreferencesSection({ className = '' }: StaffPreferencesSect
           emailNotificationsEnabled: true,
           dailyAgendaEnabled: true,
           agendaTime: '06:00',
-          timezone: 'Asia/Dubai'
+          timezone: 'Asia/Dubai',
         });
       }
     } catch (error) {
       setResult({
         success: false,
         message: 'Failed to load preferences',
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : 'Unknown error',
       });
     } finally {
       setIsLoading(false);
@@ -97,7 +97,7 @@ export function StaffPreferencesSection({ className = '' }: StaffPreferencesSect
     if (preferences) {
       setPreferences({
         ...preferences,
-        [field]: value
+        [field]: value,
       });
     }
   };
@@ -120,8 +120,8 @@ export function StaffPreferencesSection({ className = '' }: StaffPreferencesSect
             emailNotificationsEnabled: preferences.emailNotificationsEnabled,
             dailyAgendaEnabled: preferences.dailyAgendaEnabled,
             agendaTime: preferences.agendaTime,
-            timezone: preferences.timezone
-          }
+            timezone: preferences.timezone,
+          },
         }),
       });
 
@@ -130,7 +130,7 @@ export function StaffPreferencesSection({ className = '' }: StaffPreferencesSect
       if (data.success) {
         setResult({
           success: true,
-          message: 'Preferences updated successfully'
+          message: 'Preferences updated successfully',
         });
         // Refresh staff data to reflect changes
         refreshStaff();
@@ -138,14 +138,14 @@ export function StaffPreferencesSection({ className = '' }: StaffPreferencesSect
         setResult({
           success: false,
           message: 'Failed to update preferences',
-          error: data.error || 'Unknown error'
+          error: data.error || 'Unknown error',
         });
       }
     } catch (error) {
       setResult({
         success: false,
         message: 'Failed to update preferences',
-        error: error instanceof Error ? error.message : 'Network error'
+        error: error instanceof Error ? error.message : 'Network error',
       });
     } finally {
       setIsSaving(false);
@@ -157,7 +157,7 @@ export function StaffPreferencesSection({ className = '' }: StaffPreferencesSect
       setResult({
         success: false,
         message: 'Please select at least one staff member',
-        error: 'No staff selected'
+        error: 'No staff selected',
       });
       return;
     }
@@ -174,9 +174,9 @@ export function StaffPreferencesSection({ className = '' }: StaffPreferencesSect
           },
           body: JSON.stringify({
             staffId,
-            preferences: bulkUpdate
+            preferences: bulkUpdate,
           }),
-        })
+        }),
       );
 
       const responses = await Promise.all(updatePromises);
@@ -188,13 +188,13 @@ export function StaffPreferencesSection({ className = '' }: StaffPreferencesSect
       if (failureCount === 0) {
         setResult({
           success: true,
-          message: `Successfully updated preferences for ${successCount} staff members`
+          message: `Successfully updated preferences for ${successCount} staff members`,
         });
       } else {
         setResult({
           success: false,
           message: `Updated ${successCount} staff members, ${failureCount} failed`,
-          error: 'Some updates failed'
+          error: 'Some updates failed',
         });
       }
 
@@ -209,7 +209,7 @@ export function StaffPreferencesSection({ className = '' }: StaffPreferencesSect
       setResult({
         success: false,
         message: 'Failed to update preferences',
-        error: error instanceof Error ? error.message : 'Network error'
+        error: error instanceof Error ? error.message : 'Network error',
       });
     } finally {
       setIsSaving(false);
@@ -306,7 +306,7 @@ export function StaffPreferencesSection({ className = '' }: StaffPreferencesSect
                       onChange={(e) => handlePreferenceChange('emailNotificationsEnabled', e.target.checked)}
                       className="sr-only peer"
                     />
-                    <div className="w-11 h-6 bg-[--muted] peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-[--ring] rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-[--border] after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[--primary]"></div>
+                    <div className="w-11 h-6 bg-[--muted] peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-[--ring] rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-[--border] after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[--primary]" />
                   </label>
                 </div>
 
@@ -326,7 +326,7 @@ export function StaffPreferencesSection({ className = '' }: StaffPreferencesSect
                       onChange={(e) => handlePreferenceChange('dailyAgendaEnabled', e.target.checked)}
                       className="sr-only peer"
                     />
-                    <div className="w-11 h-6 bg-[--muted] peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-[--ring] rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-[--border] after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[--primary]"></div>
+                    <div className="w-11 h-6 bg-[--muted] peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-[--ring] rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-[--border] after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[--primary]" />
                   </label>
                 </div>
 
@@ -423,7 +423,7 @@ export function StaffPreferencesSection({ className = '' }: StaffPreferencesSect
                   value={bulkUpdate.emailNotificationsEnabled?.toString() || ''}
                   onChange={(e) => setBulkUpdate({
                     ...bulkUpdate,
-                    emailNotificationsEnabled: e.target.value === '' ? undefined : e.target.value === 'true'
+                    emailNotificationsEnabled: e.target.value === '' ? undefined : e.target.value === 'true',
                   })}
                   className="w-full px-3 py-2 border border-[--border] rounded-lg bg-[--muted] text-[--foreground] focus:outline-none focus:ring-2 focus:ring-[--ring] focus:border-transparent"
                 >
@@ -441,7 +441,7 @@ export function StaffPreferencesSection({ className = '' }: StaffPreferencesSect
                   value={bulkUpdate.dailyAgendaEnabled?.toString() || ''}
                   onChange={(e) => setBulkUpdate({
                     ...bulkUpdate,
-                    dailyAgendaEnabled: e.target.value === '' ? undefined : e.target.value === 'true'
+                    dailyAgendaEnabled: e.target.value === '' ? undefined : e.target.value === 'true',
                   })}
                   className="w-full px-3 py-2 border border-[--border] rounded-lg bg-[--muted] text-[--foreground] focus:outline-none focus:ring-2 focus:ring-[--ring] focus:border-transparent"
                 >
@@ -460,7 +460,7 @@ export function StaffPreferencesSection({ className = '' }: StaffPreferencesSect
                   value={bulkUpdate.agendaTime || ''}
                   onChange={(e) => setBulkUpdate({
                     ...bulkUpdate,
-                    agendaTime: e.target.value || undefined
+                    agendaTime: e.target.value || undefined,
                   })}
                   className="w-full px-3 py-2 border border-[--border] rounded-lg bg-[--muted] text-[--foreground] focus:outline-none focus:ring-2 focus:ring-[--ring] focus:border-transparent"
                 />
@@ -474,7 +474,7 @@ export function StaffPreferencesSection({ className = '' }: StaffPreferencesSect
                   value={bulkUpdate.timezone || ''}
                   onChange={(e) => setBulkUpdate({
                     ...bulkUpdate,
-                    timezone: e.target.value || undefined
+                    timezone: e.target.value || undefined,
                   })}
                   className="w-full px-3 py-2 border border-[--border] rounded-lg bg-[--muted] text-[--foreground] focus:outline-none focus:ring-2 focus:ring-[--ring] focus:border-transparent"
                 >

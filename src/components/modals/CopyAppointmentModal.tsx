@@ -164,7 +164,7 @@ export function CopyAppointmentModal({
         total: targetDates.length,
         currentDate: '',
         status: 'preparing',
-        message: 'Preparing bulk copy...'
+        message: 'Preparing bulk copy...',
       });
 
       const response = await fetch(`/api/appointments/${sourceAppointment.id}/bulk-copy`, {
@@ -200,7 +200,7 @@ export function CopyAppointmentModal({
         total: result.data.totalRequested,
         currentDate: '',
         status: 'completed',
-        message: `Bulk copy completed: ${result.data.totalCreated}/${result.data.totalRequested} appointments created`
+        message: `Bulk copy completed: ${result.data.totalCreated}/${result.data.totalRequested} appointments created`,
       });
 
       // Close modal and trigger success callback if any appointments were created
@@ -219,7 +219,7 @@ export function CopyAppointmentModal({
         total: 0,
         currentDate: '',
         status: 'error',
-        message: errorMessage
+        message: errorMessage,
       });
     } finally {
       setIsSubmitting(false);
@@ -504,7 +504,7 @@ export function CopyAppointmentModal({
                               newAssignments[index] = {
                                 ...newAssignments[index],
                                 staff_id: e.target.value,
-                                staff: staff.find(s => s.id === e.target.value) || newAssignments[index].staff
+                                staff: staff.find(s => s.id === e.target.value) || newAssignments[index].staff,
                               };
                               setSourceStaffAssignments(newAssignments);
                             }}
@@ -552,7 +552,7 @@ export function CopyAppointmentModal({
                             created_at: new Date().toISOString(),
                             updated_at: new Date().toISOString(),
                             appointment: sourceAppointment,
-                            staff: null
+                            staff: null,
                           };
                           setSourceStaffAssignments([...sourceStaffAssignments, newAssignment]);
                         }}
@@ -587,7 +587,7 @@ export function CopyAppointmentModal({
                     onChange={(e) => setBulkConfig({
                       ...bulkConfig,
                       pattern: e.target.value as any,
-                      customDates: e.target.value === 'custom' ? [] : bulkConfig.customDates
+                      customDates: e.target.value === 'custom' ? [] : bulkConfig.customDates,
                     })}
                     className="w-full px-3 py-2 border border-[--border] rounded-lg bg-[--background] text-[--foreground]"
                   >
@@ -610,7 +610,7 @@ export function CopyAppointmentModal({
                     value={bulkConfig.interval}
                     onChange={(e) => setBulkConfig({
                       ...bulkConfig,
-                      interval: parseInt(e.target.value) || 1
+                      interval: parseInt(e.target.value) || 1,
                     })}
                     className="w-full px-3 py-2 border border-[--border] rounded-lg bg-[--background] text-[--foreground]"
                   />
@@ -628,7 +628,7 @@ export function CopyAppointmentModal({
                     value={bulkConfig.occurrences}
                     onChange={(e) => setBulkConfig({
                       ...bulkConfig,
-                      occurrences: parseInt(e.target.value) || 1
+                      occurrences: parseInt(e.target.value) || 1,
                     })}
                     className="w-full px-3 py-2 border border-[--border] rounded-lg bg-[--background] text-[--foreground]"
                   />
@@ -644,7 +644,7 @@ export function CopyAppointmentModal({
                     value={bulkConfig.startDate}
                     onChange={(e) => setBulkConfig({
                       ...bulkConfig,
-                      startDate: e.target.value
+                      startDate: e.target.value,
                     })}
                     className="w-full px-3 py-2 border border-[--border] rounded-lg bg-[--background] text-[--foreground]"
                   />

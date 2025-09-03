@@ -163,7 +163,7 @@ export function useUpdateAppointment() {
     appointmentId: string,
     newStart: Date,
     newEnd: Date,
-    appointmentType?: string
+    appointmentType?: string,
   ) => {
     setIsUpdating(true);
     setError(null);

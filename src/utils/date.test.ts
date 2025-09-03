@@ -179,7 +179,7 @@ describe('Timezone Date Utilities', () => {
     it('should detect overlapping appointments', () => {
       const overlap = appointmentsOverlap(
         '2024-01-15', '10:00', 60, // 10:00-11:00
-        '2024-01-15', '10:30', 60  // 10:30-11:30
+        '2024-01-15', '10:30', 60,  // 10:30-11:30
       );
       expect(overlap).toBe(true);
     });
@@ -187,7 +187,7 @@ describe('Timezone Date Utilities', () => {
     it('should not detect non-overlapping appointments', () => {
       const overlap = appointmentsOverlap(
         '2024-01-15', '10:00', 60, // 10:00-11:00
-        '2024-01-15', '11:00', 60  // 11:00-12:00
+        '2024-01-15', '11:00', 60,  // 11:00-12:00
       );
       expect(overlap).toBe(false);
     });
@@ -195,7 +195,7 @@ describe('Timezone Date Utilities', () => {
     it('should not detect appointments on different days', () => {
       const overlap = appointmentsOverlap(
         '2024-01-15', '10:00', 60,
-        '2024-01-16', '10:00', 60
+        '2024-01-16', '10:00', 60,
       );
       expect(overlap).toBe(false);
     });

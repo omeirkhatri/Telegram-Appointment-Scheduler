@@ -100,7 +100,7 @@ describe('CalendarEventFormatter', () => {
       const title = CalendarEventFormatter.formatEventTitle(
         mockAppointment,
         mockPatient,
-        mockDoctor
+        mockDoctor,
       );
 
       expect(title).toBe('Doctor on Call - John Doe (Dr. Sarah Smith)');
@@ -109,7 +109,7 @@ describe('CalendarEventFormatter', () => {
     it('should format title without staff member', () => {
       const title = CalendarEventFormatter.formatEventTitle(
         mockAppointment,
-        mockPatient
+        mockPatient,
       );
 
       expect(title).toBe('Doctor on Call - John Doe');
@@ -131,7 +131,7 @@ describe('CalendarEventFormatter', () => {
       const title = CalendarEventFormatter.formatEventTitle(
         labTestAppointment,
         mockPatient,
-        mockDoctor
+        mockDoctor,
       );
 
       expect(title).toBe('Lab Test - John Doe (Dr. Sarah Smith)');
@@ -144,7 +144,7 @@ describe('CalendarEventFormatter', () => {
         mockAppointment,
         mockPatient,
         mockDoctor,
-        [mockDoctor, mockDriver]
+        [mockDoctor, mockDriver],
       );
 
       expect(description).toContain('📅 **Appointment Details**');
@@ -189,7 +189,7 @@ describe('CalendarEventFormatter', () => {
         appointmentWithoutTransport,
         mockPatient,
         mockDoctor,
-        [mockDoctor]
+        [mockDoctor],
       );
 
       expect(description).not.toContain('🚗 **Transportation**');
@@ -205,7 +205,7 @@ describe('CalendarEventFormatter', () => {
         appointmentWithoutCustomFields,
         mockPatient,
         mockDoctor,
-        [mockDoctor]
+        [mockDoctor],
       );
 
       expect(description).not.toContain('📋 **Additional Details**');
@@ -221,7 +221,7 @@ describe('CalendarEventFormatter', () => {
         appointmentWithoutNotes,
         mockPatient,
         mockDoctor,
-        [mockDoctor]
+        [mockDoctor],
       );
 
       expect(description).not.toContain('📝 **Notes**');
@@ -233,7 +233,7 @@ describe('CalendarEventFormatter', () => {
       const description = CalendarEventFormatter.createDriverEventDescription(
         mockAppointment,
         mockPatient,
-        mockDriver
+        mockDriver,
       );
 
       // Driver header
@@ -284,7 +284,7 @@ describe('CalendarEventFormatter', () => {
       const description = CalendarEventFormatter.createDriverEventDescription(
         mockAppointment,
         mockPatient,
-        driverWithSpecialization
+        driverWithSpecialization,
       );
 
       expect(description).toContain('Vehicle: Luxury Sedan');
@@ -299,7 +299,7 @@ describe('CalendarEventFormatter', () => {
       const description = CalendarEventFormatter.createDriverEventDescription(
         mockAppointment,
         patientWithoutMaps,
-        mockDriver
+        mockDriver,
       );
 
       expect(description).not.toContain('Maps Link:');
@@ -321,7 +321,7 @@ describe('CalendarEventFormatter', () => {
       const description = CalendarEventFormatter.createDriverEventDescription(
         labTestAppointment,
         mockPatient,
-        mockDriver
+        mockDriver,
       );
 
       expect(description).toContain('⚠️ Patient may need to fast for lab tests - confirm with patient');
@@ -341,7 +341,7 @@ describe('CalendarEventFormatter', () => {
       const description = CalendarEventFormatter.createDriverEventDescription(
         physioAppointment,
         mockPatient,
-        mockDriver
+        mockDriver,
       );
 
       expect(description).toContain('Condition: Lower back pain - may need assistance with mobility');
@@ -353,7 +353,7 @@ describe('CalendarEventFormatter', () => {
       const description = CalendarEventFormatter.createMedicalStaffEventDescription(
         mockAppointment,
         mockPatient,
-        mockDoctor
+        mockDoctor,
       );
 
       // Medical header
@@ -402,7 +402,7 @@ describe('CalendarEventFormatter', () => {
       const description = CalendarEventFormatter.createMedicalStaffEventDescription(
         mockAppointment,
         mockPatient,
-        doctorWithoutSpecialization
+        doctorWithoutSpecialization,
       );
 
       expect(description).not.toContain('Specialization:');
@@ -417,7 +417,7 @@ describe('CalendarEventFormatter', () => {
       const description = CalendarEventFormatter.createMedicalStaffEventDescription(
         mockAppointment,
         patientWithoutMedicalNotes,
-        mockDoctor
+        mockDoctor,
       );
 
       expect(description).not.toContain('🏥 **Medical Context**');
@@ -439,7 +439,7 @@ describe('CalendarEventFormatter', () => {
       const description = CalendarEventFormatter.createMedicalStaffEventDescription(
         labTestAppointment,
         mockPatient,
-        mockNurse
+        mockNurse,
       );
 
       expect(description).toContain('🔧 **Preparation Required**');
@@ -461,7 +461,7 @@ describe('CalendarEventFormatter', () => {
       const description = CalendarEventFormatter.createMedicalStaffEventDescription(
         teleconsultationAppointment,
         mockPatient,
-        mockDoctor
+        mockDoctor,
       );
 
       expect(description).toContain('🔧 **Preparation Required**');
@@ -482,7 +482,7 @@ describe('CalendarEventFormatter', () => {
       const description = CalendarEventFormatter.createMedicalStaffEventDescription(
         physioAppointment,
         mockPatient,
-        mockDoctor
+        mockDoctor,
       );
 
       expect(description).toContain('🔧 **Preparation Required**');
@@ -504,7 +504,7 @@ describe('CalendarEventFormatter', () => {
       const description = CalendarEventFormatter.createMedicalStaffEventDescription(
         ivAppointment,
         mockPatient,
-        mockNurse
+        mockNurse,
       );
 
       expect(description).toContain('🔧 **Preparation Required**');
@@ -518,7 +518,7 @@ describe('CalendarEventFormatter', () => {
         mockAppointment,
         mockPatient,
         mockDoctor,
-        [mockDoctor, mockDriver]
+        [mockDoctor, mockDriver],
       );
 
       expect(eventData.summary).toBe('Doctor on Call - John Doe (Dr. Sarah Smith)');
@@ -544,7 +544,7 @@ describe('CalendarEventFormatter', () => {
         mockAppointment,
         patientWithoutMaps,
         mockDoctor,
-        [mockDoctor]
+        [mockDoctor],
       );
 
       expect(eventData.location).toBeUndefined();
@@ -560,7 +560,7 @@ describe('CalendarEventFormatter', () => {
         mockAppointment,
         mockPatient,
         staffWithoutEmail,
-        [staffWithoutEmail]
+        [staffWithoutEmail],
       );
 
       expect(eventData.attendees).toBeUndefined();
@@ -585,7 +585,7 @@ describe('CalendarEventFormatter', () => {
         labTestAppointment,
         mockPatient,
         mockDoctor,
-        [mockDoctor]
+        [mockDoctor],
       );
 
       expect(description).toContain('Tests: Blood test, ECG, X-ray');
@@ -610,7 +610,7 @@ describe('CalendarEventFormatter', () => {
         teleconsultationAppointment,
         mockPatient,
         mockDoctor,
-        [mockDoctor]
+        [mockDoctor],
       );
 
       expect(description).toContain('Platform: Zoom');
@@ -633,7 +633,7 @@ describe('CalendarEventFormatter', () => {
         physiotherapyAppointment,
         mockPatient,
         mockDoctor,
-        [mockDoctor]
+        [mockDoctor],
       );
 
       expect(description).toContain('Physiotherapist ID: physio-1');

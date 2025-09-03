@@ -12,7 +12,7 @@ import {
     MoreHorizontal,
     Plus,
     Search,
-    Users
+    Users,
 } from 'lucide-react';
 
 export default function Home() {
@@ -20,40 +20,40 @@ export default function Home() {
   const stats = [
     {
       title: "Today's Appointments",
-      value: "24",
-      change: "+12.5%",
-      changeType: "positive",
+      value: '24',
+      change: '+12.5%',
+      changeType: 'positive',
       icon: CalendarDays,
-      description: "Trending up this month",
-      subtitle: "Appointments for the last 30 days"
+      description: 'Trending up this month',
+      subtitle: 'Appointments for the last 30 days',
     },
     {
-      title: "Active Patients",
-      value: "156",
-      change: "+3",
-      changeType: "positive",
+      title: 'Active Patients',
+      value: '156',
+      change: '+3',
+      changeType: 'positive',
       icon: Users,
-      description: "Strong patient retention",
-      subtitle: "Engagement exceeds targets"
+      description: 'Strong patient retention',
+      subtitle: 'Engagement exceeds targets',
     },
     {
-      title: "Pending Reviews",
-      value: "8",
-      change: "Requires",
-      changeType: "warning",
+      title: 'Pending Reviews',
+      value: '8',
+      change: 'Requires',
+      changeType: 'warning',
       icon: Clock,
-      description: "Needs attention",
-      subtitle: "Reviews pending approval"
+      description: 'Needs attention',
+      subtitle: 'Reviews pending approval',
     },
     {
-      title: "Completed Today",
-      value: "18",
-      change: "75%",
-      changeType: "neutral",
+      title: 'Completed Today',
+      value: '18',
+      change: '75%',
+      changeType: 'neutral',
       icon: FileText,
-      description: "Steady performance",
-      subtitle: "Meets daily targets"
-    }
+      description: 'Steady performance',
+      subtitle: 'Meets daily targets',
+    },
   ];
 
   // Recent activity data
@@ -62,7 +62,7 @@ export default function Home() {
     { time: '15 min ago', text: 'Dr. Smith updated patient notes', status: 'updated' },
     { time: '1 hour ago', text: 'New patient registration: Mike Wilson', status: 'new' },
     { time: '2 hours ago', text: 'Appointment rescheduled for tomorrow', status: 'rescheduled' },
-    { time: '3 hours ago', text: 'Follow-up reminder sent to 5 patients', status: 'reminder' }
+    { time: '3 hours ago', text: 'Follow-up reminder sent to 5 patients', status: 'reminder' },
   ];
 
   // Quick actions data
@@ -70,7 +70,7 @@ export default function Home() {
     { name: 'Schedule', icon: CalendarDays, description: 'Create new appointment', href: '/appointments/new' },
     { name: 'Add Patient', icon: Users, description: 'Register new patient', href: '/patients/new' },
     { name: 'Reports', icon: BarChart3, description: 'View analytics', href: '/reports' },
-    { name: 'Manage', icon: Activity, description: 'System settings', href: '/settings' }
+    { name: 'Manage', icon: Activity, description: 'System settings', href: '/settings' },
   ];
 
   // Upcoming appointments data
@@ -78,7 +78,7 @@ export default function Home() {
     { time: '09:00 AM', patient: 'Emma Davis', doctor: 'Dr. Smith', type: 'Check-up', status: 'confirmed' },
     { time: '10:30 AM', patient: 'James Wilson', doctor: 'Dr. Johnson', type: 'Consultation', status: 'confirmed' },
     { time: '01:00 PM', patient: 'Maria Garcia', doctor: 'Dr. Brown', type: 'Follow-up', status: 'pending' },
-    { time: '03:30 PM', patient: 'David Lee', doctor: 'Dr. Smith', type: 'Emergency', status: 'urgent' }
+    { time: '03:30 PM', patient: 'David Lee', doctor: 'Dr. Smith', type: 'Emergency', status: 'urgent' },
   ];
 
   return (

@@ -3,7 +3,6 @@
 import { patientFormSchema, type PatientFormData } from '@/lib/validations/patient';
 import type { Patient } from '@/types';
 import { zodResolver } from '@hookform/resolvers/zod';
-import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 
 interface PatientFormProps {
@@ -22,8 +21,6 @@ const TRANSPORTATION_METHODS = [
 ] as const;
 
 export function PatientForm({ patient, onSubmit, onCancel, isLoading = false }: PatientFormProps) {
-  const [filePreview, setFilePreview] = useState<string | null>(null);
-  const [fileError, setFileError] = useState<string | null>(null);
 
   const {
     register,
@@ -45,47 +42,16 @@ export function PatientForm({ patient, onSubmit, onCancel, isLoading = false }: 
       medical_notes: patient?.medical_notes || '',
       emergency_contact: patient?.emergency_contact || '',
       preferred_transport: patient?.preferred_transport || '',
+      id_document_url: patient?.id_document_url || '',
     },
   });
 
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    setFileError(null);
 
-    if (file) {
-      // Validate file size
-      if (file.size > 10 * 1024 * 1024) {
-        setFileError('File size must be less than 10MB');
-        return;
-      }
-
-      // Validate file type
-      const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'application/pdf', 'image/webp'];
-      if (!allowedTypes.includes(file.type)) {
-        setFileError('File must be JPEG, PNG, GIF, PDF, or WebP');
-        return;
-      }
-
-      // Create preview for images
-      if (file.type.startsWith('image/')) {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          setFilePreview(e.target?.result as string);
-        };
-        reader.readAsDataURL(file);
-      } else {
-        setFilePreview(null);
-      }
-
-      setValue('id_document', file);
-    }
-  };
 
   const handleFormSubmit = async (data: PatientFormData) => {
     try {
       await onSubmit(data);
       reset();
-      setFilePreview(null);
     } catch (error) {
       console.error('Form submission error:', error);
     }
@@ -106,7 +72,7 @@ export function PatientForm({ patient, onSubmit, onCancel, isLoading = false }: 
               {...register('name')}
               type="text"
               id="name"
-              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-900 font-medium ${
                 errors.name ? 'border-red-500' : 'border-gray-300'
               }`}
               placeholder="Enter full name"
@@ -124,7 +90,7 @@ export function PatientForm({ patient, onSubmit, onCancel, isLoading = false }: 
               {...register('phone')}
               type="tel"
               id="phone"
-              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-900 font-medium ${
                 errors.phone ? 'border-red-500' : 'border-gray-300'
               }`}
               placeholder="+971 50 123 4567"
@@ -304,35 +270,28 @@ export function PatientForm({ patient, onSubmit, onCancel, isLoading = false }: 
         </div>
       </div>
 
-      {/* ID Document Upload */}
+      {/* ID Document Link */}
       <div className="bg-white p-6 rounded-lg shadow-sm border">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">ID Document</h3>
 
         <div>
-          <label htmlFor="id_document" className="block text-sm font-medium text-gray-700 mb-1">
-            Upload ID Document
+          <label htmlFor="id_document_url" className="block text-sm font-medium text-gray-700 mb-1">
+            Google Drive Link
           </label>
           <input
-            type="file"
-            id="id_document"
-            accept="image/*,.pdf"
-            onChange={handleFileChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            {...register('id_document_url')}
+            type="url"
+            id="id_document_url"
+            className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-900 font-medium ${
+              errors.id_document_url ? 'border-red-500' : 'border-gray-300'
+            }`}
+            placeholder="https://drive.google.com/file/d/..."
           />
           <p className="mt-1 text-sm text-gray-500">
-            Accepted formats: JPEG, PNG, GIF, PDF, WebP (max 10MB)
+            Upload your ID document to Google Drive and paste the sharing link here
           </p>
-          {fileError && (
-            <p className="mt-1 text-sm text-red-600">{fileError}</p>
-          )}
-          {filePreview && (
-            <div className="mt-2">
-              <img
-                src={filePreview}
-                alt="Document preview"
-                className="max-w-xs h-auto border rounded"
-              />
-            </div>
+          {errors.id_document_url && (
+            <p className="mt-1 text-sm text-red-600">{errors.id_document_url.message}</p>
           )}
         </div>
       </div>

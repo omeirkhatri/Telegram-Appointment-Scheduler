@@ -3,7 +3,7 @@ import type {
     EmailTemplateData,
     EmailTemplateEngine,
     TemplateRenderOptions,
-    TemplateVariables
+    TemplateVariables,
 } from '@/types/email';
 import { readFileSync } from 'fs';
 import { join } from 'path';
@@ -213,19 +213,19 @@ export class EmailTemplateUtils {
         return dubaiDate.toLocaleTimeString('en-GB', {
           hour: '2-digit',
           minute: '2-digit',
-          hour12: false
+          hour12: false,
         });
       case 'h:mm A':
         return dubaiDate.toLocaleTimeString('en-US', {
           hour: 'numeric',
           minute: '2-digit',
-          hour12: true
+          hour12: true,
         });
       default:
         return dubaiDate.toLocaleTimeString('en-GB', {
           hour: '2-digit',
           minute: '2-digit',
-          hour12: false
+          hour12: false,
         });
     }
   }
@@ -272,7 +272,7 @@ export class EmailTemplateUtils {
 
     return {
       isValid: errors.length === 0,
-      errors
+      errors,
     };
   }
 

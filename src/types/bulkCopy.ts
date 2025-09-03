@@ -1,4 +1,4 @@
-import type { RecurringRule } from './appointment';
+import type { StaffRole } from './appointmentStaff';
 
 // Bulk copy pattern types
 export type BulkCopyPattern = 'daily' | 'weekly' | 'monthly' | 'custom';
@@ -20,10 +20,12 @@ export interface BulkCopyRequest {
   config: BulkCopyConfig;
   staffAssignments?: Array<{
     staff_id: string;
-    role: string;
+    role: StaffRole;
     is_primary: boolean;
   }>;
   overrideConflicts?: boolean;
+  user_id?: string;
+  notes?: string;
 }
 
 // Bulk copy result

@@ -30,7 +30,7 @@ export class GoogleCalendarAuth {
     if (!serviceAccountEmail || !privateKey || !projectId) {
       throw new Error(
         'Google Calendar service account credentials not configured. ' +
-        'Please set GOOGLE_CALENDAR_SERVICE_ACCOUNT_EMAIL, GOOGLE_CALENDAR_PRIVATE_KEY, and GOOGLE_CALENDAR_PROJECT_ID environment variables.'
+        'Please set GOOGLE_CALENDAR_SERVICE_ACCOUNT_EMAIL, GOOGLE_CALENDAR_PRIVATE_KEY, and GOOGLE_CALENDAR_PROJECT_ID environment variables.',
       );
     }
 
@@ -42,7 +42,7 @@ export class GoogleCalendarAuth {
         scopes: [
           'https://www.googleapis.com/auth/calendar',
           'https://www.googleapis.com/auth/calendar.events',
-          'https://www.googleapis.com/auth/calendar.readonly'
+          'https://www.googleapis.com/auth/calendar.readonly',
         ],
         subject: serviceAccountEmail, // Impersonate the service account
       });
@@ -65,7 +65,7 @@ export class GoogleCalendarAuth {
     if (!apiKey) {
       throw new Error(
         'Google Calendar API key not configured. ' +
-        'Please set GOOGLE_CALENDAR_API_KEY environment variable.'
+        'Please set GOOGLE_CALENDAR_API_KEY environment variable.',
       );
     }
 
@@ -118,7 +118,7 @@ export class GoogleCalendarAuth {
     return {
       hasServiceAccount: this.hasServiceAccountAuth(),
       hasApiKey: this.hasApiKeyAuth(),
-      isInitialized: this.hasServiceAccountAuth() || this.hasApiKeyAuth()
+      isInitialized: this.hasServiceAccountAuth() || this.hasApiKeyAuth(),
     };
   }
 
@@ -141,7 +141,7 @@ export class GoogleCalendarAuth {
 
       // Try to get calendar metadata
       await calendar.calendars.get({
-        calendarId: calendarId
+        calendarId: calendarId,
       });
 
       return true;
@@ -159,7 +159,7 @@ export class GoogleCalendarAuth {
       const response = await calendar.calendarList.list({
         maxResults: 100,
         showDeleted: false,
-        showHidden: false
+        showHidden: false,
       });
 
       return response.data.items || [];

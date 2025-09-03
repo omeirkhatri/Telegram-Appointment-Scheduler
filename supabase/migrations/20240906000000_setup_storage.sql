@@ -169,9 +169,4 @@ CREATE TRIGGER cleanup_patient_documents_trigger
     FOR EACH ROW
     EXECUTE FUNCTION cleanup_patient_documents();
 
--- Add comment to document the storage setup
-COMMENT ON SCHEMA storage IS 'Supabase Storage schema for file management';
-COMMENT ON TABLE storage.buckets IS 'Storage buckets configuration';
-COMMENT ON TABLE storage.objects IS 'Storage objects (files) with metadata';
-COMMENT ON FUNCTION generate_patient_document_path(UUID, TEXT) IS 'Generates secure file paths for patient ID documents';
-COMMENT ON FUNCTION validate_patient_document_upload(TEXT, TEXT, BIGINT, TEXT) IS 'Validates patient document uploads for security and format';
+-- Storage setup complete

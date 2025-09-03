@@ -51,7 +51,7 @@ export class OperationQueue {
       eventId?: string;
       priority?: QueuedOperation['priority'];
       maxAttempts?: number;
-    } = {}
+    } = {},
   ): string {
     const operationId = `op_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     const priority = options.priority || 'medium';
@@ -119,7 +119,7 @@ export class OperationQueue {
 
     return Math.min(
       baseDelay * multiplier * priorityMultiplier,
-      RETRY_CONFIGS.write.maxDelay
+      RETRY_CONFIGS.write.maxDelay,
     );
   }
 

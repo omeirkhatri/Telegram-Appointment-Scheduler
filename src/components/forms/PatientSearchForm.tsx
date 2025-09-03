@@ -23,7 +23,7 @@ export function PatientSearchForm({ onSearch, onReset, isLoading = false }: Pati
   const handleFormSubmit = (data: PatientSearchFormData) => {
     // Remove empty values
     const cleanData = Object.fromEntries(
-      Object.entries(data).filter(([_, value]) => value !== '' && value !== undefined)
+      Object.entries(data).filter(([_, value]) => value !== '' && value !== undefined),
     );
     onSearch(cleanData as PatientSearchFormData);
   };
@@ -46,7 +46,7 @@ export function PatientSearchForm({ onSearch, onReset, isLoading = false }: Pati
             {...register('name')}
             type="text"
             id="name"
-            className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+            className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-900 font-medium ${
               errors.name ? 'border-red-500' : 'border-gray-300'
             }`}
             placeholder="Search by name"
@@ -64,7 +64,7 @@ export function PatientSearchForm({ onSearch, onReset, isLoading = false }: Pati
             {...register('phone')}
             type="tel"
             id="phone"
-            className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+            className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-900 font-medium ${
               errors.phone ? 'border-red-500' : 'border-gray-300'
             }`}
             placeholder="Search by phone"

@@ -12,7 +12,7 @@ export function SuccessMessage({
   title = 'Success',
   onDismiss,
   variant = 'card',
-  className = ''
+  className = '',
 }: SuccessMessageProps) {
   const baseClasses = 'flex items-start space-x-3 p-4 rounded-lg';
   const variantClasses = {

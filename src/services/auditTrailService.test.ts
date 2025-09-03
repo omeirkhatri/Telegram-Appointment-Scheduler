@@ -7,27 +7,27 @@ jest.mock('@/lib/supabase', () => ({
     from: jest.fn(() => ({
       insert: jest.fn(() => ({
         select: jest.fn(() => ({
-          single: jest.fn()
-        }))
+          single: jest.fn(),
+        })),
       })),
       update: jest.fn(() => ({
-        eq: jest.fn()
+        eq: jest.fn(),
       })),
       select: jest.fn(() => ({
         eq: jest.fn(() => ({
           order: jest.fn(() => ({
-            range: jest.fn()
-          }))
+            range: jest.fn(),
+          })),
         })),
         gte: jest.fn(() => ({
           lte: jest.fn(() => ({
-            order: jest.fn()
-          }))
+            order: jest.fn(),
+          })),
         })),
-        single: jest.fn()
-      }))
-    }))
-  }
+        single: jest.fn(),
+      })),
+    })),
+  },
 }));
 
 describe('AuditTrailService', () => {
@@ -46,7 +46,7 @@ describe('AuditTrailService', () => {
         source_appointment_id: 'appointment-1',
         user_id: 'user-1',
         staff_assignments: [
-          { staff_id: 'staff-1', role: 'primary', is_primary: true }
+          { staff_id: 'staff-1', role: 'primary', is_primary: true },
         ],
         override_conflicts: false,
         metadata: { test: 'data' },
@@ -75,7 +75,7 @@ describe('AuditTrailService', () => {
         user_id: 'user-1',
         copy_config: {},
         staff_assignments: [
-          { staff_id: 'staff-1', role: 'primary', is_primary: true }
+          { staff_id: 'staff-1', role: 'primary', is_primary: true },
         ],
         override_conflicts: false,
         metadata: { test: 'data' },
@@ -173,7 +173,7 @@ describe('AuditTrailService', () => {
         conflict_detected: false,
         error_occurred: false,
         assigned_staff: [
-          { staff_id: 'staff-1', role: 'primary', is_primary: true }
+          { staff_id: 'staff-1', role: 'primary', is_primary: true },
         ],
       };
 
@@ -238,12 +238,12 @@ describe('AuditTrailService', () => {
         {
           user_id: 'user-1',
           staff_assignments: [
-            { staff_id: 'staff-1', role: 'primary', is_primary: true }
+            { staff_id: 'staff-1', role: 'primary', is_primary: true },
           ],
           override_conflicts: false,
           metadata: { test: 'data' },
           notes: 'Test operation',
-        }
+        },
       );
 
       expect(auditTrailId).toBe('audit-trail-1');
@@ -259,7 +259,7 @@ describe('AuditTrailService', () => {
       supabase.from.mockReturnValue({ insert: mockInsert });
 
       await expect(
-        auditTrailService.logCopyOperationStart('single_copy', 'appointment-1')
+        auditTrailService.logCopyOperationStart('single_copy', 'appointment-1'),
       ).rejects.toThrow('Failed to create audit trail: Database error');
     });
   });
@@ -283,8 +283,8 @@ describe('AuditTrailService', () => {
       supabase.from
         .mockReturnValueOnce({
           select: jest.fn().mockReturnValue({
-            eq: jest.fn().mockReturnValue({ single: mockSingle })
-          })
+            eq: jest.fn().mockReturnValue({ single: mockSingle }),
+          }),
         }) // For getAuditTrailById
         .mockReturnValueOnce({ update: mockUpdate }); // For updateAuditTrail
 
@@ -311,7 +311,7 @@ describe('AuditTrailService', () => {
           completed_at: expect.any(String),
           duration_ms: expect.any(Number),
           updated_at: expect.any(String),
-        })
+        }),
       );
     });
   });

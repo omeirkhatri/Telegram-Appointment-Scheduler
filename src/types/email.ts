@@ -238,14 +238,14 @@ export function createAgendaAppointment(
   appointment: Appointment,
   patient?: Patient,
   staff?: Staff[],
-  driver?: Staff
+  driver?: Staff,
 ): AgendaAppointment {
   const startTime = new Date(`${appointment.appointment_date}T${appointment.start_time}`)
     .toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
 
   const endTime = new Date(
     new Date(`${appointment.appointment_date}T${appointment.start_time}`).getTime() +
-    appointment.duration_minutes * 60000
+    appointment.duration_minutes * 60000,
   ).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
 
   const appointmentTypeDisplay = appointment.appointment_type
@@ -292,7 +292,7 @@ export function createAgendaAppointment(
 export function createAgendaEmailData(
   staff: Staff,
   appointments: AgendaAppointment[],
-  date: string
+  date: string,
 ): AgendaEmailData {
   return {
     subject: `Your Schedule for ${date}`,
