@@ -1,15 +1,14 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { 
-  CheckCircle, 
-  AlertCircle, 
-  Clock, 
-  RefreshCw,
-  TrendingUp,
-  TrendingDown,
-  Activity
+import {
+    Activity,
+    AlertCircle,
+    CheckCircle,
+    Clock,
+    RefreshCw,
+    TrendingUp
 } from 'lucide-react';
+import { useEffect, useState } from 'react';
 
 interface SyncStatusCardProps {
   className?: string;
@@ -38,19 +37,19 @@ export function SyncStatusCard({ className = '' }: SyncStatusCardProps) {
   const fetchSyncStats = async () => {
     try {
       setIsLoading(true);
-      
+
       // Fetch staff with calendar connections
       const staffResponse = await fetch('/api/staff');
       const staffData = await staffResponse.json();
-      
+
       if (staffData.success) {
         const staffWithCalendars = staffData.data.filter((staff: any) => staff.google_calendar_id);
         const totalConnections = staffWithCalendars.length;
-        
+
         // Test connections
         let activeConnections = 0;
         let failedConnections = 0;
-        
+
         for (const staff of staffWithCalendars) {
           try {
             const statusResponse = await fetch('/api/staff/validate-calendar', {
@@ -58,7 +57,7 @@ export function SyncStatusCard({ className = '' }: SyncStatusCardProps) {
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ calendarId: staff.google_calendar_id })
             });
-            
+
             const statusData = await statusResponse.json();
             if (statusData.success) {
               activeConnections++;
@@ -69,9 +68,9 @@ export function SyncStatusCard({ className = '' }: SyncStatusCardProps) {
             failedConnections++;
           }
         }
-        
+
         const syncSuccessRate = totalConnections > 0 ? (activeConnections / totalConnections) * 100 : 0;
-        
+
         // Mock sync statistics (in a real app, these would come from the database)
         const mockStats: SyncStats = {
           totalConnections,
@@ -83,7 +82,7 @@ export function SyncStatusCard({ className = '' }: SyncStatusCardProps) {
           eventsSyncedThisWeek: Math.floor(Math.random() * 200) + 50,
           averageSyncTime: Math.floor(Math.random() * 500) + 100
         };
-        
+
         setStats(mockStats);
       }
     } catch (error) {
@@ -101,7 +100,7 @@ export function SyncStatusCard({ className = '' }: SyncStatusCardProps) {
 
   const getOverallStatus = () => {
     if (!stats) return { status: 'unknown', color: 'gray', icon: Clock };
-    
+
     if (stats.syncSuccessRate >= 90) {
       return { status: 'excellent', color: 'green', icon: CheckCircle };
     } else if (stats.syncSuccessRate >= 70) {
@@ -167,7 +166,7 @@ export function SyncStatusCard({ className = '' }: SyncStatusCardProps) {
               <p className="text-sm text-gray-600">Google Calendar synchronization overview</p>
             </div>
           </div>
-          
+
           <button
             onClick={handleRefresh}
             disabled={isRefreshing}

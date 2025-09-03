@@ -1,18 +1,18 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { 
-  Calendar, 
-  Link, 
-  Unlink, 
-  RefreshCw, 
-  CheckCircle, 
-  AlertCircle, 
-  Clock,
-  Settings,
-  ExternalLink,
-  Info
+import {
+    AlertCircle,
+    Calendar,
+    CheckCircle,
+    Clock,
+    ExternalLink,
+    Info,
+    Link,
+    RefreshCw,
+    Settings,
+    Unlink
 } from 'lucide-react';
+import { useEffect, useState } from 'react';
 
 interface GoogleCalendarSectionProps {
   className?: string;
@@ -43,10 +43,10 @@ export function GoogleCalendarSection({ className = '' }: GoogleCalendarSectionP
       // Fetch staff members with Google Calendar IDs
       const response = await fetch('/api/staff');
       const data = await response.json();
-      
+
       if (data.success) {
         const staffWithCalendars = data.data.filter((staff: any) => staff.google_calendar_id);
-        
+
         // Check connection status for each calendar
         const connectionPromises = staffWithCalendars.map(async (staff: any) => {
           try {
@@ -55,9 +55,9 @@ export function GoogleCalendarSection({ className = '' }: GoogleCalendarSectionP
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ calendarId: staff.google_calendar_id })
             });
-            
+
             const statusData = await statusResponse.json();
-            
+
             return {
               id: staff.id,
               calendarId: staff.google_calendar_id,
@@ -76,7 +76,7 @@ export function GoogleCalendarSection({ className = '' }: GoogleCalendarSectionP
             };
           }
         });
-        
+
         const connectionResults = await Promise.all(connectionPromises);
         setConnections(connectionResults);
       }
@@ -101,7 +101,7 @@ export function GoogleCalendarSection({ className = '' }: GoogleCalendarSectionP
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ google_calendar_id: null })
       });
-      
+
       if (response.ok) {
         setConnections(prev => prev.filter(conn => conn.id !== connectionId));
       }
@@ -174,7 +174,7 @@ export function GoogleCalendarSection({ className = '' }: GoogleCalendarSectionP
               <p className="text-sm text-gray-600">Manage calendar connections and sync status</p>
             </div>
           </div>
-          
+
           <div className="flex items-center space-x-2">
             <button
               onClick={() => setShowSettings(!showSettings)}
@@ -209,7 +209,7 @@ export function GoogleCalendarSection({ className = '' }: GoogleCalendarSectionP
                 <div className="w-4 h-4 bg-white rounded-full absolute right-1 top-1 transition-transform" />
               </button>
             </div>
-            
+
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-700">Bidirectional sync</p>
@@ -219,7 +219,7 @@ export function GoogleCalendarSection({ className = '' }: GoogleCalendarSectionP
                 <div className="w-4 h-4 bg-white rounded-full absolute right-1 top-1 transition-transform" />
               </button>
             </div>
-            
+
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-700">Conflict resolution</p>
@@ -229,7 +229,7 @@ export function GoogleCalendarSection({ className = '' }: GoogleCalendarSectionP
                 <div className="w-4 h-4 bg-white rounded-full absolute left-1 top-1 transition-transform" />
               </button>
             </div>
-            
+
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-700">Sync reminders</p>
@@ -268,7 +268,7 @@ export function GoogleCalendarSection({ className = '' }: GoogleCalendarSectionP
                 <span>Last updated: {new Date().toLocaleTimeString()}</span>
               </div>
             </div>
-            
+
             {connections.map((connection) => (
               <div
                 key={connection.id}
@@ -291,12 +291,12 @@ export function GoogleCalendarSection({ className = '' }: GoogleCalendarSectionP
                       )}
                     </div>
                   </div>
-                  
+
                   <div className="flex items-center space-x-3">
                     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getStatusColor(connection.status)}`}>
                       {getStatusText(connection.status)}
                     </span>
-                    
+
                     <div className="flex items-center space-x-1">
                       <button
                         onClick={() => window.open(`https://calendar.google.com/calendar/u/0/r`, '_blank')}
@@ -305,7 +305,7 @@ export function GoogleCalendarSection({ className = '' }: GoogleCalendarSectionP
                       >
                         <ExternalLink className="w-4 h-4" />
                       </button>
-                      
+
                       <button
                         onClick={() => handleDisconnect(connection.id)}
                         className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
@@ -316,7 +316,7 @@ export function GoogleCalendarSection({ className = '' }: GoogleCalendarSectionP
                     </div>
                   </div>
                 </div>
-                
+
                 {connection.lastSync && (
                   <div className="mt-3 pt-3 border-t border-gray-100">
                     <div className="flex items-center justify-between text-xs text-gray-500">

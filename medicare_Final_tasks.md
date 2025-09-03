@@ -73,8 +73,8 @@
 - [x] 9.1 Appointment details drawer
 - [x] 9.2 Reports dashboard (KPIs, CSV export)
 - [x] 9.3 Google Calendar linking UI + sync status
-- [ ] 9.4 Recurrence rule builder (basic patterns)
-- [ ] 9.5 Email preferences in Settings
+- [x] 9.4 Recurrence rule builder (basic patterns)
+- [x] 9.5 Email preferences in Settings
 - [ ] 9.6 Backup & export (CSV dumps)
 - [ ] 9.7 Unified toasts & error system
 

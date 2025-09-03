@@ -1,18 +1,17 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { 
-  Settings, 
-  Save, 
-  RefreshCw, 
-  CheckCircle, 
-  AlertCircle,
-  Clock,
-  RotateCcw,
-  Bell,
-  Link2,
-  Shield
+import {
+    AlertCircle,
+    CheckCircle,
+    Clock,
+    Link2,
+    RefreshCw,
+    RotateCcw,
+    Save,
+    Settings,
+    Shield
 } from 'lucide-react';
+import { useEffect, useState } from 'react';
 
 interface SyncSettingsPanelProps {
   className?: string;
@@ -47,7 +46,7 @@ export function SyncSettingsPanel({ className = '' }: SyncSettingsPanelProps) {
       setIsLoading(true);
       const response = await fetch('/api/google-calendar/sync-settings');
       const data = await response.json();
-      
+
       if (data.success) {
         setSettings(data.data);
       } else {
@@ -80,7 +79,7 @@ export function SyncSettingsPanel({ className = '' }: SyncSettingsPanelProps) {
       });
 
       const data = await response.json();
-      
+
       if (data.success) {
         setSaveStatus({
           type: 'success',
@@ -159,7 +158,7 @@ export function SyncSettingsPanel({ className = '' }: SyncSettingsPanelProps) {
               <p className="text-sm text-gray-600">Configure Google Calendar synchronization behavior</p>
             </div>
           </div>
-          
+
           <div className="flex items-center space-x-2">
             <button
               onClick={handleReset}
@@ -182,8 +181,8 @@ export function SyncSettingsPanel({ className = '' }: SyncSettingsPanelProps) {
       {/* Save Status */}
       {saveStatus.type && (
         <div className={`p-4 border-b border-gray-200 ${
-          saveStatus.type === 'success' 
-            ? 'bg-green-50 border-green-200' 
+          saveStatus.type === 'success'
+            ? 'bg-green-50 border-green-200'
             : 'bg-red-50 border-red-200'
         }`}>
           <div className="flex items-center space-x-2">
@@ -209,7 +208,7 @@ export function SyncSettingsPanel({ className = '' }: SyncSettingsPanelProps) {
             <Link2 className="w-4 h-4 mr-2" />
             Basic Sync Settings
           </h4>
-          
+
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div>
@@ -227,7 +226,7 @@ export function SyncSettingsPanel({ className = '' }: SyncSettingsPanelProps) {
                 }`} />
               </button>
             </div>
-            
+
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-700">Bidirectional sync</p>
@@ -244,7 +243,7 @@ export function SyncSettingsPanel({ className = '' }: SyncSettingsPanelProps) {
                 }`} />
               </button>
             </div>
-            
+
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-700">Sync reminders</p>
@@ -270,7 +269,7 @@ export function SyncSettingsPanel({ className = '' }: SyncSettingsPanelProps) {
             <Shield className="w-4 h-4 mr-2" />
             Advanced Settings
           </h4>
-          
+
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div>
@@ -288,7 +287,7 @@ export function SyncSettingsPanel({ className = '' }: SyncSettingsPanelProps) {
                 }`} />
               </button>
             </div>
-            
+
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-700">Webhook enabled</p>
@@ -314,7 +313,7 @@ export function SyncSettingsPanel({ className = '' }: SyncSettingsPanelProps) {
             <Clock className="w-4 h-4 mr-2" />
             Timing Settings
           </h4>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -330,7 +329,7 @@ export function SyncSettingsPanel({ className = '' }: SyncSettingsPanelProps) {
               />
               <p className="text-xs text-gray-500 mt-1">How often to check for sync updates (60-3600 seconds)</p>
             </div>
-            
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Retry Attempts
@@ -354,7 +353,7 @@ export function SyncSettingsPanel({ className = '' }: SyncSettingsPanelProps) {
         <div className="text-sm text-gray-500">
           Last updated: {new Date(settings.lastUpdated).toLocaleString()}
         </div>
-        
+
         <div className="flex items-center space-x-3">
           <button
             onClick={handleReset}

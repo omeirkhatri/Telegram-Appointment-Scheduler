@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     const body = await request.json();
-    
+
     const {
       autoSyncAppointments,
       bidirectionalSync,
@@ -49,31 +49,31 @@ export async function PUT(request: NextRequest) {
 
     // Validate settings
     const validationErrors: string[] = [];
-    
+
     if (typeof autoSyncAppointments !== 'boolean') {
       validationErrors.push('autoSyncAppointments must be a boolean');
     }
-    
+
     if (typeof bidirectionalSync !== 'boolean') {
       validationErrors.push('bidirectionalSync must be a boolean');
     }
-    
+
     if (typeof conflictResolution !== 'boolean') {
       validationErrors.push('conflictResolution must be a boolean');
     }
-    
+
     if (typeof syncReminders !== 'boolean') {
       validationErrors.push('syncReminders must be a boolean');
     }
-    
+
     if (typeof syncInterval !== 'number' || syncInterval < 60 || syncInterval > 3600) {
       validationErrors.push('syncInterval must be a number between 60 and 3600 seconds');
     }
-    
+
     if (typeof retryAttempts !== 'number' || retryAttempts < 1 || retryAttempts > 10) {
       validationErrors.push('retryAttempts must be a number between 1 and 10');
     }
-    
+
     if (typeof webhookEnabled !== 'boolean') {
       validationErrors.push('webhookEnabled must be a boolean');
     }

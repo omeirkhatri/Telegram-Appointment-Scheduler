@@ -1,16 +1,16 @@
 'use client';
 
-import { useState } from 'react';
-import { 
-  Plus, 
-  Link, 
-  Unlink, 
-  CheckCircle, 
-  AlertCircle, 
-  X,
-  ExternalLink,
-  Info
+import {
+    AlertCircle,
+    CheckCircle,
+    ExternalLink,
+    Info,
+    Link,
+    Plus,
+    Unlink,
+    X
 } from 'lucide-react';
+import { useState } from 'react';
 
 interface CalendarConnectionManagerProps {
   onConnectionAdded?: (connection: any) => void;
@@ -26,10 +26,10 @@ interface StaffMember {
   google_calendar_id?: string;
 }
 
-export function CalendarConnectionManager({ 
-  onConnectionAdded, 
-  onConnectionRemoved, 
-  className = '' 
+export function CalendarConnectionManager({
+  onConnectionAdded,
+  onConnectionRemoved,
+  className = ''
 }: CalendarConnectionManagerProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [staff, setStaff] = useState<StaffMember[]>([]);
@@ -46,7 +46,7 @@ export function CalendarConnectionManager({
     try {
       const response = await fetch('/api/staff');
       const data = await response.json();
-      
+
       if (data.success) {
         setStaff(data.data);
       }
@@ -87,7 +87,7 @@ export function CalendarConnectionManager({
       });
 
       const data = await response.json();
-      
+
       setValidationResult({
         isValid: data.success,
         message: data.success ? 'Calendar ID is valid and accessible' : data.error
@@ -113,8 +113,8 @@ export function CalendarConnectionManager({
       const response = await fetch(`/api/staff/${selectedStaff}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          google_calendar_id: calendarId.trim() 
+        body: JSON.stringify({
+          google_calendar_id: calendarId.trim()
         })
       });
 
@@ -204,7 +204,7 @@ export function CalendarConnectionManager({
               {/* Add New Connection */}
               <div>
                 <h4 className="text-md font-medium text-gray-900 mb-4">Add New Connection</h4>
-                
+
                 <div className="space-y-4">
                   {/* Staff Selection */}
                   <div>
@@ -246,12 +246,12 @@ export function CalendarConnectionManager({
                         {isValidating ? 'Validating...' : 'Validate'}
                       </button>
                     </div>
-                    
+
                     {/* Validation Result */}
                     {validationResult && (
                       <div className={`mt-2 p-3 rounded-lg flex items-center space-x-2 ${
-                        validationResult.isValid 
-                          ? 'bg-green-50 border border-green-200' 
+                        validationResult.isValid
+                          ? 'bg-green-50 border border-green-200'
                           : 'bg-red-50 border border-red-200'
                       }`}>
                         {validationResult.isValid ? (
@@ -285,7 +285,7 @@ export function CalendarConnectionManager({
                   <h4 className="text-md font-medium text-gray-900 mb-4">
                     Existing Connections ({staffWithCalendar.length})
                   </h4>
-                  
+
                   <div className="space-y-3">
                     {staffWithCalendar.map((member) => (
                       <div
@@ -303,7 +303,7 @@ export function CalendarConnectionManager({
                             </p>
                           </div>
                         </div>
-                        
+
                         <div className="flex items-center space-x-2">
                           <button
                             onClick={() => window.open(`https://calendar.google.com/calendar/u/0/r`, '_blank')}
@@ -312,7 +312,7 @@ export function CalendarConnectionManager({
                           >
                             <ExternalLink className="w-4 h-4" />
                           </button>
-                          
+
                           <button
                             onClick={() => handleDisconnect(member.id)}
                             className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"

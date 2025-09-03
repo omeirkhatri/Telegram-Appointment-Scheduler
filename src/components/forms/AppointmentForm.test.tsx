@@ -504,7 +504,11 @@ describe('AppointmentForm', () => {
       handleSubmit: jest.fn(),
       control: {},
       formState: { errors: {}, isSubmitting: false },
-      watch: jest.fn().mockReturnValue('doctor_on_call'),
+      watch: jest.fn().mockImplementation((field) => {
+        if (field === 'appointment_type') return 'doctor_on_call';
+        if (field === 'appointment_date') return '2024-01-15';
+        return undefined;
+      }),
       setValue: jest.fn(),
       reset: jest.fn(),
     });
@@ -528,10 +532,11 @@ describe('AppointmentForm', () => {
     const recurringCheckbox = screen.getByRole('checkbox');
     fireEvent.click(recurringCheckbox);
 
-    expect(screen.getByText('Frequency *')).toBeInTheDocument();
-    expect(screen.getByText('Interval *')).toBeInTheDocument();
-    expect(screen.getByText('End Date')).toBeInTheDocument();
-    expect(screen.getByText('Number of Occurrences')).toBeInTheDocument();
+    expect(screen.getByText('Recurrence Pattern')).toBeInTheDocument();
+    expect(screen.getByText('Daily')).toBeInTheDocument();
+    expect(screen.getByText('Weekly')).toBeInTheDocument();
+    expect(screen.getByText('Monthly')).toBeInTheDocument();
+    expect(screen.getByText('Yearly')).toBeInTheDocument();
   });
 
   it('renders recurring frequency options', () => {
@@ -540,7 +545,11 @@ describe('AppointmentForm', () => {
       handleSubmit: jest.fn(),
       control: {},
       formState: { errors: {}, isSubmitting: false },
-      watch: jest.fn().mockReturnValue('doctor_on_call'),
+      watch: jest.fn().mockImplementation((field) => {
+        if (field === 'appointment_type') return 'doctor_on_call';
+        if (field === 'appointment_date') return '2024-01-15';
+        return undefined;
+      }),
       setValue: jest.fn(),
       reset: jest.fn(),
     });
@@ -565,6 +574,7 @@ describe('AppointmentForm', () => {
     fireEvent.click(recurringCheckbox);
 
     // Check for recurring frequency options
+    expect(screen.getByText('Recurrence Pattern')).toBeInTheDocument();
     expect(screen.getByText('Daily')).toBeInTheDocument();
     expect(screen.getByText('Weekly')).toBeInTheDocument();
     expect(screen.getByText('Monthly')).toBeInTheDocument();

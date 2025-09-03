@@ -5,6 +5,7 @@ import type { Appointment, Patient, Staff } from '@/types';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useState } from 'react';
 import { useFieldArray, useForm } from 'react-hook-form';
+import { RecurrenceRuleBuilder } from './RecurrenceRuleBuilder';
 
 interface AppointmentFormProps {
   appointment?: Appointment;
@@ -43,12 +44,7 @@ const STAFF_ROLES = [
   { value: 'driver', label: 'Driver' },
 ] as const;
 
-const RECURRING_FREQUENCIES = [
-  { value: 'daily', label: 'Daily' },
-  { value: 'weekly', label: 'Weekly' },
-  { value: 'monthly', label: 'Monthly' },
-  { value: 'yearly', label: 'Yearly' },
-] as const;
+
 
 export function AppointmentForm({
   appointment,
@@ -58,7 +54,6 @@ export function AppointmentForm({
   onCancel,
   isLoading = false,
 }: AppointmentFormProps) {
-  const [showRecurringOptions, setShowRecurringOptions] = useState(false);
   const [showCustomFields, setShowCustomFields] = useState(false);
 
   // Helper function to calculate end time from start time and duration
@@ -521,78 +516,12 @@ export function AppointmentForm({
       </div>
 
       {/* Recurring Options */}
-      <div className="bg-white p-6 rounded-lg shadow-sm border">
-        <div className="flex items-center space-x-2 mb-4">
-          <input
-            type="checkbox"
-            checked={showRecurringOptions}
-            onChange={(e) => setShowRecurringOptions(e.target.checked)}
-            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-          />
-          <label className="text-lg font-semibold text-gray-900">Recurring Appointment</label>
-        </div>
-
-        {showRecurringOptions && (
-          <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Frequency *
-                </label>
-                <select
-                  {...register('recurring_rule.frequency')}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  {RECURRING_FREQUENCIES.map((freq) => (
-                    <option key={freq.value} value={freq.value}>
-                      {freq.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Interval *
-                </label>
-                <input
-                  {...register('recurring_rule.interval', { valueAsNumber: true })}
-                  type="number"
-                  min="1"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="Every X days/weeks/months"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  End Date
-                </label>
-                <input
-                  {...register('recurring_rule.end_date')}
-                  type="date"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Number of Occurrences
-                </label>
-                <input
-                  {...register('recurring_rule.end_occurrences', { valueAsNumber: true })}
-                  type="number"
-                  min="1"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="e.g., 10"
-                />
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
+      <RecurrenceRuleBuilder
+        value={watchedRecurringRule}
+        onChange={(rule) => setValue('recurring_rule', rule)}
+        baseDate={watch('appointment_date') || new Date().toISOString().split('T')[0]}
+        disabled={isLoading}
+      />
 
       {/* Notes */}
       <div className="bg-white p-6 rounded-lg shadow-sm border">

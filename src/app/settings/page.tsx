@@ -1,7 +1,7 @@
 'use client';
 
 import Header from '@/components/layout/Header';
-import { EmailTestSection, StaffPreferencesSection, AutomatedEmailSection } from '@/components/email';
+import { EmailTestSection, StaffPreferencesSection, AutomatedEmailSection, EmailPreferencesSection } from '@/components/email';
 import { GoogleCalendarSection, SyncStatusCard, SyncSettingsPanel } from '@/components/google-calendar';
 import {
     Bell,
@@ -62,38 +62,8 @@ export default function SettingsPage() {
               </div>
             </div>
 
-            <div className="bg-[--card] border border-[--border] rounded-xl p-6 shadow-lg">
-              <h3 className="text-lg font-semibold text-[--foreground] mb-4">Notification Settings</h3>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-[--foreground]">Email Notifications</p>
-                    <p className="text-xs text-[--muted-foreground]">Receive notifications via email</p>
-                  </div>
-                  <button className="w-12 h-6 bg-[--primary] rounded-full relative">
-                    <div className="w-4 h-4 bg-white rounded-full absolute right-1 top-1 transition-transform" />
-                  </button>
-                </div>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-[--foreground]">SMS Notifications</p>
-                    <p className="text-xs text-[--muted-foreground]">Receive notifications via SMS</p>
-                  </div>
-                  <button className="w-12 h-6 bg-[--muted] rounded-full relative">
-                    <div className="w-4 h-4 bg-white rounded-full absolute left-1 top-1 transition-transform" />
-                  </button>
-                </div>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-[--foreground]">Appointment Reminders</p>
-                    <p className="text-xs text-[--muted-foreground]">Send appointment reminders</p>
-                  </div>
-                  <button className="w-12 h-6 bg-[--primary] rounded-full relative">
-                    <div className="w-4 h-4 bg-white rounded-full absolute right-1 top-1 transition-transform" />
-                  </button>
-                </div>
-              </div>
-            </div>
+            {/* Email Preferences Section */}
+            <EmailPreferencesSection />
 
             <div className="bg-[--card] border border-[--border] rounded-xl p-6 shadow-lg">
               <h3 className="text-lg font-semibold text-[--foreground] mb-4">Security Settings</h3>

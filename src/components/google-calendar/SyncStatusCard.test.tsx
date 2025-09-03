@@ -11,9 +11,9 @@ describe('SyncStatusCard', () => {
 
   it('renders loading state initially', () => {
     (fetch as jest.Mock).mockImplementation(() => new Promise(() => {})); // Never resolves
-    
+
     render(<SyncStatusCard />);
-    
+
     expect(screen.getByText('Loading sync status...')).toBeInTheDocument();
     expect(screen.getByText('Loading sync status...').closest('div')).toBeInTheDocument();
   });
