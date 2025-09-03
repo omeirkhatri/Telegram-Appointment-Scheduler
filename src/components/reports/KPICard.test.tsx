@@ -1,6 +1,6 @@
-import { render, screen } from '@testing-library/react';
-import { KPICard, AppointmentKPICard } from './KPICard';
 import type { KPI } from '@/types/reports';
+import { render, screen } from '@testing-library/react';
+import { AppointmentKPICard, KPICard } from './KPICard';
 
 // Mock the formatKPIValue function
 jest.mock('@/types/reports', () => ({
@@ -28,7 +28,7 @@ const mockKPI: KPI = {
 describe('KPICard', () => {
   it('renders KPI card with all props', () => {
     render(<KPICard kpi={mockKPI} />);
-    
+
     expect(screen.getByText('Test KPI')).toBeInTheDocument();
     expect(screen.getByText('100%')).toBeInTheDocument();
     expect(screen.getByText('Test description')).toBeInTheDocument();
@@ -41,9 +41,9 @@ describe('KPICard', () => {
       title: 'Minimal KPI',
       value: 50
     };
-    
+
     render(<KPICard kpi={minimalKPI} />);
-    
+
     expect(screen.getByText('Minimal KPI')).toBeInTheDocument();
     expect(screen.getByText('50')).toBeInTheDocument();
   });
@@ -52,7 +52,7 @@ describe('KPICard', () => {
     const { rerender } = render(<KPICard kpi={mockKPI} size="small" />);
     const cardElement = screen.getByText('Test KPI').closest('.bg-white');
     expect(cardElement).toHaveClass('p-4');
-    
+
     rerender(<KPICard kpi={mockKPI} size="large" />);
     const largeCardElement = screen.getByText('Test KPI').closest('.bg-white');
     expect(largeCardElement).toHaveClass('p-8');
@@ -73,10 +73,10 @@ describe('KPICard', () => {
   it('applies correct change type colors', () => {
     const { rerender } = render(<KPICard kpi={{ ...mockKPI, changeType: 'positive' }} />);
     expect(screen.getByText('+5%')).toHaveClass('text-green-600', 'bg-green-50');
-    
+
     rerender(<KPICard kpi={{ ...mockKPI, changeType: 'negative' }} />);
     expect(screen.getByText('+5%')).toHaveClass('text-red-600', 'bg-red-50');
-    
+
     rerender(<KPICard kpi={{ ...mockKPI, changeType: 'neutral' }} />);
     expect(screen.getByText('+5%')).toHaveClass('text-gray-600', 'bg-gray-50');
   });
@@ -92,16 +92,16 @@ describe('AppointmentKPICard', () => {
 
   it('renders all appointment KPI cards', () => {
     render(<AppointmentKPICard {...mockProps} />);
-    
+
     expect(screen.getByText('Total Appointments')).toBeInTheDocument();
     expect(screen.getByText('150')).toBeInTheDocument();
-    
+
     expect(screen.getByText('Today\'s Appointments')).toBeInTheDocument();
     expect(screen.getByText('12')).toBeInTheDocument();
-    
+
     expect(screen.getByText('Completion Rate')).toBeInTheDocument();
     expect(screen.getByText('85.5%')).toBeInTheDocument();
-    
+
     expect(screen.getByText('Average Duration')).toBeInTheDocument();
     expect(screen.getByText('45 min')).toBeInTheDocument();
   });

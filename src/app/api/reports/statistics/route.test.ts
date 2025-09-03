@@ -39,19 +39,19 @@ describe('/api/reports/statistics', () => {
 
   it('should return statistics with default date range', async () => {
     const { appointmentService, auditTrailService, emailDeliveryService } = require('@/services');
-    
+
     // Mock service responses
     appointmentService.getAppointmentStatistics.mockResolvedValue({
       total: 100,
       byStatus: { scheduled: 50, completed: 30, cancelled: 20 },
       byType: { consultation: 60, follow_up: 40 }
     });
-    
+
     auditTrailService.getAuditStatistics.mockResolvedValue({
       success: true,
       data: { statistics: [] }
     });
-    
+
     emailDeliveryService.getDeliveryStatistics.mockResolvedValue([]);
 
     const request = new NextRequest('http://localhost:3000/api/reports/statistics');
@@ -70,19 +70,19 @@ describe('/api/reports/statistics', () => {
 
   it('should return statistics with custom date range', async () => {
     const { appointmentService, auditTrailService, emailDeliveryService } = require('@/services');
-    
+
     // Mock service responses
     appointmentService.getAppointmentStatistics.mockResolvedValue({
       total: 50,
       byStatus: { scheduled: 25, completed: 15, cancelled: 10 },
       byType: { consultation: 30, follow_up: 20 }
     });
-    
+
     auditTrailService.getAuditStatistics.mockResolvedValue({
       success: true,
       data: { statistics: [] }
     });
-    
+
     emailDeliveryService.getDeliveryStatistics.mockResolvedValue([]);
 
     const request = new NextRequest('http://localhost:3000/api/reports/statistics?dateFrom=2024-01-01&dateTo=2024-01-31');
@@ -99,7 +99,7 @@ describe('/api/reports/statistics', () => {
 
   it('should handle service errors gracefully', async () => {
     const { appointmentService } = require('@/services');
-    
+
     // Mock service error
     appointmentService.getAppointmentStatistics.mockRejectedValue(new Error('Database connection failed'));
 
@@ -114,19 +114,19 @@ describe('/api/reports/statistics', () => {
 
   it('should include generatedAt timestamp', async () => {
     const { appointmentService, auditTrailService, emailDeliveryService } = require('@/services');
-    
+
     // Mock service responses
     appointmentService.getAppointmentStatistics.mockResolvedValue({
       total: 100,
       byStatus: {},
       byType: {}
     });
-    
+
     auditTrailService.getAuditStatistics.mockResolvedValue({
       success: true,
       data: { statistics: [] }
     });
-    
+
     emailDeliveryService.getDeliveryStatistics.mockResolvedValue([]);
 
     const request = new NextRequest('http://localhost:3000/api/reports/statistics');

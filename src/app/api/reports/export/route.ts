@@ -1,15 +1,15 @@
-import { appointmentService, auditTrailService, emailDeliveryService } from '@/services';
 import { supabase } from '@/lib/supabase';
-import type { GenerateReportRequest, CSVExportData, ReportFilters } from '@/types/reports';
+import { auditTrailService, emailDeliveryService } from '@/services';
+import type { CSVExportData, GenerateReportRequest, ReportFilters } from '@/types/reports';
 import { NextRequest, NextResponse } from 'next/server';
 
 // POST /api/reports/export - Generate and export reports
 export async function POST(request: NextRequest) {
   try {
     const body: GenerateReportRequest = await request.json();
-    
+
     const { type, format, filters, dateRange, includeFields, groupBy, sortBy, sortOrder } = body;
-    
+
     // Validate request
     if (!type || !format) {
       return NextResponse.json(
@@ -20,10 +20,10 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-    
+
     // Generate report data based on type
     let exportData: CSVExportData;
-    
+
     switch (type) {
       case 'appointments':
         exportData = await generateAppointmentsReport(filters, dateRange, includeFields, sortBy, sortOrder);
@@ -52,14 +52,14 @@ export async function POST(request: NextRequest) {
           { status: 400 }
         );
     }
-    
+
     // Convert to CSV format
     const csvContent = convertToCSV(exportData);
-    
+
     // Generate filename
     const timestamp = new Date().toISOString().split('T')[0];
     const filename = `${type}_report_${timestamp}.csv`;
-    
+
     // Return CSV content as downloadable response
     return new NextResponse(csvContent, {
       status: 200,
@@ -69,7 +69,7 @@ export async function POST(request: NextRequest) {
         'Cache-Control': 'no-cache'
       }
     });
-    
+
   } catch (error) {
     console.error('Error generating report:', error);
     return NextResponse.json(
@@ -99,37 +99,37 @@ async function generateAppointmentsReport(
         staff(first_name, last_name, staff_type)
       )
     `);
-  
+
   // Apply date range filter
   if (dateRange) {
     query = query
       .gte('appointment_date', dateRange.from)
       .lte('appointment_date', dateRange.to);
   }
-  
+
   // Apply status filter
   if (filters?.appointmentStatus && filters.appointmentStatus.length > 0) {
     query = query.in('status', filters.appointmentStatus);
   }
-  
+
   // Apply type filter
   if (filters?.appointmentType && filters.appointmentType.length > 0) {
     query = query.in('appointment_type', filters.appointmentType);
   }
-  
+
   // Apply sorting
   if (sortBy) {
     query = query.order(sortBy, { ascending: sortOrder === 'asc' });
   } else {
     query = query.order('appointment_date', { ascending: false });
   }
-  
+
   const { data: appointments, error } = await query;
-  
+
   if (error) {
     throw new Error(`Failed to fetch appointments: ${error.message}`);
   }
-  
+
   // Define default headers
   const defaultHeaders = [
     'ID',
@@ -149,16 +149,16 @@ async function generateAppointmentsReport(
     'Created At',
     'Updated At'
   ];
-  
+
   const headers = includeFields ? includeFields : defaultHeaders;
-  
+
   // Convert appointments to CSV rows
   const rows = (appointments || []).map(appointment => {
     const patient = appointment.patients;
-    const staff = appointment.appointment_staff?.map((as: any) => 
+    const staff = appointment.appointment_staff?.map((as: any) =>
       `${as.staff?.first_name} ${as.staff?.last_name} (${as.staff?.staff_type})`
     ).join(', ') || '';
-    
+
     const row: Record<string, any> = {
       'ID': appointment.id,
       'Date': appointment.appointment_date,
@@ -177,7 +177,7 @@ async function generateAppointmentsReport(
       'Created At': appointment.created_at,
       'Updated At': appointment.updated_at
     };
-    
+
     // Filter to only include requested fields
     if (includeFields) {
       const filteredRow: Record<string, any> = {};
@@ -186,10 +186,10 @@ async function generateAppointmentsReport(
       });
       return filteredRow;
     }
-    
+
     return row;
   });
-  
+
   return {
     headers,
     rows,
@@ -209,32 +209,32 @@ async function generatePatientsReport(
   sortOrder?: 'asc' | 'desc'
 ): Promise<CSVExportData> {
   let query = supabase.from('patients').select('*');
-  
+
   // Apply date range filter (on creation date)
   if (dateRange) {
     query = query
       .gte('created_at', `${dateRange.from}T00:00:00Z`)
       .lte('created_at', `${dateRange.to}T23:59:59Z`);
   }
-  
+
   // Apply area filter
   if (filters?.patientArea && filters.patientArea.length > 0) {
     query = query.in('area', filters.patientArea);
   }
-  
+
   // Apply sorting
   if (sortBy) {
     query = query.order(sortBy, { ascending: sortOrder === 'asc' });
   } else {
     query = query.order('created_at', { ascending: false });
   }
-  
+
   const { data: patients, error } = await query;
-  
+
   if (error) {
     throw new Error(`Failed to fetch patients: ${error.message}`);
   }
-  
+
   const defaultHeaders = [
     'ID',
     'Name',
@@ -249,9 +249,9 @@ async function generatePatientsReport(
     'Created At',
     'Updated At'
   ];
-  
+
   const headers = includeFields ? includeFields : defaultHeaders;
-  
+
   const rows = (patients || []).map(patient => {
     const row: Record<string, any> = {
       'ID': patient.id,
@@ -267,7 +267,7 @@ async function generatePatientsReport(
       'Created At': patient.created_at,
       'Updated At': patient.updated_at
     };
-    
+
     if (includeFields) {
       const filteredRow: Record<string, any> = {};
       includeFields.forEach(field => {
@@ -275,10 +275,10 @@ async function generatePatientsReport(
       });
       return filteredRow;
     }
-    
+
     return row;
   });
-  
+
   return {
     headers,
     rows,
@@ -298,37 +298,37 @@ async function generateStaffReport(
   sortOrder?: 'asc' | 'desc'
 ): Promise<CSVExportData> {
   let query = supabase.from('staff').select('*');
-  
+
   // Apply date range filter (on creation date)
   if (dateRange) {
     query = query
       .gte('created_at', `${dateRange.from}T00:00:00Z`)
       .lte('created_at', `${dateRange.to}T23:59:59Z`);
   }
-  
+
   // Apply staff type filter
   if (filters?.staffType && filters.staffType.length > 0) {
     query = query.in('staff_type', filters.staffType);
   }
-  
+
   // Apply status filter
   if (!filters?.includeInactive) {
     query = query.eq('status', 'active');
   }
-  
+
   // Apply sorting
   if (sortBy) {
     query = query.order(sortBy, { ascending: sortOrder === 'asc' });
   } else {
     query = query.order('created_at', { ascending: false });
   }
-  
+
   const { data: staff, error } = await query;
-  
+
   if (error) {
     throw new Error(`Failed to fetch staff: ${error.message}`);
   }
-  
+
   const defaultHeaders = [
     'ID',
     'First Name',
@@ -345,9 +345,9 @@ async function generateStaffReport(
     'Created At',
     'Updated At'
   ];
-  
+
   const headers = includeFields ? includeFields : defaultHeaders;
-  
+
   const rows = (staff || []).map(member => {
     const row: Record<string, any> = {
       'ID': member.id,
@@ -365,7 +365,7 @@ async function generateStaffReport(
       'Created At': member.created_at,
       'Updated At': member.updated_at
     };
-    
+
     if (includeFields) {
       const filteredRow: Record<string, any> = {};
       includeFields.forEach(field => {
@@ -373,10 +373,10 @@ async function generateStaffReport(
       });
       return filteredRow;
     }
-    
+
     return row;
   });
-  
+
   return {
     headers,
     rows,
@@ -399,7 +399,7 @@ async function generateStatisticsReport(
     'Period',
     'Generated At'
   ];
-  
+
   const rows = [
     {
       'Metric': 'Total Appointments',
@@ -409,7 +409,7 @@ async function generateStatisticsReport(
     }
     // More statistics would be added here
   ];
-  
+
   return {
     headers,
     rows,
@@ -432,11 +432,11 @@ async function generateAuditReport(
     start_date: dateRange?.from || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
     end_date: dateRange?.to || new Date().toISOString().split('T')[0]
   });
-  
+
   if (!result.success) {
     throw new Error(result.error || 'Failed to get audit statistics');
   }
-  
+
   const defaultHeaders = [
     'Date',
     'Operation Type',
@@ -452,9 +452,9 @@ async function generateAuditReport(
     'Created At',
     'Updated At'
   ];
-  
+
   const headers = includeFields ? includeFields : defaultHeaders;
-  
+
   const rows = result.data.statistics.map(stat => {
     const row: Record<string, any> = {
       'Date': stat.date,
@@ -471,7 +471,7 @@ async function generateAuditReport(
       'Created At': stat.created_at,
       'Updated At': stat.updated_at
     };
-    
+
     if (includeFields) {
       const filteredRow: Record<string, any> = {};
       includeFields.forEach(field => {
@@ -479,10 +479,10 @@ async function generateAuditReport(
       });
       return filteredRow;
     }
-    
+
     return row;
   });
-  
+
   return {
     headers,
     rows,
@@ -505,7 +505,7 @@ async function generateEmailReport(
     dateFrom: dateRange?.from,
     dateTo: dateRange?.to
   });
-  
+
   const defaultHeaders = [
     'Date',
     'Email Type',
@@ -519,9 +519,9 @@ async function generateEmailReport(
     'Created At',
     'Updated At'
   ];
-  
+
   const headers = includeFields ? includeFields : defaultHeaders;
-  
+
   const rows = stats.map(stat => {
     const row: Record<string, any> = {
       'Date': stat.date,
@@ -536,7 +536,7 @@ async function generateEmailReport(
       'Created At': stat.createdAt,
       'Updated At': stat.updatedAt
     };
-    
+
     if (includeFields) {
       const filteredRow: Record<string, any> = {};
       includeFields.forEach(field => {
@@ -544,10 +544,10 @@ async function generateEmailReport(
       });
       return filteredRow;
     }
-    
+
     return row;
   });
-  
+
   return {
     headers,
     rows,
@@ -561,13 +561,13 @@ async function generateEmailReport(
 
 function convertToCSV(data: CSVExportData): string {
   const { headers, rows, metadata } = data;
-  
+
   // Create CSV content
   let csvContent = '';
-  
+
   // Add headers
   csvContent += headers.join(',') + '\n';
-  
+
   // Add rows
   rows.forEach(row => {
     const values = headers.map(header => {
@@ -580,7 +580,7 @@ function convertToCSV(data: CSVExportData): string {
     });
     csvContent += values.join(',') + '\n';
   });
-  
+
   // Add metadata as comments (optional)
   if (metadata) {
     csvContent += '\n# Metadata\n';
@@ -590,6 +590,6 @@ function convertToCSV(data: CSVExportData): string {
       csvContent += `# Filters: ${JSON.stringify(metadata.filters)}\n`;
     }
   }
-  
+
   return csvContent;
 }

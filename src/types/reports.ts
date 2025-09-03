@@ -252,26 +252,26 @@ export function getChangeType(change: number): 'positive' | 'negative' | 'neutra
 
 export function formatKPIValue(value: number | string, unit?: string): string {
   if (typeof value === 'string') return value;
-  
+
   if (unit === 'percentage') {
     return `${value}%`;
   }
-  
+
   if (unit === 'currency') {
     return new Intl.NumberFormat('en-AE', {
       style: 'currency',
       currency: 'AED',
     }).format(value);
   }
-  
+
   if (value >= 1000000) {
     return `${(value / 1000000).toFixed(1)}M`;
   }
-  
+
   if (value >= 1000) {
     return `${(value / 1000).toFixed(1)}K`;
   }
-  
+
   return value.toString();
 }
 
@@ -279,7 +279,7 @@ export function createDateRange(days: number): DateRange {
   const to = new Date();
   const from = new Date();
   from.setDate(from.getDate() - days);
-  
+
   return {
     from: from.toISOString().split('T')[0],
     to: to.toISOString().split('T')[0],
@@ -289,6 +289,6 @@ export function createDateRange(days: number): DateRange {
 export function validateDateRange(dateRange: DateRange): boolean {
   const from = new Date(dateRange.from);
   const to = new Date(dateRange.to);
-  
+
   return from <= to && !isNaN(from.getTime()) && !isNaN(to.getTime());
 }

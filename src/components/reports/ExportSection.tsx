@@ -1,16 +1,12 @@
 'use client';
 
-import type { ReportFilters, DateRange } from '@/types/reports';
-import { useState } from 'react';
-import { 
-  Download, 
-  FileText, 
-  Calendar,
-  Filter,
-  Settings,
-  CheckCircle,
-  AlertCircle
+import type { ReportFilters } from '@/types/reports';
+import {
+    AlertCircle,
+    CheckCircle,
+    Download
 } from 'lucide-react';
+import { useState } from 'react';
 
 interface ExportSectionProps {
   className?: string;
@@ -22,14 +18,14 @@ export function ExportSection({ className = '' }: ExportSectionProps) {
     type: 'success' | 'error' | null;
     message: string;
   }>({ type: null, message: '' });
-  
+
   const [filters, setFilters] = useState<ReportFilters>({
     dateRange: {
       from: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
       to: new Date().toISOString().split('T')[0]
     }
   });
-  
+
   const [selectedReportType, setSelectedReportType] = useState<string>('appointments');
   const [selectedFormat, setSelectedFormat] = useState<'csv' | 'xlsx' | 'pdf'>('csv');
 
@@ -126,8 +122,8 @@ export function ExportSection({ className = '' }: ExportSectionProps) {
         {/* Export Status */}
         {exportStatus.type && (
           <div className={`p-4 rounded-lg flex items-center space-x-3 ${
-            exportStatus.type === 'success' 
-              ? 'bg-green-50 border border-green-200' 
+            exportStatus.type === 'success'
+              ? 'bg-green-50 border border-green-200'
               : 'bg-red-50 border border-red-200'
           }`}>
             {exportStatus.type === 'success' ? (

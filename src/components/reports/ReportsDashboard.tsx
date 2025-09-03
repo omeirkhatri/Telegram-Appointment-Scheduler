@@ -1,22 +1,21 @@
 'use client';
 
 import type { DashboardStatistics, DateRange } from '@/types/reports';
-import { useState, useEffect } from 'react';
-import { 
-  RefreshCw, 
-  Calendar,
-  TrendingUp,
-  AlertCircle,
-  CheckCircle
+import {
+    AlertCircle,
+    Calendar,
+    CheckCircle,
+    RefreshCw
 } from 'lucide-react';
-import { 
-  AppointmentKPICard, 
-  PatientKPICard, 
-  StaffKPICard, 
-  EmailKPICard 
-} from './KPICard';
+import { useEffect, useState } from 'react';
 import { ChartsSection } from './ChartsSection';
 import { ExportSection } from './ExportSection';
+import {
+    AppointmentKPICard,
+    EmailKPICard,
+    PatientKPICard,
+    StaffKPICard
+} from './KPICard';
 
 interface ReportsDashboardProps {
   className?: string;
@@ -121,7 +120,7 @@ export function ReportsDashboard({ className = '' }: ReportsDashboardProps) {
               Comprehensive analytics and insights for your healthcare scheduling system
             </p>
           </div>
-          
+
           <div className="flex items-center space-x-4">
             {/* Date Range Selector */}
             <div className="flex items-center space-x-2">
@@ -140,7 +139,7 @@ export function ReportsDashboard({ className = '' }: ReportsDashboardProps) {
                 className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
-            
+
             {/* Refresh Button */}
             <button
               onClick={handleRefresh}
@@ -152,7 +151,7 @@ export function ReportsDashboard({ className = '' }: ReportsDashboardProps) {
             </button>
           </div>
         </div>
-        
+
         {/* Last Updated */}
         {lastUpdated && (
           <div className="mt-4 flex items-center text-sm text-gray-500">

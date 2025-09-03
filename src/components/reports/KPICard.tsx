@@ -2,18 +2,18 @@
 
 import type { KPI } from '@/types/reports';
 import { formatKPIValue } from '@/types/reports';
-import { 
-  TrendingUp, 
-  TrendingDown, 
-  Minus,
-  Activity,
-  Users,
-  Calendar,
-  Mail,
-  Clock,
-  CheckCircle,
-  AlertCircle,
-  XCircle
+import {
+    Activity,
+    AlertCircle,
+    Calendar,
+    CheckCircle,
+    Clock,
+    Mail,
+    Minus,
+    TrendingDown,
+    TrendingUp,
+    Users,
+    XCircle
 } from 'lucide-react';
 
 interface KPICardProps {
@@ -23,11 +23,11 @@ interface KPICardProps {
   showTrend?: boolean;
 }
 
-export function KPICard({ 
-  kpi, 
-  className = '', 
+export function KPICard({
+  kpi,
+  className = '',
   size = 'medium',
-  showTrend = true 
+  showTrend = true
 }: KPICardProps) {
   const getIcon = (iconName?: string) => {
     const iconMap: Record<string, React.ComponentType<any>> = {
@@ -40,7 +40,7 @@ export function KPICard({
       alert: AlertCircle,
       error: XCircle,
     };
-    
+
     const IconComponent = iconName ? iconMap[iconName] : Activity;
     return <IconComponent className="w-5 h-5" />;
   };
@@ -104,7 +104,7 @@ export function KPICard({
             )}
           </div>
         </div>
-        
+
         {showTrend && kpi.trend && (
           <div className="flex items-center space-x-1">
             {getTrendIcon(kpi.trend)}
@@ -128,7 +128,7 @@ export function KPICard({
             {kpi.changeType === 'neutral' && <Minus className="w-3 h-3 mr-1" />}
             {typeof kpi.change === 'number' ? `${kpi.change > 0 ? '+' : ''}${kpi.change}%` : kpi.change}
           </div>
-          
+
           {kpi.changeType && (
             <span className="text-xs text-gray-500">
               vs previous period
@@ -141,12 +141,12 @@ export function KPICard({
 }
 
 // Predefined KPI cards for common metrics
-export function AppointmentKPICard({ 
-  total, 
-  today, 
-  completionRate, 
+export function AppointmentKPICard({
+  total,
+  today,
+  completionRate,
   averageDuration,
-  className = '' 
+  className = ''
 }: {
   total: number;
   today: number;
@@ -165,7 +165,7 @@ export function AppointmentKPICard({
           description: 'All time appointments'
         }}
       />
-      
+
       <KPICard
         kpi={{
           id: 'today-appointments',
@@ -175,7 +175,7 @@ export function AppointmentKPICard({
           description: 'Scheduled for today'
         }}
       />
-      
+
       <KPICard
         kpi={{
           id: 'completion-rate',
@@ -186,7 +186,7 @@ export function AppointmentKPICard({
           description: 'Successfully completed'
         }}
       />
-      
+
       <KPICard
         kpi={{
           id: 'average-duration',
@@ -201,11 +201,11 @@ export function AppointmentKPICard({
   );
 }
 
-export function PatientKPICard({ 
-  total, 
-  newThisMonth, 
+export function PatientKPICard({
+  total,
+  newThisMonth,
   activePatients,
-  className = '' 
+  className = ''
 }: {
   total: number;
   newThisMonth: number;
@@ -223,7 +223,7 @@ export function PatientKPICard({
           description: 'All registered patients'
         }}
       />
-      
+
       <KPICard
         kpi={{
           id: 'new-patients',
@@ -233,7 +233,7 @@ export function PatientKPICard({
           description: 'Recently registered'
         }}
       />
-      
+
       <KPICard
         kpi={{
           id: 'active-patients',
@@ -247,12 +247,12 @@ export function PatientKPICard({
   );
 }
 
-export function StaffKPICard({ 
-  total, 
-  active, 
+export function StaffKPICard({
+  total,
+  active,
   utilizationRate,
   averageWorkload,
-  className = '' 
+  className = ''
 }: {
   total: number;
   active: number;
@@ -271,7 +271,7 @@ export function StaffKPICard({
           description: 'All staff members'
         }}
       />
-      
+
       <KPICard
         kpi={{
           id: 'active-staff',
@@ -281,7 +281,7 @@ export function StaffKPICard({
           description: 'Currently working'
         }}
       />
-      
+
       <KPICard
         kpi={{
           id: 'utilization-rate',
@@ -292,7 +292,7 @@ export function StaffKPICard({
           description: 'Staff efficiency'
         }}
       />
-      
+
       <KPICard
         kpi={{
           id: 'average-workload',
@@ -306,12 +306,12 @@ export function StaffKPICard({
   );
 }
 
-export function EmailKPICard({ 
-  totalSent, 
-  successRate, 
+export function EmailKPICard({
+  totalSent,
+  successRate,
   failureRate,
   averageDeliveryTime,
-  className = '' 
+  className = ''
 }: {
   totalSent: number;
   successRate: number;
@@ -330,7 +330,7 @@ export function EmailKPICard({
           description: 'All time emails'
         }}
       />
-      
+
       <KPICard
         kpi={{
           id: 'success-rate',
@@ -341,7 +341,7 @@ export function EmailKPICard({
           description: 'Successfully delivered'
         }}
       />
-      
+
       <KPICard
         kpi={{
           id: 'failure-rate',
@@ -352,7 +352,7 @@ export function EmailKPICard({
           description: 'Failed deliveries'
         }}
       />
-      
+
       <KPICard
         kpi={{
           id: 'delivery-time',

@@ -1,16 +1,15 @@
 'use client';
 
-import type { DashboardStatistics, ChartData } from '@/types/reports';
-import { useState } from 'react';
-import { 
-  BarChart3, 
-  TrendingUp, 
-  PieChart, 
-  Activity,
-  Calendar,
-  Users,
-  Mail
+import type { DashboardStatistics } from '@/types/reports';
+import {
+    Activity,
+    BarChart3,
+    Calendar,
+    Mail,
+    TrendingUp,
+    Users
 } from 'lucide-react';
+import { useState } from 'react';
 
 interface ChartsSectionProps {
   statistics: DashboardStatistics;
@@ -142,18 +141,18 @@ function AppointmentCharts({ statistics }: { statistics: DashboardStatistics }) 
             {appointments.trends.daily.slice(-7).map((trend, index) => (
               <div key={trend.date} className="flex items-center justify-between">
                 <span className="text-sm text-gray-600">
-                  {new Date(trend.date).toLocaleDateString('en-GB', { 
-                    weekday: 'short', 
-                    month: 'short', 
-                    day: 'numeric' 
+                  {new Date(trend.date).toLocaleDateString('en-GB', {
+                    weekday: 'short',
+                    month: 'short',
+                    day: 'numeric'
                   })}
                 </span>
                 <div className="flex items-center space-x-2">
                   <div className="w-32 bg-gray-200 rounded-full h-2">
-                    <div 
+                    <div
                       className="bg-blue-500 h-2 rounded-full transition-all duration-300"
-                      style={{ 
-                        width: `${Math.min(100, (trend.count / Math.max(...appointments.trends.daily.map(t => t.count))) * 100)}%` 
+                      style={{
+                        width: `${Math.min(100, (trend.count / Math.max(...appointments.trends.daily.map(t => t.count))) * 100)}%`
                       }}
                     />
                   </div>
@@ -201,17 +200,17 @@ function PatientCharts({ statistics }: { statistics: DashboardStatistics }) {
             {patients.trends.monthly.slice(-6).map((trend) => (
               <div key={trend.month} className="flex items-center justify-between">
                 <span className="text-sm text-gray-600">
-                  {new Date(trend.month + '-01').toLocaleDateString('en-GB', { 
-                    month: 'short', 
-                    year: 'numeric' 
+                  {new Date(trend.month + '-01').toLocaleDateString('en-GB', {
+                    month: 'short',
+                    year: 'numeric'
                   })}
                 </span>
                 <div className="flex items-center space-x-2">
                   <div className="w-32 bg-gray-200 rounded-full h-2">
-                    <div 
+                    <div
                       className="bg-green-500 h-2 rounded-full transition-all duration-300"
-                      style={{ 
-                        width: `${Math.min(100, (trend.count / Math.max(...patients.trends.monthly.map(t => t.count))) * 100)}%` 
+                      style={{
+                        width: `${Math.min(100, (trend.count / Math.max(...patients.trends.monthly.map(t => t.count))) * 100)}%`
                       }}
                     />
                   </div>
@@ -261,20 +260,20 @@ function StaffCharts({ statistics }: { statistics: DashboardStatistics }) {
               <span className="text-lg font-bold text-gray-900">{staff.utilizationRate}%</span>
             </div>
             <div className="w-full bg-gray-200 rounded-full h-2">
-              <div 
+              <div
                 className="bg-blue-500 h-2 rounded-full transition-all duration-300"
                 style={{ width: `${Math.min(100, staff.utilizationRate)}%` }}
               />
             </div>
           </div>
-          
+
           <div className="bg-gray-50 rounded-lg p-4">
             <div className="flex items-center justify-between mb-2">
               <span className="text-sm text-gray-600">Average Workload</span>
               <span className="text-lg font-bold text-gray-900">{staff.averageWorkload}</span>
             </div>
             <div className="w-full bg-gray-200 rounded-full h-2">
-              <div 
+              <div
                 className="bg-green-500 h-2 rounded-full transition-all duration-300"
                 style={{ width: `${Math.min(100, (staff.averageWorkload / 10) * 100)}%` }}
               />
@@ -306,7 +305,7 @@ function EmailCharts({ statistics }: { statistics: DashboardStatistics }) {
               </div>
             </div>
           </div>
-          
+
           <div className="bg-gray-50 rounded-lg p-4">
             <div className="flex items-center justify-between">
               <div>
@@ -318,7 +317,7 @@ function EmailCharts({ statistics }: { statistics: DashboardStatistics }) {
               </div>
             </div>
           </div>
-          
+
           <div className="bg-gray-50 rounded-lg p-4">
             <div className="flex items-center justify-between">
               <div>

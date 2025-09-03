@@ -72,7 +72,7 @@
 ## 9.0 Admin UX & Additional UI
 - [x] 9.1 Appointment details drawer
 - [x] 9.2 Reports dashboard (KPIs, CSV export)
-- [ ] 9.3 Google Calendar linking UI + sync status
+- [x] 9.3 Google Calendar linking UI + sync status
 - [ ] 9.4 Recurrence rule builder (basic patterns)
 - [ ] 9.5 Email preferences in Settings
 - [ ] 9.6 Backup & export (CSV dumps)

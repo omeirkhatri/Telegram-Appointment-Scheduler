@@ -2,6 +2,7 @@
 
 import Header from '@/components/layout/Header';
 import { EmailTestSection, StaffPreferencesSection, AutomatedEmailSection } from '@/components/email';
+import { GoogleCalendarSection, SyncStatusCard, SyncSettingsPanel } from '@/components/google-calendar';
 import {
     Bell,
     Database,
@@ -11,64 +12,6 @@ import {
 } from 'lucide-react';
 
 export default function SettingsPage() {
-  // Settings categories
-  const settingsCategories = [
-    {
-      id: 'profile',
-      title: 'Profile Settings',
-      description: 'Manage your account information and preferences',
-      icon: User,
-      items: [
-        { name: 'Personal Information', description: 'Update your name, email, and contact details' },
-        { name: 'Password', description: 'Change your account password' },
-        { name: 'Notifications', description: 'Configure email and push notifications' },
-      ],
-    },
-    {
-      id: 'appearance',
-      title: 'Appearance',
-      description: 'Customize the look and feel of the application',
-      icon: Palette,
-      items: [
-        { name: 'Theme', description: 'Choose between light and dark themes' },
-        { name: 'Language', description: 'Select your preferred language' },
-        { name: 'Time Zone', description: 'Set your local time zone' },
-      ],
-    },
-    {
-      id: 'security',
-      title: 'Security',
-      description: 'Manage security settings and privacy',
-      icon: Shield,
-      items: [
-        { name: 'Two-Factor Authentication', description: 'Enable 2FA for enhanced security' },
-        { name: 'Session Management', description: 'View and manage active sessions' },
-        { name: 'Privacy Settings', description: 'Control data sharing and privacy options' },
-      ],
-    },
-    {
-      id: 'notifications',
-      title: 'Notifications',
-      description: 'Configure how you receive notifications',
-      icon: Bell,
-      items: [
-        { name: 'Email Notifications', description: 'Manage email notification preferences' },
-        { name: 'Push Notifications', description: 'Configure push notification settings' },
-        { name: 'SMS Notifications', description: 'Set up SMS alerts for urgent matters' },
-      ],
-    },
-    {
-      id: 'system',
-      title: 'System Settings',
-      description: 'Advanced system configuration options',
-      icon: Database,
-      items: [
-        { name: 'Data Export', description: 'Export your data in various formats' },
-        { name: 'Backup Settings', description: 'Configure automatic backup preferences' },
-        { name: 'API Access', description: 'Manage API keys and integrations' },
-      ],
-    },
-  ];
 
   return (
     <div className="min-h-screen bg-[--background] text-[--foreground]">
@@ -175,10 +118,19 @@ export default function SettingsPage() {
 
             {/* Automated Email Section */}
             <AutomatedEmailSection />
+
+            {/* Google Calendar Integration Section */}
+            <GoogleCalendarSection />
+
+            {/* Google Calendar Sync Settings */}
+            <SyncSettingsPanel />
           </div>
 
           {/* Quick Actions & System Info */}
           <div className="space-y-6">
+            {/* Google Calendar Sync Status */}
+            <SyncStatusCard />
+
             <div className="bg-[--card] border border-[--border] rounded-xl p-6 shadow-lg">
               <h3 className="text-lg font-semibold text-[--foreground] mb-4">Quick Actions</h3>
               <div className="space-y-3">
