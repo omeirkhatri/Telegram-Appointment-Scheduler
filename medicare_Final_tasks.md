@@ -66,7 +66,7 @@
 - [x] 8.4 Supabase query mocking
 - [x] 8.5 Google Calendar API mocking
 - [x] 8.6 End-to-end tests for critical flows
-- [ ] 8.7 Performance testing
+- [x] 8.7 Performance testing
 - [ ] 8.8 Accessibility compliance
 
 ## 9.0 Admin UX & Additional UI

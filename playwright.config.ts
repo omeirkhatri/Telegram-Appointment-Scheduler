@@ -26,10 +26,10 @@ export default defineConfig({
 
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     trace: 'on-first-retry',
-    
+
     /* Take screenshot on failure */
     screenshot: 'only-on-failure',
-    
+
     /* Record video on failure */
     video: 'retain-on-failure',
   },
@@ -59,6 +59,21 @@ export default defineConfig({
     {
       name: 'Mobile Safari',
       use: { ...devices['iPhone 12'] },
+    },
+
+    /* Performance testing project */
+    {
+      name: 'performance',
+      testDir: './tests/performance',
+      use: { 
+        ...devices['Desktop Chrome'],
+        // Disable video and screenshots for performance tests
+        video: 'off',
+        screenshot: 'off',
+        // Enable tracing for performance analysis
+        trace: 'on',
+      },
+      timeout: 60 * 1000, // 60 seconds for performance tests
     },
 
     /* Test against branded browsers. */

@@ -1,5 +1,5 @@
-import { test, expect } from '@playwright/test';
-import { AppointmentPage, PatientPage, StaffPage, DashboardPage } from '../utils/page-objects';
+import { expect, test } from '@playwright/test';
+import { AppointmentPage, DashboardPage, PatientPage, StaffPage } from '../utils/page-objects';
 import { testData } from '../utils/test-data';
 
 test.describe('Complete User Journey - End-to-End', () => {
@@ -59,7 +59,7 @@ test.describe('Complete User Journey - End-to-End', () => {
     await appointmentPage.rightClickOnCalendarEvent('Doctor on Call');
     await appointmentPage.clickCopyAppointment();
     await appointmentPage.expectCopyAppointmentModalVisible();
-    
+
     const newDate = '2024-12-25';
     await appointmentPage.page.fill('[data-testid="copy-appointment-date"]', newDate);
     await appointmentPage.page.click('[data-testid="copy-appointment-submit"]');
@@ -90,7 +90,7 @@ test.describe('Complete User Journey - End-to-End', () => {
     await appointmentPage.goto('/settings');
     await appointmentPage.page.click('[data-testid="test-agenda-generation"]');
     await appointmentPage.waitForLoadingToFinish();
-    
+
     // Verify agenda content
     await expect(appointmentPage.page.locator('[data-testid="agenda-preview"]')).toContainText('Your Schedule for');
     await expect(appointmentPage.page.locator('[data-testid="agenda-preview"]')).toContainText('Doctor on Call');
@@ -99,15 +99,15 @@ test.describe('Complete User Journey - End-to-End', () => {
     // Step 13: Return to dashboard and verify updated stats
     await dashboardPage.goto('/dashboard');
     await dashboardPage.expectStatsVisible();
-    
+
     // Verify patient count increased
     const patientCount = await dashboardPage.getStatValue('Total Patients');
     expect(parseInt(patientCount)).toBeGreaterThan(0);
-    
+
     // Verify staff count increased
     const staffCount = await dashboardPage.getStatValue('Total Staff');
     expect(parseInt(staffCount)).toBeGreaterThan(0);
-    
+
     // Verify appointment count increased
     const appointmentCount = await dashboardPage.getStatValue('Total Appointments');
     expect(parseInt(appointmentCount)).toBeGreaterThan(0);
@@ -121,7 +121,7 @@ test.describe('Complete User Journey - End-to-End', () => {
     // Step 15: Edit patient information
     await patientPage.page.click(`[data-testid="patient-item-${testData.patients.valid.name}"]`);
     await patientPage.expectPatientModalVisible();
-    
+
     const updatedName = 'Updated Patient Name';
     await patientPage.page.fill('[data-testid="patient-name"]', updatedName);
     await patientPage.submitPatientForm();
@@ -139,7 +139,7 @@ test.describe('Complete User Journey - End-to-End', () => {
     // Step 17: Verify final state
     await dashboardPage.goto('/dashboard');
     await dashboardPage.expectStatsVisible();
-    
+
     // All operations completed successfully
     console.log('✅ Complete user journey test passed - all critical flows working correctly');
   });
@@ -149,7 +149,7 @@ test.describe('Complete User Journey - End-to-End', () => {
     await patientPage.goto('/patients');
     await patientPage.clickNewPatient();
     await patientPage.submitPatientForm(); // Submit empty form
-    
+
     // Verify validation errors
     await expect(patientPage.page.locator('[data-testid="patient-name-error"]')).toBeVisible();
     await patientPage.cancelPatientForm();
@@ -159,14 +159,14 @@ test.describe('Complete User Journey - End-to-End', () => {
     const invalidPatient = { ...testData.patients.valid, phone: 'invalid-phone' };
     await patientPage.fillPatientForm(invalidPatient);
     await patientPage.submitPatientForm();
-    
+
     // Verify validation error
     await expect(patientPage.page.locator('[data-testid="patient-phone-error"]')).toBeVisible();
     await patientPage.cancelPatientForm();
 
     // Test network error handling
     await appointmentPage.goto('/appointments');
-    
+
     // Mock network failure
     await appointmentPage.page.route('**/api/appointments', route => {
       route.fulfill({
@@ -179,7 +179,7 @@ test.describe('Complete User Journey - End-to-End', () => {
     await appointmentPage.clickNewAppointment();
     await appointmentPage.fillAppointmentForm(testData.appointments.doctorOnCall);
     await appointmentPage.submitAppointmentForm();
-    
+
     // Verify error handling
     await appointmentPage.expectToast('Failed to create appointment', 'error');
 

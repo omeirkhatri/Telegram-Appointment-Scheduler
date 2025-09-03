@@ -19,7 +19,10 @@
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:headed": "playwright test --headed",
     "test:e2e:debug": "playwright test --debug",
-    "test:e2e:install": "playwright install"
+    "test:e2e:install": "playwright install",
+    "test:performance": "playwright test --project=performance",
+    "test:performance:lighthouse": "lighthouse http://localhost:3000 --output=json --output-path=./performance-reports/lighthouse-report.json",
+    "test:performance:ci": "playwright test --project=performance --reporter=json --output-dir=performance-reports"
   },
   "dependencies": {
     "@fullcalendar/core": "^6.1.19",
@@ -66,9 +69,11 @@
     "eslint-plugin-react-hooks": "^5.2.0",
     "jest": "^30.1.2",
     "jest-environment-jsdom": "^30.1.2",
+    "lighthouse": "^12.0.0",
     "postcss": "^8.5.6",
     "prettier": "^3.6.2",
     "tailwindcss": "^3.4.17",
-    "typescript": "^5"
+    "typescript": "^5",
+    "web-vitals": "^4.2.4"
   }
 }

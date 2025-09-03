@@ -6,7 +6,7 @@ This directory contains end-to-end tests for the MediCare Scheduler application 
 
 ### Critical Flows
 - **Patient Management** (`patient-management.spec.ts`) - Tests patient CRUD operations
-- **Staff Management** (`staff-management.spec.ts`) - Tests staff CRUD operations  
+- **Staff Management** (`staff-management.spec.ts`) - Tests staff CRUD operations
 - **Appointment Scheduling** (`appointment-scheduling.spec.ts`) - Tests appointment creation, editing, copying, and calendar interactions
 - **Calendar Integration** (`calendar-integration.spec.ts`) - Tests Google Calendar sync and webhook handling
 - **Daily Agenda** (`daily-agenda.spec.ts`) - Tests email agenda system

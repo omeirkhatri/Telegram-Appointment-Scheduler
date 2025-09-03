@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 import { PatientPage } from '../utils/page-objects';
 import { testData } from '../utils/test-data';
 
@@ -144,9 +144,9 @@ test.describe('Patient Management Critical Flows', () => {
     await patientPage.expectPatientModalVisible();
 
     // Fill form with invalid Google Maps link
-    const invalidPatient = { 
-      ...testData.patients.valid, 
-      googleMapsLink: 'not-a-valid-url' 
+    const invalidPatient = {
+      ...testData.patients.valid,
+      googleMapsLink: 'not-a-valid-url'
     };
     await patientPage.fillPatientForm(invalidPatient);
 

@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 import { AppointmentPage, PatientPage, StaffPage } from '../utils/page-objects';
 import { testData } from '../utils/test-data';
 
@@ -11,22 +11,22 @@ test.describe('Calendar Integration Critical Flows', () => {
     appointmentPage = new AppointmentPage(page);
     patientPage = new PatientPage(page);
     staffPage = new StaffPage(page);
-    
+
     // Set up test data
     await patientPage.goto('/patients');
     await patientPage.clickNewPatient();
     await patientPage.fillPatientForm(testData.patients.valid);
     await patientPage.submitPatientForm();
-    
+
     await staffPage.goto('/staff');
     await staffPage.clickNewStaff();
     await staffPage.fillStaffForm(testData.staff.doctor);
     await staffPage.submitStaffForm();
-    
+
     await staffPage.clickNewStaff();
     await staffPage.fillStaffForm(testData.staff.driver);
     await staffPage.submitStaffForm();
-    
+
     await appointmentPage.goto('/appointments');
   });
 
@@ -38,7 +38,7 @@ test.describe('Calendar Integration Critical Flows', () => {
 
     // Verify Google Calendar sync success
     await appointmentPage.expectToast('Appointment synced to Google Calendar');
-    
+
     // Check that Google Calendar event ID is stored
     await expect(appointmentPage.page.locator('[data-testid="google-calendar-sync-status"]')).toContainText('Synced');
   });
@@ -51,7 +51,7 @@ test.describe('Calendar Integration Critical Flows', () => {
 
     // Verify Google Calendar sync success for driver
     await appointmentPage.expectToast('Appointment synced to Google Calendar');
-    
+
     // Check that driver event has minimal description (address, phone, maps link)
     await expect(appointmentPage.page.locator('[data-testid="driver-calendar-event"]')).toContainText('PICKUP DETAILS');
     await expect(appointmentPage.page.locator('[data-testid="driver-calendar-event"]')).toContainText('Google Maps');
@@ -65,7 +65,7 @@ test.describe('Calendar Integration Critical Flows', () => {
 
     // Verify Google Calendar sync success
     await appointmentPage.expectToast('Appointment synced to Google Calendar');
-    
+
     // Check that medical staff event has full details
     await expect(appointmentPage.page.locator('[data-testid="medical-calendar-event"]')).toContainText('APPOINTMENT DETAILS');
     await expect(appointmentPage.page.locator('[data-testid="medical-calendar-event"]')).toContainText('LAB INFORMATION');
@@ -91,7 +91,7 @@ test.describe('Calendar Integration Critical Flows', () => {
     // Verify appointment is still created despite sync failure
     await appointmentPage.expectToast('Appointment created successfully');
     await appointmentPage.expectToast('Google Calendar sync failed - will retry', 'error');
-    
+
     // Check that appointment exists in local database
     await appointmentPage.expectCalendarVisible();
   });
@@ -174,7 +174,7 @@ test.describe('Calendar Integration Critical Flows', () => {
       route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           success: true,
           message: 'Webhook processed successfully'
         })
@@ -197,7 +197,7 @@ test.describe('Calendar Integration Critical Flows', () => {
 
     // Verify timezone conversion in Google Calendar event
     await appointmentPage.expectToast('Appointment synced to Google Calendar');
-    
+
     // Check that time is correctly converted to UTC for Google Calendar
     await expect(appointmentPage.page.locator('[data-testid="google-calendar-time"]')).toContainText('06:00'); // 10:00 Dubai time = 06:00 UTC
   });
@@ -206,16 +206,16 @@ test.describe('Calendar Integration Critical Flows', () => {
     // Create appointment with multiple staff
     await appointmentPage.clickNewAppointment();
     await appointmentPage.fillAppointmentForm(testData.appointments.doctorOnCall);
-    
+
     // Add additional staff member
     await appointmentPage.page.click('[data-testid="add-staff-member"]');
     await appointmentPage.page.selectOption('[data-testid="additional-staff-select"]', testData.staff.nurse.firstName);
-    
+
     await appointmentPage.submitAppointmentForm();
 
     // Verify Google Calendar sync for all staff members
     await appointmentPage.expectToast('Appointment synced to Google Calendar');
-    
+
     // Check that separate events are created for each staff member
     await expect(appointmentPage.page.locator('[data-testid="google-calendar-events-count"]')).toContainText('2');
   });
@@ -223,14 +223,14 @@ test.describe('Calendar Integration Critical Flows', () => {
   test('should validate Google Calendar credentials', async () => {
     // Navigate to settings to check Google Calendar integration
     await appointmentPage.goto('/settings');
-    
+
     // Check Google Calendar connection status
     await expect(appointmentPage.page.locator('[data-testid="google-calendar-status"]')).toBeVisible();
-    
+
     // Test connection
     await appointmentPage.page.click('[data-testid="test-google-calendar-connection"]');
     await appointmentPage.waitForLoadingToFinish();
-    
+
     // Verify connection test result
     await appointmentPage.expectToast('Google Calendar connection successful');
   });
@@ -241,7 +241,7 @@ test.describe('Calendar Integration Critical Flows', () => {
       route.fulfill({
         status: 429,
         contentType: 'application/json',
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           error: 'Rate limit exceeded',
           retryAfter: 60
         })
@@ -256,7 +256,7 @@ test.describe('Calendar Integration Critical Flows', () => {
     // Verify rate limit handling
     await appointmentPage.expectToast('Appointment created successfully');
     await appointmentPage.expectToast('Google Calendar sync delayed due to rate limiting', 'error');
-    
+
     // Check that sync is queued for retry
     await expect(appointmentPage.page.locator('[data-testid="sync-queue-status"]')).toContainText('Queued for retry');
   });

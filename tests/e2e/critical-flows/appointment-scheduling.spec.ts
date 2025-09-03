@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 import { AppointmentPage, PatientPage, StaffPage } from '../utils/page-objects';
 import { testData } from '../utils/test-data';
 
@@ -11,22 +11,22 @@ test.describe('Appointment Scheduling Critical Flows', () => {
     appointmentPage = new AppointmentPage(page);
     patientPage = new PatientPage(page);
     staffPage = new StaffPage(page);
-    
+
     // Set up test data - create a patient and staff member
     await patientPage.goto('/patients');
     await patientPage.clickNewPatient();
     await patientPage.fillPatientForm(testData.patients.valid);
     await patientPage.submitPatientForm();
-    
+
     await staffPage.goto('/staff');
     await staffPage.clickNewStaff();
     await staffPage.fillStaffForm(testData.staff.doctor);
     await staffPage.submitStaffForm();
-    
+
     await staffPage.clickNewStaff();
     await staffPage.fillStaffForm(testData.staff.driver);
     await staffPage.submitStaffForm();
-    
+
     // Navigate to appointments page
     await appointmentPage.goto('/appointments');
   });
@@ -106,9 +106,9 @@ test.describe('Appointment Scheduling Critical Flows', () => {
     await appointmentPage.expectAppointmentModalVisible();
 
     // Fill form with past date
-    const pastAppointment = { 
-      ...testData.appointments.doctorOnCall, 
-      appointmentDate: '2020-01-01' 
+    const pastAppointment = {
+      ...testData.appointments.doctorOnCall,
+      appointmentDate: '2020-01-01'
     };
     await appointmentPage.fillAppointmentForm(pastAppointment);
 
@@ -126,9 +126,9 @@ test.describe('Appointment Scheduling Critical Flows', () => {
     await appointmentPage.expectAppointmentModalVisible();
 
     // Fill form with time outside working hours
-    const invalidTimeAppointment = { 
-      ...testData.appointments.doctorOnCall, 
-      startTime: '23:00' 
+    const invalidTimeAppointment = {
+      ...testData.appointments.doctorOnCall,
+      startTime: '23:00'
     };
     await appointmentPage.fillAppointmentForm(invalidTimeAppointment);
 
@@ -206,7 +206,7 @@ test.describe('Appointment Scheduling Critical Flows', () => {
 
     // Try to create conflicting appointment
     await appointmentPage.clickNewAppointment();
-    const conflictingAppointment = { 
+    const conflictingAppointment = {
       ...testData.appointments.labTest,
       appointmentDate: testData.appointments.doctorOnCall.appointmentDate,
       startTime: testData.appointments.doctorOnCall.startTime
@@ -216,7 +216,7 @@ test.describe('Appointment Scheduling Critical Flows', () => {
 
     // Verify conflict warning
     await expect(appointmentPage.page.locator('[data-testid="appointment-conflict-warning"]')).toBeVisible();
-    
+
     // Should still allow creation with override
     await appointmentPage.page.click('[data-testid="override-conflict"]');
     await appointmentPage.waitForLoadingToFinish();

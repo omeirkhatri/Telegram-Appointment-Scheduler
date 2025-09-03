@@ -26,7 +26,7 @@ export const testData = {
       city: 'Dubai'
     }
   },
-  
+
   staff: {
     doctor: {
       firstName: 'Dr. Mohammed',
@@ -71,7 +71,7 @@ export const testData = {
       emailNotificationsEnabled: false
     }
   },
-  
+
   appointments: {
     doctorOnCall: {
       appointmentType: 'Doctor on Call',
@@ -131,7 +131,7 @@ export const selectors = {
     appointments: '[data-testid="nav-appointments"]',
     dashboard: '[data-testid="nav-dashboard"]'
   },
-  
+
   // Patient form
   patientForm: {
     name: '[data-testid="patient-name"]',
@@ -147,7 +147,7 @@ export const selectors = {
     submitButton: '[data-testid="patient-submit"]',
     cancelButton: '[data-testid="patient-cancel"]'
   },
-  
+
   // Staff form
   staffForm: {
     firstName: '[data-testid="staff-first-name"]',
@@ -160,7 +160,7 @@ export const selectors = {
     submitButton: '[data-testid="staff-submit"]',
     cancelButton: '[data-testid="staff-cancel"]'
   },
-  
+
   // Appointment form
   appointmentForm: {
     patientSelect: '[data-testid="appointment-patient-select"]',
@@ -173,7 +173,7 @@ export const selectors = {
     submitButton: '[data-testid="appointment-submit"]',
     cancelButton: '[data-testid="appointment-cancel"]'
   },
-  
+
   // Calendar
   calendar: {
     container: '[data-testid="appointment-calendar"]',
@@ -183,7 +183,7 @@ export const selectors = {
     editButton: '[data-testid="context-menu-edit"]',
     deleteButton: '[data-testid="context-menu-delete"]'
   },
-  
+
   // Modals
   modals: {
     patientModal: '[data-testid="patient-modal"]',
@@ -192,7 +192,7 @@ export const selectors = {
     copyAppointmentModal: '[data-testid="copy-appointment-modal"]',
     closeButton: '[data-testid="modal-close"]'
   },
-  
+
   // Common
   common: {
     loadingSpinner: '[data-testid="loading-spinner"]',

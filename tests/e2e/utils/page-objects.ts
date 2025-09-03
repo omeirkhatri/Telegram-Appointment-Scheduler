@@ -1,5 +1,5 @@
-import { Page, Locator, expect } from '@playwright/test';
-import { testData, selectors } from './test-data';
+import { Locator, Page, expect } from '@playwright/test';
+import { selectors, testData } from './test-data';
 
 /**
  * Base page object class with common functionality
@@ -52,19 +52,19 @@ export class PatientPage extends BasePage {
     await this.page.fill(selectors.patientForm.buildingStreet, patientData.buildingStreet);
     await this.page.fill(selectors.patientForm.area, patientData.area);
     await this.page.fill(selectors.patientForm.city, patientData.city);
-    
+
     if (patientData.googleMapsLink) {
       await this.page.fill(selectors.patientForm.googleMapsLink, patientData.googleMapsLink);
     }
-    
+
     if (patientData.medicalNotes) {
       await this.page.fill(selectors.patientForm.medicalNotes, patientData.medicalNotes);
     }
-    
+
     if (patientData.emergencyContact) {
       await this.page.fill(selectors.patientForm.emergencyContact, patientData.emergencyContact);
     }
-    
+
     if (patientData.preferredTransport) {
       await this.page.selectOption(selectors.patientForm.preferredTransport, patientData.preferredTransport);
     }
@@ -162,13 +162,13 @@ export class AppointmentPage extends BasePage {
     // Select patient (assuming first patient in dropdown)
     await this.page.click(selectors.appointmentForm.patientSelect);
     await this.page.click('[data-testid="patient-option-0"]');
-    
+
     await this.page.selectOption(selectors.appointmentForm.appointmentType, appointmentData.appointmentType);
     await this.page.fill(selectors.appointmentForm.appointmentDate, appointmentData.appointmentDate);
     await this.page.fill(selectors.appointmentForm.startTime, appointmentData.startTime);
     await this.page.selectOption(selectors.appointmentForm.duration, appointmentData.durationMinutes.toString());
     await this.page.selectOption(selectors.appointmentForm.transportationType, appointmentData.transportationType);
-    
+
     if (appointmentData.notes) {
       await this.page.fill(selectors.appointmentForm.notes, appointmentData.notes);
     }
@@ -213,7 +213,7 @@ export class AppointmentPage extends BasePage {
   async dragAndDropEvent(fromEvent: string, toDate: string) {
     const event = this.page.locator(selectors.calendar.event).filter({ hasText: fromEvent });
     const targetDate = this.page.locator(`[data-date="${toDate}"]`);
-    
+
     await event.dragTo(targetDate);
     await this.waitForLoadingToFinish();
   }

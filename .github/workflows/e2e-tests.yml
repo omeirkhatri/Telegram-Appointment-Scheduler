@@ -10,34 +10,34 @@ jobs:
   e2e-tests:
     timeout-minutes: 60
     runs-on: ubuntu-latest
-    
+
     steps:
     - uses: actions/checkout@v4
-    
+
     - uses: actions/setup-node@v4
       with:
         node-version: '18'
         cache: 'npm'
-    
+
     - name: Install dependencies
       run: npm ci
-    
+
     - name: Install Playwright browsers
       run: npx playwright install --with-deps
-    
+
     - name: Build application
       run: npm run build
-    
+
     - name: Start Supabase local instance
       run: |
         npx supabase start
         npx supabase db reset
-    
+
     - name: Run E2E tests
       run: npm run test:e2e
       env:
         PLAYWRIGHT_BASE_URL: http://localhost:3000
-    
+
     - name: Upload test results
       uses: actions/upload-artifact@v4
       if: always()
@@ -45,7 +45,7 @@ jobs:
         name: playwright-report
         path: playwright-report/
         retention-days: 30
-    
+
     - name: Upload test results JSON
       uses: actions/upload-artifact@v4
       if: always()
@@ -61,34 +61,34 @@ jobs:
       fail-fast: false
       matrix:
         browser: [chromium, firefox, webkit]
-    
+
     steps:
     - uses: actions/checkout@v4
-    
+
     - uses: actions/setup-node@v4
       with:
         node-version: '18'
         cache: 'npm'
-    
+
     - name: Install dependencies
       run: npm ci
-    
+
     - name: Install Playwright browsers
       run: npx playwright install --with-deps ${{ matrix.browser }}
-    
+
     - name: Build application
       run: npm run build
-    
+
     - name: Start Supabase local instance
       run: |
         npx supabase start
         npx supabase db reset
-    
+
     - name: Run E2E tests on ${{ matrix.browser }}
       run: npx playwright test --project=${{ matrix.browser }}
       env:
         PLAYWRIGHT_BASE_URL: http://localhost:3000
-    
+
     - name: Upload test results
       uses: actions/upload-artifact@v4
       if: always()
@@ -96,3 +96,85 @@ jobs:
         name: playwright-report-${{ matrix.browser }}
         path: playwright-report/
         retention-days: 30
+
+  performance-tests:
+    timeout-minutes: 30
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Install Playwright browsers
+      run: npx playwright install --with-deps chromium
+
+    - name: Build application
+      run: npm run build
+
+    - name: Start Supabase local instance
+      run: |
+        npx supabase start
+        npx supabase db reset
+
+    - name: Run performance tests
+      run: npm run test:performance:ci
+      env:
+        PLAYWRIGHT_BASE_URL: http://localhost:3000
+
+    - name: Upload performance reports
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: performance-reports
+        path: performance-reports/
+        retention-days: 30
+
+    - name: Comment performance results on PR
+      if: github.event_name == 'pull_request'
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const fs = require('fs');
+          const path = require('path');
+          
+          try {
+            const reportPath = path.join('performance-reports', 'performance-results.json');
+            if (fs.existsSync(reportPath)) {
+              const report = JSON.parse(fs.readFileSync(reportPath, 'utf8'));
+              
+              const comment = `## 📊 Performance Test Results
+              
+              **Overall Status:** ${report.summary?.overallStatus || 'UNKNOWN'}
+              
+              ### Page Load Performance
+              - Dashboard: ${report.results?.pageLoad?.metrics?.loadTime || 'N/A'}ms
+              - Patients: ${report.results?.pageLoad?.metrics?.loadTime || 'N/A'}ms
+              - Staff: ${report.results?.pageLoad?.metrics?.loadTime || 'N/A'}ms
+              - Appointments: ${report.results?.pageLoad?.metrics?.loadTime || 'N/A'}ms
+              
+              ### Calendar Render Performance
+              - 200 Events: ${report.results?.calendarRender?.metrics?.loadTime || 'N/A'}ms
+              
+              ### Google Sync Performance
+              - Sync Latency: ${report.results?.googleSync?.metrics?.loadTime || 'N/A'}ms
+              
+              [View detailed report](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})`;
+              
+              github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: comment
+              });
+            }
+          } catch (error) {
+            console.log('Could not create performance comment:', error.message);
+          }
