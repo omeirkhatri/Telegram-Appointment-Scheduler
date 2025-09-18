@@ -110,23 +110,6 @@ function StaffSearchForm({ onSearch, onReset, isLoading }: StaffSearchFormProps)
           </select>
         </div>
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Google Calendar
-          </label>
-          <select
-            value={filters.has_google_calendar ? 'true' : filters.has_google_calendar === false ? 'false' : ''}
-            onChange={(e) => setFilters(prev => ({
-              ...prev,
-              has_google_calendar: e.target.value === 'true' ? true : e.target.value === 'false' ? false : undefined,
-            }))}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="">All</option>
-            <option value="true">Has Calendar</option>
-            <option value="false">No Calendar</option>
-          </select>
-        </div>
       </div>
 
       <div className="flex justify-end space-x-3">
@@ -377,9 +360,6 @@ export function StaffSearch({ onStaffSelect, showFilters = true, className = '' 
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Schedule
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Calendar
-                  </th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
@@ -431,17 +411,6 @@ export function StaffSearch({ onStaffSelect, showFilters = true, className = '' 
                       <div className="text-sm text-gray-500">
                         {staffMember.available_days.length} days/week
                       </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {staffMember.google_calendar_id ? (
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                          Connected
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                          Not Connected
-                        </span>
-                      )}
                     </td>
                   </tr>
                 ))}

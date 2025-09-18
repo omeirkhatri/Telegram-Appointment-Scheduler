@@ -9,7 +9,6 @@ export async function GET(request: NextRequest) {
     const searchTerm = searchParams.get('q') || '';
     const staffType = searchParams.get('staff_type') || '';
     const status = searchParams.get('status') || '';
-    const hasGoogleCalendar = searchParams.get('has_google_calendar');
     const availableOnDay = searchParams.get('available_on_day');
 
     let staff;
@@ -23,18 +22,12 @@ export async function GET(request: NextRequest) {
     } else if (status === 'active') {
       // Get active staff
       staff = await staffService.getActiveStaff();
-    } else if (hasGoogleCalendar === 'true') {
-      // Get staff with Google Calendar
-      staff = await staffService.getStaffWithGoogleCalendar();
     } else if (availableOnDay) {
       // Get staff available on specific day
       staff = await staffService.getStaffAvailableOnDay(parseInt(availableOnDay));
     } else {
       // Use general filtering
       const filters: any = {};
-      if (hasGoogleCalendar !== null) {
-        filters.has_google_calendar = hasGoogleCalendar === 'true';
-      }
       if (status) {
         filters.status = status;
       }

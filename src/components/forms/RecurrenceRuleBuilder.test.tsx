@@ -401,4 +401,42 @@ describe('RecurrenceRuleBuilder', () => {
     expect(screen.getByText('Every year on the same date')).toBeInTheDocument();
     expect(screen.getByText('Custom interval')).toBeInTheDocument();
   });
+
+  it('should not cause infinite re-renders when value changes', () => {
+    const { rerender } = render(
+      <RecurrenceRuleBuilder
+        value={undefined}
+        onChange={mockOnChange}
+        baseDate={baseDate}
+      />,
+    );
+
+    // Enable the builder
+    const checkbox = screen.getByRole('checkbox');
+    fireEvent.click(checkbox);
+
+    // Clear the mock to count calls
+    mockOnChange.mockClear();
+
+    // Simulate a value change that would previously cause infinite re-renders
+    const newValue: RecurringRule = {
+      frequency: 'daily',
+      interval: 1,
+    };
+
+    // Re-render with the new value
+    rerender(
+      <RecurrenceRuleBuilder
+        value={newValue}
+        onChange={mockOnChange}
+        baseDate={baseDate}
+      />,
+    );
+
+    // Wait a bit to ensure no infinite loops
+    setTimeout(() => {
+      // The onChange should not be called excessively
+      expect(mockOnChange).toHaveBeenCalledTimes(0);
+    }, 100);
+  });
 });

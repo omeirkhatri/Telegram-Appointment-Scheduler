@@ -34,7 +34,7 @@ export function getPrintEndTime(startTime: string, durationMinutes: number): str
   const [hours, minutes] = startTime.split(':');
   const startDate = new Date();
   startDate.setHours(parseInt(hours), parseInt(minutes), 0, 0);
-  
+
   const endDate = new Date(startDate.getTime() + durationMinutes * 60000);
   return format(endDate, PRINT_TIME_FORMAT);
 }
@@ -60,7 +60,7 @@ export function getAppointmentTypePrintClass(appointmentType: string): string {
     'caregiver': 'print-type-caregiver',
     'iv_therapy': 'print-type-iv',
   };
-  
+
   return typeMap[appointmentType] || 'print-type-default';
 }
 
@@ -74,7 +74,7 @@ export function formatPatientAddressForPrint(patient: Patient): string {
     patient.area,
     patient.city,
   ].filter(Boolean);
-  
+
   return parts.join(', ');
 }
 
@@ -106,7 +106,7 @@ export function formatTransportationForPrint(
   } else if (appointment.transportation_type === 'self_transport' && appointment.transportation_method) {
     return `Self-transport: ${appointment.transportation_method}`;
   }
-  
+
   return 'Transportation not specified';
 }
 
@@ -133,7 +133,7 @@ export function formatCustomFieldsForPrint(customFields: any): Array<{ label: st
     formattedFields.push({ label: 'Lab', value: customFields.labName });
   }
   if (customFields.sampleTypes) {
-    const samples = Array.isArray(customFields.sampleTypes) 
+    const samples = Array.isArray(customFields.sampleTypes)
       ? customFields.sampleTypes.join(', ')
       : customFields.sampleTypes;
     formattedFields.push({ label: 'Sample Types', value: samples });
@@ -305,7 +305,7 @@ export const printUtils = {
         </body>
       </html>
     `);
-    
+
     printWindow.document.close();
     printWindow.focus();
     printWindow.print();

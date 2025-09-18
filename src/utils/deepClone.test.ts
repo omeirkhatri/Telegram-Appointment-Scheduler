@@ -287,9 +287,6 @@ describe('Deep Clone Utilities', () => {
         frequency: 'weekly',
         interval: 1,
       },
-      google_event_ids: {
-        '123e4567-e89b-12d3-a456-426614174002': 'google-event-id-123',
-      },
       created_at: '2024-01-01T10:00:00.000Z',
       updated_at: '2024-01-01T10:00:00.000Z',
     };
@@ -314,7 +311,6 @@ describe('Deep Clone Utilities', () => {
       expect(result.driver_id).toBe(mockAppointment.driver_id);
       expect(result.notes).toBe(mockAppointment.notes);
       expect(result.recurring_rule).toEqual(mockAppointment.recurring_rule);
-      expect(result.google_event_ids).toEqual(mockAppointment.google_event_ids);
     });
 
     it('should apply overrides correctly', () => {
@@ -346,9 +342,6 @@ describe('Deep Clone Utilities', () => {
 
       expect(result.recurring_rule).toEqual(mockAppointment.recurring_rule);
       expect(result.recurring_rule).not.toBe(mockAppointment.recurring_rule);
-
-      expect(result.google_event_ids).toEqual(mockAppointment.google_event_ids);
-      expect(result.google_event_ids).not.toBe(mockAppointment.google_event_ids);
     });
 
     it('should handle empty overrides', () => {

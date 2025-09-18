@@ -1,4 +1,3 @@
-import { googleCalendarService } from '@/services/googleCalendarService';
 import { staffService } from '@/services/staffService';
 import type { UpdateStaff } from '@/types';
 import { NextRequest, NextResponse } from 'next/server';
@@ -53,12 +52,10 @@ export async function PUT(
       specialization: body.specialization,
       phone: body.phone,
       email: body.email,
-      google_calendar_id: body.google_calendar_id,
       available_days: body.available_days,
       working_hours_start: body.working_hours_start,
       working_hours_end: body.working_hours_end,
       status: body.status,
-      email_notifications_enabled: body.email_notifications_enabled,
     };
 
     // Remove undefined values
@@ -79,32 +76,6 @@ export async function PUT(
         },
         { status: 400 },
       );
-    }
-
-    // Validate Google Calendar ID if provided
-    if (updateData.google_calendar_id) {
-      const isValidFormat = googleCalendarService.validateCalendarId(updateData.google_calendar_id);
-      if (!isValidFormat) {
-        return NextResponse.json(
-          {
-            success: false,
-            error: 'Invalid Google Calendar ID format',
-          },
-          { status: 400 },
-        );
-      }
-
-      // Test calendar connection
-      const isConnected = await googleCalendarService.testCalendarConnection(updateData.google_calendar_id);
-      if (!isConnected) {
-        return NextResponse.json(
-          {
-            success: false,
-            error: 'Unable to connect to Google Calendar. Please check the calendar ID and permissions.',
-          },
-          { status: 400 },
-        );
-      }
     }
 
     // Update staff member

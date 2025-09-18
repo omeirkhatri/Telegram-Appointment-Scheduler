@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/supabase';
-import { auditTrailService, emailDeliveryService } from '@/services';
+import { auditTrailService } from '@/services';
 import type { CSVExportData, GenerateReportRequest, ReportFilters } from '@/types/reports';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -361,7 +361,6 @@ async function generateStaffReport(
       'Working Hours Start': member.working_hours_start,
       'Working Hours End': member.working_hours_end,
       'Status': member.status,
-      'Email Notifications Enabled': member.email_notifications_enabled ? 'Yes' : 'No',
       'Created At': member.created_at,
       'Updated At': member.updated_at,
     };
@@ -501,10 +500,8 @@ async function generateEmailReport(
   sortBy?: string,
   sortOrder?: 'asc' | 'desc',
 ): Promise<CSVExportData> {
-  const stats = await emailDeliveryService.getDeliveryStatistics({
-    dateFrom: dateRange?.from,
-    dateTo: dateRange?.to,
-  });
+  // Email delivery service removed - return empty data
+  const stats: any[] = [];
 
   const defaultHeaders = [
     'Date',

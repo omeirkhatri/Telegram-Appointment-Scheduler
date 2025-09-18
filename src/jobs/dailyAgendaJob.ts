@@ -1,10 +1,10 @@
 import { jobSchedulerService } from '@/services/jobSchedulerService';
 import { staffAggregationService } from '@/services/staffAggregationService';
 import type {
-    DailyAgendaJobParameters,
-    DailyAgendaJobResult,
-    JobExecutionContext,
-    JobHandler,
+  DailyAgendaJobParameters,
+  DailyAgendaJobResult,
+  JobExecutionContext,
+  JobHandler,
 } from '@/types/job';
 import { formatDubaiDate, getAgendaDate, getNextDailyAgendaTime } from '@/utils/timezone';
 
@@ -44,8 +44,8 @@ export const dailyAgendaJobHandler: JobHandler = async (context: JobExecutionCon
         return {
           success: true,
           totalStaff: 0,
-          emailsSent: 0,
-          emailsFailed: 0,
+          notificationsSent: 0,
+          notificationsFailed: 0,
           successRate: 100,
           results: [],
         };
@@ -67,8 +67,8 @@ export const dailyAgendaJobHandler: JobHandler = async (context: JobExecutionCon
     // Log the agenda generation results
     logger.info('Daily agenda generation completed', {
       totalStaff: result.stats.totalStaff,
-      emailsSent: result.stats.emailsSent,
-      emailsFailed: result.stats.emailsFailed,
+      notificationsSent: result.stats.notificationsSent,
+      notificationsFailed: result.stats.notificationsFailed,
       successRate: result.stats.successRate,
     });
 
@@ -81,12 +81,12 @@ export const dailyAgendaJobHandler: JobHandler = async (context: JobExecutionCon
     const jobResult: DailyAgendaJobResult = {
       success: result.success,
       totalStaff: result.stats.totalStaff,
-      emailsSent: result.stats.emailsSent,
-      emailsFailed: result.stats.emailsFailed,
+      notificationsSent: result.stats.telegramsSent,
+      notificationsFailed: result.stats.telegramsFailed,
       successRate: result.stats.successRate,
       results: result.results.map(delivery => ({
         staffId: delivery.staffId,
-        email: delivery.emailId, // Using emailId as a placeholder for email
+        email: delivery.telegramUserId, // Using telegramUserId as a placeholder for email
         status: delivery.status === 'sent' ? 'sent' : 'failed',
         error: delivery.error,
       })),
@@ -95,7 +95,7 @@ export const dailyAgendaJobHandler: JobHandler = async (context: JobExecutionCon
     logger.info('Daily agenda job completed successfully', {
       success: jobResult.success,
       totalStaff: jobResult.totalStaff,
-      emailsSent: jobResult.emailsSent,
+      telegramsSent: jobResult.notificationsSent,
       successRate: jobResult.successRate,
     });
 
@@ -108,8 +108,8 @@ export const dailyAgendaJobHandler: JobHandler = async (context: JobExecutionCon
     return {
       success: false,
       totalStaff: 0,
-      emailsSent: 0,
-      emailsFailed: 0,
+      notificationsSent: 0,
+      notificationsFailed: 0,
       successRate: 0,
       results: [{
         staffId: 'unknown',
@@ -133,8 +133,8 @@ async function generateStaffSpecificAgenda(
   success: boolean;
   stats: {
     totalStaff: number;
-    emailsSent: number;
-    emailsFailed: number;
+    notificationsSent: number;
+    notificationsFailed: number;
     successRate: number;
   };
   results: Array<{
@@ -184,8 +184,8 @@ async function generateStaffSpecificAgenda(
       success: false,
       stats: {
         totalStaff: 1,
-        emailsSent: 0,
-        emailsFailed: 1,
+        notificationsSent: 0,
+        notificationsFailed: 1,
         successRate: 0,
       },
       results: [{
@@ -219,7 +219,7 @@ async function markAgendaAsSent(dateString: string, stats: any): Promise<void> {
 
   console.log(`📧 Marked agenda as sent for ${dateString}`, {
     totalStaff: stats.totalStaff,
-    emailsSent: stats.emailsSent,
+    notificationsSent: stats.notificationsSent,
     successRate: stats.successRate,
   });
 }
@@ -235,9 +235,9 @@ export async function initializeDailyAgendaJob(): Promise<void> {
     // Create the daily agenda job definition
     const jobDefinition = {
       name: 'Daily Staff Agenda',
-      description: 'Generate and send daily appointment agendas to all eligible staff members at 06:00 Asia/Dubai time',
+      description: 'Generate and send daily appointment agendas to all eligible staff members via Telegram at 21:00 (9 PM) Asia/Dubai time for the next day',
       type: 'daily_agenda' as const,
-      cronExpression: '0 6 * * *', // 06:00 every day
+      cronExpression: '0 21 * * *', // 21:00 (9 PM) every day
       timezone: 'Asia/Dubai',
       priority: 'high' as const,
       enabled: true,
@@ -246,9 +246,9 @@ export async function initializeDailyAgendaJob(): Promise<void> {
       timeout: 600000, // 10 minutes
       handler: 'daily_agenda',
       parameters: {
-        description: 'Automated daily agenda generation',
+        description: 'Automated daily agenda generation for next day via Telegram',
         timezone: 'Asia/Dubai',
-        schedule: '06:00 daily',
+        schedule: '21:00 (9 PM) daily',
       },
     };
 

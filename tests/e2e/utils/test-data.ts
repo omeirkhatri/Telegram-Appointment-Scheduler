@@ -156,7 +156,6 @@ export const selectors = {
     specialization: '[data-testid="staff-specialization"]',
     phone: '[data-testid="staff-phone"]',
     email: '[data-testid="staff-email"]',
-    googleCalendarId: '[data-testid="staff-google-calendar-id"]',
     submitButton: '[data-testid="staff-submit"]',
     cancelButton: '[data-testid="staff-cancel"]',
   },

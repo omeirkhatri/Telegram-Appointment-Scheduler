@@ -1,39 +1,41 @@
-import { emailTemplateEngine } from '@/lib/emailTemplateEngine';
 import { supabase } from '@/lib/supabase';
 import type { Staff } from '@/types';
-import type {
-    AgendaAppointment,
-    AgendaEmailData,
-    AppointmentWithDetails,
-    EmailDeliveryStatus,
-    StaffEmailPreferences,
-} from '@/types/email';
 import {
     formatAppointmentTime,
-    formatDubaiDate,
     getAgendaDate,
     getDubaiDayRange,
     getStaffForDailyAgenda,
+    toDubaiTime
 } from '@/utils/timezone';
-import { emailService } from './emailService';
+import { format } from 'date-fns';
+import { telegramNotificationService } from './telegramNotificationService';
+
+interface TelegramDeliveryStatus {
+  staffId: string;
+  telegramUserId: string;
+  status: 'sent' | 'failed';
+  error?: string;
+}
 
 export class StaffAggregationService {
   /**
-   * Generate daily agenda for all eligible staff members
+   * Generate daily agenda for all eligible staff members via Telegram
    */
   async generateDailyAgendas(date?: Date, jobExecutionId?: string): Promise<{
     success: boolean;
-    results: EmailDeliveryStatus[];
+    results: TelegramDeliveryStatus[];
     stats: {
       totalStaff: number;
-      emailsSent: number;
-      emailsFailed: number;
+      telegramsSent: number;
+      telegramsFailed: number;
       successRate: number;
     };
   }> {
     try {
       const agendaDate = date || getAgendaDate();
-      const dateString = formatDubaiDate(agendaDate);
+      // Convert to YYYY-MM-DD format for database query (ensure we get the date in Dubai timezone)
+      const dubaiDate = toDubaiTime(agendaDate);
+      const dateString = format(dubaiDate, 'yyyy-MM-dd');
 
       console.log(`📅 Generating daily agendas for ${dateString}`);
 
@@ -47,8 +49,8 @@ export class StaffAggregationService {
           results: [],
           stats: {
             totalStaff: 0,
-            emailsSent: 0,
-            emailsFailed: 0,
+            telegramsSent: 0,
+            telegramsFailed: 0,
             successRate: 100,
           },
         };
@@ -56,70 +58,67 @@ export class StaffAggregationService {
 
       console.log(`Found ${eligibleStaff.length} eligible staff members`);
 
-      // Generate and send agendas for each staff member
-      const results: EmailDeliveryStatus[] = [];
-      let emailsSent = 0;
-      let emailsFailed = 0;
+      // Generate and send agendas for each staff member via Telegram
+      const results: TelegramDeliveryStatus[] = [];
+      let telegramsSent = 0;
+      let telegramsFailed = 0;
 
       for (const staff of eligibleStaff) {
         try {
-          const agendaData = await this.generateStaffAgenda(staff.id, agendaDate);
-          const emailResult = await emailService.sendEmail({
-            to: staff.email,
-            subject: agendaData.subject,
-            html: emailTemplateEngine.renderAgendaTemplate(agendaData),
-            from: 'MediCare Scheduler <noreply@medicare.com>',
-          }, {
-            emailType: 'daily_agenda',
-            staffId: staff.id,
-            jobExecutionId,
-            priority: 'high',
-            metadata: {
-              date: dateString,
-              agendaData,
-            },
-          });
+          // Check if staff has Telegram configured
+          if (!staff.telegram_user_id || !staff.telegram_verified) {
+            console.warn(`⚠️ Staff ${staff.first_name} ${staff.last_name} has no verified Telegram ID, skipping`);
+            telegramsFailed++;
+            results.push({
+              staffId: staff.id,
+              telegramUserId: 'not-configured',
+              status: 'failed',
+              error: 'No verified Telegram ID',
+            });
+            continue;
+          }
 
-          const deliveryStatus: EmailDeliveryStatus = {
-            emailId: emailResult.messageId || `email-${Date.now()}-${staff.id}`,
+          const agendaData = await this.generateStaffAgenda(staff.id, agendaDate);
+          const telegramResult = await telegramNotificationService.sendDailyAgenda(
+            staff.telegram_user_id,
+            agendaData
+          );
+
+          const deliveryStatus: TelegramDeliveryStatus = {
             staffId: staff.id,
-            date: dateString,
-            status: emailResult.success ? 'sent' : 'failed',
-            sentAt: new Date(),
-            error: emailResult.error,
-            retryCount: 0,
+            telegramUserId: staff.telegram_user_id,
+            status: telegramResult.success ? 'sent' : 'failed',
+            error: telegramResult.error,
           };
 
           results.push(deliveryStatus);
 
-          if (emailResult.success) {
-            emailsSent++;
-            console.log(`✅ Agenda sent to ${staff.email}`);
+          if (telegramResult.success) {
+            telegramsSent++;
+            console.log(`✅ Agenda sent to ${staff.first_name} ${staff.last_name} via Telegram`);
           } else {
-            emailsFailed++;
-            console.error(`❌ Failed to send agenda to ${staff.email}:`, emailResult.error);
+            telegramsFailed++;
+            console.error(`❌ Failed to send agenda to ${staff.first_name} ${staff.last_name}:`, telegramResult.error);
           }
         } catch (error) {
-          emailsFailed++;
+          telegramsFailed++;
           console.error(`❌ Error generating agenda for staff ${staff.id}:`, error);
 
           results.push({
-            emailId: `error-${Date.now()}-${staff.id}`,
             staffId: staff.id,
-            date: dateString,
+            telegramUserId: staff.telegram_user_id || 'unknown',
             status: 'failed',
             error: error instanceof Error ? error.message : 'Unknown error',
-            retryCount: 0,
           });
         }
       }
 
-      const successRate = eligibleStaff.length > 0 ? (emailsSent / eligibleStaff.length) * 100 : 100;
+      const successRate = eligibleStaff.length > 0 ? (telegramsSent / eligibleStaff.length) * 100 : 100;
 
       console.log('📊 Daily agenda generation completed:', {
         totalStaff: eligibleStaff.length,
-        emailsSent,
-        emailsFailed,
+        telegramsSent,
+        telegramsFailed,
         successRate: Math.round(successRate * 100) / 100,
       });
 
@@ -128,8 +127,8 @@ export class StaffAggregationService {
         results,
         stats: {
           totalStaff: eligibleStaff.length,
-          emailsSent,
-          emailsFailed,
+          telegramsSent,
+          telegramsFailed,
           successRate: Math.round(successRate * 100) / 100,
         },
       };
@@ -140,8 +139,8 @@ export class StaffAggregationService {
         results: [],
         stats: {
           totalStaff: 0,
-          emailsSent: 0,
-          emailsFailed: 0,
+          telegramsSent: 0,
+          telegramsFailed: 0,
           successRate: 0,
         },
       };
@@ -151,7 +150,13 @@ export class StaffAggregationService {
   /**
    * Generate agenda for a specific staff member
    */
-  async generateStaffAgenda(staffId: string, date: Date): Promise<AgendaEmailData> {
+  async generateStaffAgenda(staffId: string, date: Date): Promise<{
+    date: string;
+    dayName: string;
+    staffName: string;
+    appointments: any[];
+    totalAppointments: number;
+  }> {
     // Get staff information
     const staff = await this.getStaffById(staffId);
     if (!staff) {
@@ -162,33 +167,38 @@ export class StaffAggregationService {
     const appointments = await this.getStaffAppointmentsForDate(staffId, date);
 
     // Transform appointments to agenda format
-    const agendaAppointments: AgendaAppointment[] = await Promise.all(
+    const agendaAppointments = await Promise.all(
       appointments.map(appointment => this.transformAppointmentToAgenda(appointment)),
     );
 
     // Sort appointments by start time
     agendaAppointments.sort((a, b) => a.startTime.localeCompare(b.startTime));
 
+    // Format date for display
+    // Convert to YYYY-MM-DD format for database query (ensure we get the date in Dubai timezone)
+    const dubaiDate = toDubaiTime(date);
+    const dateString = format(dubaiDate, 'yyyy-MM-dd');
+    const { getRelativeDayName } = require('@/utils/timezone');
+
+    const dayName = getRelativeDayName(date);
+
     return {
-      subject: `Your Schedule for ${formatDubaiDate(date)}`,
-      content: '',
-      date: formatDubaiDate(date),
+      date: dateString,
+      dayName: dayName,
       staffName: `${staff.first_name} ${staff.last_name}`,
-      staffEmail: staff.email,
       appointments: agendaAppointments,
       totalAppointments: agendaAppointments.length,
-      multipleAppointments: agendaAppointments.length !== 1,
     };
   }
 
   /**
    * Get all staff members eligible for daily agenda
    */
-  private async getEligibleStaffForAgenda(date: Date): Promise<Array<{ id: string; email: string }>> {
+  private async getEligibleStaffForAgenda(date: Date): Promise<Array<{ id: string; first_name: string; last_name: string; telegram_user_id: string; telegram_verified: boolean }>> {
     const { data: staff, error } = await supabase
       .from('staff')
-      .select('id, email, email_notifications_enabled, status, available_days')
-      .eq('email_notifications_enabled', true)
+      .select('id, first_name, last_name, telegram_user_id, telegram_verified, status, available_days')
+      .eq('telegram_verified', true)
       .eq('status', 'active');
 
     if (error) {
@@ -223,7 +233,9 @@ export class StaffAggregationService {
    */
   private async getStaffAppointmentsForDate(staffId: string, date: Date): Promise<AppointmentWithDetails[]> {
     const { start, end } = getDubaiDayRange(date);
-    const dateString = formatDubaiDate(date);
+    // Convert to YYYY-MM-DD format for database query (ensure we get the date in Dubai timezone)
+    const dubaiDate = toDubaiTime(date);
+    const dateString = format(dubaiDate, 'yyyy-MM-dd');
 
     // Get appointments where the staff member is assigned
     const { data: appointmentStaff, error: staffError } = await supabase
@@ -357,64 +369,6 @@ export class StaffAggregationService {
     };
   }
 
-  /**
-   * Get staff email preferences
-   */
-  async getStaffEmailPreferences(staffId: string): Promise<StaffEmailPreferences | null> {
-    const { data, error } = await supabase
-      .from('staff')
-      .select('id, email_notifications_enabled')
-      .eq('id', staffId)
-      .single();
-
-    if (error) {
-      if (error.code === 'PGRST116') {
-        return null;
-      }
-      throw new Error(`Failed to fetch staff preferences: ${error.message}`);
-    }
-
-    return {
-      staffId: data.id,
-      emailNotificationsEnabled: data.email_notifications_enabled,
-      dailyAgendaEnabled: data.email_notifications_enabled,
-      agendaTime: '06:00',
-      timezone: 'Asia/Dubai',
-    };
-  }
-
-  /**
-   * Update staff email preferences
-   */
-  async updateStaffEmailPreferences(
-    staffId: string,
-    preferences: Partial<StaffEmailPreferences>,
-  ): Promise<StaffEmailPreferences> {
-    const updateData: any = {};
-
-    if (preferences.emailNotificationsEnabled !== undefined) {
-      updateData.email_notifications_enabled = preferences.emailNotificationsEnabled;
-    }
-
-    const { data, error } = await supabase
-      .from('staff')
-      .update(updateData)
-      .eq('id', staffId)
-      .select('id, email_notifications_enabled')
-      .single();
-
-    if (error) {
-      throw new Error(`Failed to update staff preferences: ${error.message}`);
-    }
-
-    return {
-      staffId: data.id,
-      emailNotificationsEnabled: data.email_notifications_enabled,
-      dailyAgendaEnabled: data.email_notifications_enabled,
-      agendaTime: '06:00',
-      timezone: 'Asia/Dubai',
-    };
-  }
 
   /**
    * Get daily agenda statistics
@@ -425,7 +379,9 @@ export class StaffAggregationService {
     totalAppointments: number;
     staffWithAppointments: number;
   }> {
-    const dateString = formatDubaiDate(date);
+    // Convert to YYYY-MM-DD format for database query (ensure we get the date in Dubai timezone)
+    const dubaiDate = toDubaiTime(date);
+    const dateString = format(dubaiDate, 'yyyy-MM-dd');
 
     // Get total staff count
     const { count: totalStaff } = await supabase

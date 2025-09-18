@@ -108,40 +108,44 @@ export default function Patients() {
     {
       key: 'patient',
       header: 'Patient',
-      width: 250,
+      width: 350,
+      minWidth: 200,
       render: (patient) => (
-        <div>
-          <p className="font-medium text-[--foreground]">{patient.name}</p>
-          <p className="text-sm text-[--muted-foreground]">ID: {patient.id}</p>
+        <div className="min-w-0">
+          <p className="font-medium text-[--foreground] truncate">{patient.name}</p>
+          <p className="text-sm text-[--muted-foreground] truncate">ID: {patient.id}</p>
         </div>
       ),
     },
     {
       key: 'contact',
       header: 'Contact',
-      width: 200,
+      width: 220,
+      minWidth: 120,
       render: (patient) => (
         <div className="flex items-center space-x-2">
-          <Phone className="w-4 h-4 text-[--muted-foreground]" />
-          <span className="text-sm text-[--foreground]">{patient.phone}</span>
+          <Phone className="w-4 h-4 text-[--muted-foreground] flex-shrink-0" />
+          <span className="text-sm text-[--foreground] truncate">{patient.phone}</span>
         </div>
       ),
     },
     {
       key: 'address',
       header: 'Address',
-      width: 300,
+      width: 400,
+      minWidth: 200,
       render: (patient) => (
-        <div className="text-sm text-[--foreground]">
-          <p>{patient.flat_villa_no}, {patient.building_street}</p>
-          <p className="text-[--muted-foreground]">{patient.area}, {patient.city}</p>
+        <div className="text-sm text-[--foreground] min-w-0">
+          <p className="truncate">{patient.flat_villa_no}, {patient.building_street}</p>
+          <p className="text-[--muted-foreground] truncate">{patient.area}, {patient.city}</p>
         </div>
       ),
     },
     {
       key: 'created',
       header: 'Created',
-      width: 150,
+      width: 180,
+      minWidth: 100,
       render: (patient) => (
         <span className="text-sm text-[--foreground]">
           {new Date(patient.created_at).toLocaleDateString()}
@@ -151,7 +155,8 @@ export default function Patients() {
     {
       key: 'document',
       header: 'Document',
-      width: 150,
+      width: 180,
+      minWidth: 120,
       render: (patient) => (
         patient.id_document_url ? (
           <a
@@ -172,7 +177,8 @@ export default function Patients() {
     {
       key: 'actions',
       header: 'Actions',
-      width: 100,
+      width: 120,
+      minWidth: 80,
       render: (patient) => (
         <button
           onClick={(e) => {

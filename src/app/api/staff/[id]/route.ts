@@ -1,4 +1,3 @@
-import { googleCalendarService } from '@/services/googleCalendarService';
 import { staffService } from '@/services/staffService';
 import type { UpdateStaff } from '@/types';
 import { NextRequest, NextResponse } from 'next/server';
@@ -6,10 +5,11 @@ import { NextRequest, NextResponse } from 'next/server';
 // GET /api/staff/[id] - Get a single staff member by ID
 export async function GET(
   _request: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    const staff = await staffService.getStaffMember(params.id);
+    const { id } = await params;
+    const staff = await staffService.getStaffMember(id);
 
     if (!staff) {
       return NextResponse.json(
@@ -40,9 +40,10 @@ export async function GET(
 // PUT /api/staff/[id] - Update an existing staff member
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
+    const { id } = await params;
     const body = await request.json();
 
     // Extract staff data
@@ -53,12 +54,12 @@ export async function PUT(
       specialization: body.specialization,
       phone: body.phone,
       email: body.email,
-      google_calendar_id: body.google_calendar_id,
+      telegram_user_id: body.telegram_user_id,
       available_days: body.available_days,
       working_hours_start: body.working_hours_start,
       working_hours_end: body.working_hours_end,
       status: body.status,
-      email_notifications_enabled: body.email_notifications_enabled,
+      telegram_verified: body.telegram_verified,
     };
 
     // Remove undefined values
@@ -81,40 +82,29 @@ export async function PUT(
       );
     }
 
-    // Validate Google Calendar ID if provided
-    if (updateData.google_calendar_id) {
-      const isValidFormat = googleCalendarService.validateCalendarId(updateData.google_calendar_id);
-      if (!isValidFormat) {
-        return NextResponse.json(
-          {
-            success: false,
-            error: 'Invalid Google Calendar ID format',
-          },
-          { status: 400 },
-        );
-      }
-
-      // Test calendar connection
-      const isConnected = await googleCalendarService.testCalendarConnection(updateData.google_calendar_id);
-      if (!isConnected) {
-        return NextResponse.json(
-          {
-            success: false,
-            error: 'Unable to connect to Google Calendar. Please check the calendar ID and permissions.',
-          },
-          { status: 400 },
-        );
-      }
-    }
 
     // Update staff member
-    const updatedStaff = await staffService.updateStaff(params.id, updateData);
+    try {
+      const updatedStaff = await staffService.updateStaff(id, updateData);
 
-    return NextResponse.json({
-      success: true,
-      data: updatedStaff,
-      message: 'Staff member updated successfully',
-    });
+      return NextResponse.json({
+        success: true,
+        data: updatedStaff,
+        message: 'Staff member updated successfully',
+      });
+    } catch (error) {
+      console.error('Staff service error:', error);
+      if (error instanceof Error && error.message === 'Staff member not found') {
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'Staff member not found',
+          },
+          { status: 404 },
+        );
+      }
+      throw error; // Re-throw other errors to be caught by the outer catch
+    }
   } catch (error) {
     console.error('Error updating staff member:', error);
     return NextResponse.json(

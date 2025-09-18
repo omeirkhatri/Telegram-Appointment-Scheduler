@@ -2,7 +2,6 @@
 export type AppointmentType = 'doctor_on_call' | 'lab_test' | 'teleconsultation' | 'physiotherapy' | 'caregiver' | 'iv_therapy';
 export type AppointmentStatus = 'scheduled' | 'confirmed' | 'completed' | 'cancelled';
 export type TransportationType = 'driver' | 'self_transport';
-export type EditSource = 'app' | 'google_calendar' | 'webhook' | 'manual';
 
 export interface Appointment {
   id: string;
@@ -17,15 +16,22 @@ export interface Appointment {
   transportation_method?: string;
   driver_id?: string;
   notes?: string;
+  mini_notes?: string;
+  full_notes?: string;
+  pickup_instructions?: string;
   recurring_rule?: RecurringRule;
-  google_event_ids: Record<string, string>; // staff_id -> eventId
-  // External edit tracking
-  last_external_edit?: string; // ISO timestamp of last external edit
-  last_external_edit_source?: EditSource; // Source of last external edit
-  external_edit_count?: number; // Number of external edits
-  last_edit_source?: EditSource; // Source of last edit (internal or external)
   created_at: string;
   updated_at: string;
+  // Patient data (populated when fetching appointments)
+  patient?: {
+    id: string;
+    name: string;
+    phone: string;
+    flat_villa_no?: string;
+    building_street?: string;
+    area?: string;
+    city?: string;
+  };
 }
 
 // Appointment creation type (without id and timestamps)
@@ -41,13 +47,10 @@ export interface CreateAppointment {
   transportation_method?: string;
   driver_id?: string;
   notes?: string;
+  mini_notes?: string;
+  full_notes?: string;
+  pickup_instructions?: string;
   recurring_rule?: RecurringRule;
-  google_event_ids?: Record<string, string>;
-  // External edit tracking (optional for creation)
-  last_external_edit?: string;
-  last_external_edit_source?: EditSource;
-  external_edit_count?: number;
-  last_edit_source?: EditSource;
 }
 
 // Appointment update type (all fields optional except id)
@@ -64,13 +67,10 @@ export interface UpdateAppointment {
   transportation_method?: string;
   driver_id?: string;
   notes?: string;
+  mini_notes?: string;
+  full_notes?: string;
+  pickup_instructions?: string;
   recurring_rule?: RecurringRule;
-  google_event_ids?: Record<string, string>;
-  // External edit tracking
-  last_external_edit?: string;
-  last_external_edit_source?: EditSource;
-  external_edit_count?: number;
-  last_edit_source?: EditSource;
 }
 
 // Appointment search/filter options
@@ -304,46 +304,57 @@ export function getNextOccurrenceDate(
   return date.toISOString().split('T')[0];
 }
 
-// Helper function to check if appointment has external edits
+// External edit indicator helper functions
 export function hasExternalEdits(appointment: Appointment): boolean {
-  return (appointment.external_edit_count || 0) > 0;
+  // Check if appointment has external edit indicators
+  return !!(appointment.custom_fields?.external_edit_source ||
+           appointment.custom_fields?.last_external_edit);
 }
 
-// Helper function to get external edit source display name
-export function getEditSourceDisplayName(source: EditSource): string {
-  const displayNames: Record<EditSource, string> = {
-    app: 'App',
-    google_calendar: 'Google Calendar',
-    webhook: 'Webhook',
-    manual: 'Manual',
-  };
-  return displayNames[source];
-}
-
-// Helper function to check if last edit was external
 export function isLastEditExternal(appointment: Appointment): boolean {
-  return appointment.last_edit_source === 'google_calendar' ||
-         appointment.last_edit_source === 'webhook';
+  // Check if the last edit was from an external source
+  return !!(appointment.custom_fields?.last_external_edit &&
+           appointment.custom_fields?.external_edit_source);
 }
 
-// Helper function to get time since last external edit
-export function getTimeSinceLastExternalEdit(appointment: Appointment): string | null {
-  if (!appointment.last_external_edit) {
-    return null;
+export function getEditSourceDisplayName(appointment: Appointment): string {
+  const source = appointment.custom_fields?.external_edit_source as string;
+  if (!source) return 'Unknown';
+
+  switch (source) {
+    case 'telegram':
+      return 'Telegram Bot';
+    case 'api':
+      return 'API';
+    case 'webhook':
+      return 'Webhook';
+    case 'mobile':
+      return 'Mobile App';
+    default:
+      return source.charAt(0).toUpperCase() + source.slice(1);
   }
+}
 
-  const lastEdit = new Date(appointment.last_external_edit);
-  const now = new Date();
-  const diffMs = now.getTime() - lastEdit.getTime();
-  const diffMinutes = Math.floor(diffMs / (1000 * 60));
-  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+export function getTimeSinceLastExternalEdit(appointment: Appointment): string {
+  const lastEdit = appointment.custom_fields?.last_external_edit as string;
+  if (!lastEdit) return 'Unknown';
 
-  if (diffMinutes < 60) {
-    return `${diffMinutes} minute${diffMinutes !== 1 ? 's' : ''} ago`;
-  } else if (diffHours < 24) {
-    return `${diffHours} hour${diffHours !== 1 ? 's' : ''} ago`;
-  } else {
-    return `${diffDays} day${diffDays !== 1 ? 's' : ''} ago`;
+  try {
+    const editDate = new Date(lastEdit);
+    const now = new Date();
+    const diffMs = now.getTime() - editDate.getTime();
+    const diffMinutes = Math.floor(diffMs / (1000 * 60));
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+    if (diffMinutes < 60) {
+      return `${diffMinutes}m ago`;
+    } else if (diffHours < 24) {
+      return `${diffHours}h ago`;
+    } else {
+      return `${diffDays}d ago`;
+    }
+  } catch {
+    return 'Unknown';
   }
 }

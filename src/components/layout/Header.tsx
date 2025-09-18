@@ -1,5 +1,6 @@
 'use client';
 
+import { TimeDisplay } from '@/components/ui/TimeDisplay';
 import {
     Activity,
     CalendarDays,
@@ -112,6 +113,7 @@ const Header: React.FC<HeaderProps> = ({ title = 'MediCare Scheduler', currentPa
 
         {/* Right side actions */}
         <div className="flex items-center space-x-4">
+          <TimeDisplay />
           <button
             onClick={toggleDarkMode}
             className="p-2 text-[--muted-foreground] hover:text-[--foreground] hover:bg-[--accent] rounded-lg transition-colors"
@@ -135,6 +137,7 @@ const Header: React.FC<HeaderProps> = ({ title = 'MediCare Scheduler', currentPa
         </div>
 
         <div className="flex items-center space-x-2">
+          <TimeDisplay className="hidden sm:flex" />
           <button
             onClick={toggleDarkMode}
             className="p-2 text-[--muted-foreground] hover:text-[--foreground] hover:bg-[--accent] rounded-lg transition-colors"

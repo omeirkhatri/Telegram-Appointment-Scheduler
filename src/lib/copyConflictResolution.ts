@@ -119,9 +119,10 @@ async function checkStaffAvailability(
 
   // Find appointments where this staff member is assigned
   const staffAppointments = existingAppointments.filter(appointment => {
-    // Check if staff is assigned to this appointment
-    const hasStaffAssignment = appointment.google_event_ids &&
-      Object.keys(appointment.google_event_ids).includes(staff.id);
+    const assignments = (appointment as unknown as { staff_assignments?: StaffAssignment[] }).staff_assignments;
+    const hasStaffAssignment = Array.isArray(assignments)
+      ? assignments.some(assignment => assignment.staff_id === staff.id)
+      : false;
 
     return hasStaffAssignment && appointment.id !== excludeAppointmentId;
   });

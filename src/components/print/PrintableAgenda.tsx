@@ -142,9 +142,9 @@ export function PrintableAgenda({
                       </div>
                     )}
 
-                    {/* Appointment ID */}
+                    {/* Appointment Type */}
                     <div className="print-appointment-id">
-                      <small>Appointment ID: {appointment.id}</small>
+                      <small>{appointment.type}</small>
                     </div>
                   </div>
                 </div>
@@ -155,7 +155,7 @@ export function PrintableAgenda({
             <div className="print-agenda-summary">
               <div className="print-summary-content">
                 <h3>Total: {printData.totalAppointments} appointment{printData.totalAppointments !== 1 ? 's' : ''}</h3>
-                <p>Generated on {new Date().toLocaleDateString('en-GB', { 
+                <p>Generated on {new Date().toLocaleDateString('en-GB', {
                   timeZone: 'Asia/Dubai',
                   day: '2-digit',
                   month: '2-digit',

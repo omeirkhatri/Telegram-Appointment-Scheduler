@@ -17,7 +17,6 @@ describe('External Edit Tracking Functions', () => {
     duration_minutes: 60,
     status: 'scheduled',
     custom_fields: {},
-    google_event_ids: {},
     created_at: '2024-01-01T00:00:00Z',
     updated_at: '2024-01-01T00:00:00Z',
   };
@@ -55,11 +54,6 @@ describe('External Edit Tracking Functions', () => {
       expect(isLastEditExternal(appointment)).toBe(false);
     });
 
-    it('should return true when last_edit_source is google_calendar', () => {
-      const appointment = { ...mockAppointment, last_edit_source: 'google_calendar' as EditSource };
-      expect(isLastEditExternal(appointment)).toBe(true);
-    });
-
     it('should return true when last_edit_source is webhook', () => {
       const appointment = { ...mockAppointment, last_edit_source: 'webhook' as EditSource };
       expect(isLastEditExternal(appointment)).toBe(true);
@@ -74,10 +68,6 @@ describe('External Edit Tracking Functions', () => {
   describe('getEditSourceDisplayName', () => {
     it('should return correct display name for app', () => {
       expect(getEditSourceDisplayName('app')).toBe('App');
-    });
-
-    it('should return correct display name for google_calendar', () => {
-      expect(getEditSourceDisplayName('google_calendar')).toBe('Google Calendar');
     });
 
     it('should return correct display name for webhook', () => {

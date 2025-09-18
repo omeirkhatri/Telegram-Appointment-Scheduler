@@ -31,28 +31,16 @@ CREATE OR REPLACE FUNCTION setup_environment_config()
 RETURNS VOID AS $$
 BEGIN
     -- Set up environment-specific settings
+    -- Note: ALTER SYSTEM commands are not allowed in functions
+    -- These would need to be run manually in production
     IF is_cloud_environment() THEN
-        -- Cloud-specific configurations
-        -- Enable enhanced security features
-        ALTER SYSTEM SET log_statement = 'all';
-        ALTER SYSTEM SET log_min_duration_statement = 1000;
-
-        -- Set up connection limits for cloud
-        ALTER SYSTEM SET max_connections = 100;
-
-        -- Enable SSL in cloud
-        ALTER SYSTEM SET ssl = on;
+        -- Cloud-specific configurations would go here
+        -- but ALTER SYSTEM cannot be executed in functions
+        NULL;
     ELSE
         -- Local development configurations
-        -- More permissive settings for development
-        ALTER SYSTEM SET log_statement = 'none';
-        ALTER SYSTEM SET log_min_duration_statement = -1;
-
-        -- Higher connection limits for local development
-        ALTER SYSTEM SET max_connections = 200;
-
-        -- Disable SSL for local development
-        ALTER SYSTEM SET ssl = off;
+        -- but ALTER SYSTEM cannot be executed in functions
+        NULL;
     END IF;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
@@ -236,4 +224,4 @@ COMMENT ON VIEW migration_status IS 'View for easy access to migration validatio
 SELECT setup_environment_config();
 
 -- Log the migration setup
-INSERT INTO pg_stat_statements_info (dealloc) VALUES (0) ON CONFLICT DO NOTHING;
+-- Note: pg_stat_statements_info may not be available in all environments

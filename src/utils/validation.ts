@@ -33,7 +33,6 @@ export const staffSchema = z.object({
   email: emailSchema,
   phone: phoneSchema,
   staff_type: z.enum(['driver', 'medical']),
-  google_calendar_id: z.string().optional(),
   is_active: z.boolean().default(true),
 });
 

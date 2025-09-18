@@ -10,12 +10,12 @@ export interface Staff {
   specialization?: string;
   phone: string;
   email: string;
-  google_calendar_id?: string;
-  available_days: number[]; // 1-7 representing Monday-Sunday
-  working_hours_start: string; // HH:MM format
-  working_hours_end: string; // HH:MM format
   status: StaffStatus;
-  email_notifications_enabled: boolean;
+  telegram_user_id?: string;
+  telegram_verified?: boolean;
+  available_days?: number[];
+  working_hours_start?: string;
+  working_hours_end?: string;
   created_at: string;
   updated_at: string;
 }
@@ -28,29 +28,26 @@ export interface CreateStaff {
   specialization?: string;
   phone: string;
   email: string;
-  google_calendar_id?: string;
+  status?: StaffStatus;
   available_days?: number[];
   working_hours_start?: string;
   working_hours_end?: string;
-  status?: StaffStatus;
-  email_notifications_enabled?: boolean;
 }
 
-// Staff update type (all fields optional except id)
+// Staff update type (all fields optional)
 export interface UpdateStaff {
-  id: string;
   first_name?: string;
   last_name?: string;
   staff_type?: StaffType;
   specialization?: string;
   phone?: string;
   email?: string;
-  google_calendar_id?: string;
+  status?: StaffStatus;
+  telegram_user_id?: string;
+  telegram_verified?: boolean;
   available_days?: number[];
   working_hours_start?: string;
   working_hours_end?: string;
-  status?: StaffStatus;
-  email_notifications_enabled?: boolean;
 }
 
 // Staff search/filter options
@@ -59,7 +56,6 @@ export interface StaffFilters {
   last_name?: string;
   staff_type?: StaffType;
   status?: StaffStatus;
-  has_google_calendar?: boolean;
   available_on_day?: number; // 1-7
 }
 

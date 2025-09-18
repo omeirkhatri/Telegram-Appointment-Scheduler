@@ -64,12 +64,10 @@ export interface Database {
           specialization: string | null;
           phone: string;
           email: string;
-          google_calendar_id: string | null;
           available_days: number[];
           working_hours_start: string;
           working_hours_end: string;
           status: 'active' | 'inactive';
-          email_notifications_enabled: boolean;
           created_at: string;
           updated_at: string;
         };
@@ -81,12 +79,10 @@ export interface Database {
           specialization?: string | null;
           phone: string;
           email: string;
-          google_calendar_id?: string | null;
           available_days?: number[];
           working_hours_start?: string;
           working_hours_end?: string;
           status?: 'active' | 'inactive';
-          email_notifications_enabled?: boolean;
           created_at?: string;
           updated_at?: string;
         };
@@ -98,12 +94,10 @@ export interface Database {
           specialization?: string | null;
           phone?: string;
           email?: string;
-          google_calendar_id?: string | null;
           available_days?: number[];
           working_hours_start?: string;
           working_hours_end?: string;
           status?: 'active' | 'inactive';
-          email_notifications_enabled?: boolean;
           created_at?: string;
           updated_at?: string;
         };
@@ -122,8 +116,10 @@ export interface Database {
           transportation_method: string | null;
           driver_id: string | null;
           notes: string | null;
+          mini_notes: string | null;
+          full_notes: string | null;
+          pickup_instructions: string | null;
           recurring_rule: Record<string, unknown> | null;
-          google_event_ids: Record<string, string>;
           created_at: string;
           updated_at: string;
         };
@@ -140,8 +136,10 @@ export interface Database {
           transportation_method?: string | null;
           driver_id?: string | null;
           notes?: string | null;
+          mini_notes?: string | null;
+          full_notes?: string | null;
+          pickup_instructions?: string | null;
           recurring_rule?: Record<string, unknown> | null;
-          google_event_ids?: Record<string, string>;
           created_at?: string;
           updated_at?: string;
         };
@@ -158,8 +156,10 @@ export interface Database {
           transportation_method?: string | null;
           driver_id?: string | null;
           notes?: string | null;
+          mini_notes?: string | null;
+          full_notes?: string | null;
+          pickup_instructions?: string | null;
           recurring_rule?: Record<string, unknown> | null;
-          google_event_ids?: Record<string, string>;
           created_at?: string;
           updated_at?: string;
         };
@@ -171,7 +171,6 @@ export interface Database {
           staff_id: string;
           role: 'primary' | 'assistant';
           is_primary: boolean;
-          google_event_id: string | null;
           created_at: string;
         };
         Insert: {
@@ -180,7 +179,6 @@ export interface Database {
           staff_id: string;
           role?: 'primary' | 'assistant';
           is_primary?: boolean;
-          google_event_id?: string | null;
           created_at?: string;
         };
         Update: {
@@ -189,7 +187,6 @@ export interface Database {
           staff_id?: string;
           role?: 'primary' | 'assistant';
           is_primary?: boolean;
-          google_event_id?: string | null;
           created_at?: string;
         };
       };

@@ -4,6 +4,7 @@ import { SkeletonList } from '@/components/ui';
 import { SEARCH_DEBOUNCE_DELAY } from '@/constants';
 import { useAppointments, useDebounce, useSearchFilterCache } from '@/hooks';
 import type { AppointmentFilters } from '@/types';
+import { getAppointmentTypeDisplayName } from '@/types/appointment';
 import React, { useEffect, useState } from 'react';
 
 interface AppointmentSearchFormProps {
@@ -412,7 +413,7 @@ export function AppointmentSearch({ onAppointmentSelect, showFilters = true, cla
                         </div>
                         <div className="ml-4">
                           <div className="text-sm font-medium text-gray-900">
-                            Appointment #{appointment.id.slice(0, 8)}
+                            {getAppointmentTypeDisplayName(appointment.appointment_type)}
                           </div>
                           <div className="text-sm text-gray-500">
                             {appointment.duration_minutes} minutes

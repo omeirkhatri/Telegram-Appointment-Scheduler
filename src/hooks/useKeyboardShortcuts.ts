@@ -91,33 +91,34 @@ export function useKeyboardShortcuts({
 
 /**
  * Predefined global shortcuts for the application
+ * Using Ctrl+Shift combinations to avoid browser conflicts
  */
 export const createGlobalShortcuts = (router: any) => [
   {
     key: 'n',
     ctrlKey: true,
-    metaKey: true,
+    shiftKey: true,
     action: () => router.push('/appointments?new=true'),
     description: 'New appointment',
   },
   {
     key: 'p',
     ctrlKey: true,
-    metaKey: true,
+    shiftKey: true,
     action: () => router.push('/patients?new=true'),
     description: 'New patient',
   },
   {
     key: 's',
     ctrlKey: true,
-    metaKey: true,
+    shiftKey: true,
     action: () => router.push('/staff?new=true'),
     description: 'New staff member',
   },
   {
-    key: '/',
+    key: 'h',
     ctrlKey: true,
-    metaKey: true,
+    shiftKey: true,
     action: () => {
       // This will be handled by the help modal component
       const event = new CustomEvent('show-keyboard-shortcuts');
@@ -128,28 +129,28 @@ export const createGlobalShortcuts = (router: any) => [
   {
     key: '1',
     ctrlKey: true,
-    metaKey: true,
+    shiftKey: true,
     action: () => router.push('/'),
     description: 'Go to dashboard',
   },
   {
     key: '2',
     ctrlKey: true,
-    metaKey: true,
+    shiftKey: true,
     action: () => router.push('/patients'),
     description: 'Go to patients',
   },
   {
     key: '3',
     ctrlKey: true,
-    metaKey: true,
+    shiftKey: true,
     action: () => router.push('/staff'),
     description: 'Go to staff',
   },
   {
     key: '4',
     ctrlKey: true,
-    metaKey: true,
+    shiftKey: true,
     action: () => router.push('/appointments'),
     description: 'Go to appointments',
   },
@@ -157,12 +158,13 @@ export const createGlobalShortcuts = (router: any) => [
 
 /**
  * Predefined shortcuts for appointments page
+ * Using Ctrl+Shift combinations to avoid browser conflicts
  */
 export const createAppointmentShortcuts = (setViewMode: (mode: 'calendar' | 'table') => void, focusSearch: () => void) => [
   {
     key: 't',
     ctrlKey: true,
-    metaKey: true,
+    shiftKey: true,
     action: () => {
       setViewMode(prev => prev === 'calendar' ? 'table' : 'calendar');
     },
@@ -171,7 +173,7 @@ export const createAppointmentShortcuts = (setViewMode: (mode: 'calendar' | 'tab
   {
     key: 'f',
     ctrlKey: true,
-    metaKey: true,
+    shiftKey: true,
     action: () => {
       focusSearch();
     },
@@ -181,12 +183,13 @@ export const createAppointmentShortcuts = (setViewMode: (mode: 'calendar' | 'tab
 
 /**
  * Predefined shortcuts for patients page
+ * Using Ctrl+Shift combinations to avoid browser conflicts
  */
 export const createPatientShortcuts = (focusSearch: () => void) => [
   {
     key: 'f',
     ctrlKey: true,
-    metaKey: true,
+    shiftKey: true,
     action: () => {
       focusSearch();
     },
@@ -196,12 +199,13 @@ export const createPatientShortcuts = (focusSearch: () => void) => [
 
 /**
  * Predefined shortcuts for staff page
+ * Using Ctrl+Shift combinations to avoid browser conflicts
  */
 export const createStaffShortcuts = (focusSearch: () => void) => [
   {
     key: 'f',
     ctrlKey: true,
-    metaKey: true,
+    shiftKey: true,
     action: () => {
       focusSearch();
     },

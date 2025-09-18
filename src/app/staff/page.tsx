@@ -100,7 +100,8 @@ export default function StaffPage() {
     {
       key: 'staff',
       header: 'Staff Member',
-      width: 300,
+      width: 400,
+      minWidth: 200,
       render: (member) => (
         <div className="flex items-center space-x-3">
           <div className="w-10 h-10 bg-[--muted] rounded-full flex items-center justify-center">
@@ -108,9 +109,9 @@ export default function StaffPage() {
               {member.first_name[0]}{member.last_name[0]}
             </span>
           </div>
-          <div>
-            <p className="font-medium text-[--foreground]">{member.first_name} {member.last_name}</p>
-            <p className="text-sm text-[--muted-foreground]">{member.email}</p>
+          <div className="min-w-0 flex-1">
+            <p className="font-medium text-[--foreground] truncate">{member.first_name} {member.last_name}</p>
+            <p className="text-sm text-[--muted-foreground] truncate">{member.email}</p>
           </div>
         </div>
       ),
@@ -118,7 +119,8 @@ export default function StaffPage() {
     {
       key: 'role',
       header: 'Role',
-      width: 150,
+      width: 180,
+      minWidth: 100,
       render: (member) => (
         <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${
           member.staff_type === 'doctor' ? 'bg-[--medical-blue]/10 text-[--medical-blue]' :
@@ -132,15 +134,17 @@ export default function StaffPage() {
     {
       key: 'specialization',
       header: 'Specialization',
-      width: 200,
+      width: 250,
+      minWidth: 120,
       render: (member) => (
-        <span className="text-sm text-[--foreground]">{member.specialization || 'N/A'}</span>
+        <span className="text-sm text-[--foreground] truncate">{member.specialization || 'N/A'}</span>
       ),
     },
     {
       key: 'status',
       header: 'Status',
-      width: 120,
+      width: 140,
+      minWidth: 80,
       render: (member) => (
         <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${
           member.status === 'active' ? 'bg-[--success]/10 text-[--success]' :
@@ -152,30 +156,42 @@ export default function StaffPage() {
       ),
     },
     {
-      key: 'schedule',
-      header: 'Schedule',
-      width: 150,
+      key: 'contact',
+      header: 'Contact',
+      width: 180,
+      minWidth: 120,
       render: (member) => (
-        <span className="text-sm text-[--foreground]">
-          {member.available_days?.length ? `${member.available_days.length} days/week` : 'N/A'}
-        </span>
+        <div className="flex items-center space-x-2">
+          <Phone className="w-4 h-4 text-[--muted-foreground] flex-shrink-0" />
+          <span className="text-sm text-[--foreground] truncate">{member.phone}</span>
+        </div>
       ),
     },
     {
-      key: 'contact',
-      header: 'Contact',
-      width: 150,
+      key: 'email',
+      header: 'Email',
+      width: 300,
+      minWidth: 150,
       render: (member) => (
-        <div className="flex items-center space-x-2">
-          <Phone className="w-4 h-4 text-[--muted-foreground]" />
-          <span className="text-sm text-[--foreground]">{member.phone}</span>
+        <div className="flex items-center space-x-2 min-w-0">
+          <span className="text-sm text-[--foreground] truncate">{member.email}</span>
+          {member.telegram_verified ? (
+            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 flex-shrink-0">
+              ✅ Telegram Verified
+            </span>
+          ) : (
+            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 flex-shrink-0">
+              ⚠️ Not Verified
+            </span>
+          )}
         </div>
       ),
     },
     {
       key: 'actions',
       header: 'Actions',
-      width: 100,
+      width: 120,
+      minWidth: 80,
       render: (member) => (
         <button
           onClick={(e) => {
@@ -304,6 +320,7 @@ export default function StaffPage() {
           isOpen={isModalOpen}
           onClose={handleModalClose}
           onSuccess={handleModalSuccess}
+          onVerificationSuccess={refresh}
           initialStaff={selectedStaff || undefined}
         />
       </main>

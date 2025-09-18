@@ -1,15 +1,15 @@
 import { supabase } from '@/lib/supabase';
 import type {
-  AppointmentStaff,
-  CreateAppointmentStaff,
-  UpdateAppointmentStaff,
-  AppointmentStaffFilters,
-  AppointmentStaffWithDetails,
-  StaffAssignment,
+    AppointmentStaff,
+    AppointmentStaffFilters,
+    AppointmentStaffWithDetails,
+    CreateAppointmentStaff,
+    StaffAssignment,
+    UpdateAppointmentStaff,
 } from '@/types';
 import {
-  validateAppointmentStaffData,
-  getAppointmentStaffSummary,
+    getAppointmentStaffSummary,
+    validateAppointmentStaffData,
 } from '@/types/appointmentStaff';
 
 export class AppointmentStaffService {
@@ -35,14 +35,6 @@ export class AppointmentStaffService {
 
     if (filters?.is_primary !== undefined) {
       query = query.eq('is_primary', filters.is_primary);
-    }
-
-    if (filters?.has_google_event_id !== undefined) {
-      if (filters.has_google_event_id) {
-        query = query.not('google_event_id', 'is', null);
-      } else {
-        query = query.is('google_event_id', null);
-      }
     }
 
     const { data, error } = await query;
@@ -113,7 +105,9 @@ export class AppointmentStaffService {
   async createAppointmentStaff(appointmentStaffData: CreateAppointmentStaff): Promise<AppointmentStaff> {
     // Validate appointment staff data
     const errors = validateAppointmentStaffData(appointmentStaffData);
+    console.log('Appointment staff validation errors:', errors);
     if (errors.length > 0) {
+      console.error('Validation failed for appointment staff data:', appointmentStaffData);
       throw new Error(`Validation errors: ${errors.join(', ')}`);
     }
 
@@ -204,14 +198,25 @@ export class AppointmentStaffService {
   ): Promise<AppointmentStaff[]> {
     const createdAssignments: AppointmentStaff[] = [];
 
+    console.log('assignStaffToAppointment called with:', {
+      appointmentId,
+      staffAssignments
+    });
+
     for (const assignment of staffAssignments) {
       try {
+        // Ensure role and is_primary are set correctly
+        const role = assignment.role || 'assistant'; // Default to 'assistant' if no role provided
+        const isPrimary = role === 'primary' || assignment.is_primary === true;
+
         const appointmentStaffData: CreateAppointmentStaff = {
           appointment_id: appointmentId,
           staff_id: assignment.staff_id,
-          role: assignment.role,
-          is_primary: assignment.is_primary || false,
+          role: role,
+          is_primary: isPrimary,
         };
+
+        console.log('Creating appointment staff with data:', appointmentStaffData);
 
         const created = await this.createAppointmentStaff(appointmentStaffData);
         createdAssignments.push(created);
@@ -297,40 +302,6 @@ export class AppointmentStaffService {
     return data || [];
   }
 
-  // Update Google Calendar event ID for a staff assignment
-  async updateGoogleCalendarEventId(
-    appointmentStaffId: string,
-    googleEventId: string,
-  ): Promise<AppointmentStaff> {
-    const { data, error } = await supabase
-      .from('appointment_staff')
-      .update({ google_event_id: googleEventId })
-      .eq('id', appointmentStaffId)
-      .select()
-      .single();
-
-    if (error) {
-      throw new Error(`Failed to update Google Calendar event ID: ${error.message}`);
-    }
-
-    return data;
-  }
-
-  // Remove Google Calendar event ID from a staff assignment
-  async removeGoogleCalendarEventId(appointmentStaffId: string): Promise<AppointmentStaff> {
-    const { data, error } = await supabase
-      .from('appointment_staff')
-      .update({ google_event_id: null })
-      .eq('id', appointmentStaffId)
-      .select()
-      .single();
-
-    if (error) {
-      throw new Error(`Failed to remove Google Calendar event ID: ${error.message}`);
-    }
-
-    return data;
-  }
 
   // Get appointment staff summary for an appointment
   async getAppointmentStaffSummary(appointmentId: string): Promise<{

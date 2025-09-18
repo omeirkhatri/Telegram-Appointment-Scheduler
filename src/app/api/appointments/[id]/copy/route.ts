@@ -56,7 +56,6 @@ export async function POST(
       driver_id: body.driver_id || sourceAppointment.driver_id,
       notes: body.notes || sourceAppointment.notes,
       recurring_rule: body.recurring_rule || undefined, // Don't copy recurring rules by default
-      google_event_ids: {}, // Clear Google event IDs for new appointment
     };
 
     // Check for conflicts before creating the appointment

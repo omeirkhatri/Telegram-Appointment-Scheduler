@@ -124,13 +124,10 @@ describe('Supabase Validation Schemas', () => {
       it('should set default values', () => {
         const dataWithoutDefaults = { ...validStaffData };
         delete (dataWithoutDefaults as any).status;
-        delete (dataWithoutDefaults as any).email_notifications_enabled;
-
         const result = schemas.staff.insert.safeParse(dataWithoutDefaults);
         expect(result.success).toBe(true);
         if (result.success) {
           expect(result.data.status).toBe('active');
-          expect(result.data.email_notifications_enabled).toBe(true);
         }
       });
     });

@@ -4,7 +4,7 @@ export type JobStatus = 'pending' | 'running' | 'completed' | 'failed' | 'cancel
 
 export type JobPriority = 'low' | 'medium' | 'high' | 'critical';
 
-export type JobType = 'daily_agenda' | 'backup' | 'cleanup' | 'sync' | 'custom';
+export type JobType = 'daily_agenda' | 'telegram_reminder' | 'backup' | 'cleanup' | 'sync' | 'custom';
 
 // Job definition interface
 export interface JobDefinition {
@@ -135,8 +135,8 @@ export interface DailyAgendaJobParameters {
 export interface DailyAgendaJobResult {
   success: boolean;
   totalStaff: number;
-  emailsSent: number;
-  emailsFailed: number;
+  notificationsSent: number;
+  notificationsFailed: number;
   successRate: number;
   results: Array<{
     staffId: string;
@@ -144,6 +144,34 @@ export interface DailyAgendaJobResult {
     status: 'sent' | 'failed';
     error?: string;
   }>;
+}
+
+// Telegram reminder job parameters
+export interface TelegramReminderJobParameters {
+  testMode?: boolean; // don't send notifications, just log
+  forceSend?: boolean; // send even if already sent
+  timeWindow?: number; // time window in minutes (default 15)
+}
+
+// Telegram reminder job result
+export interface TelegramReminderJobResult {
+  success: boolean;
+  totalAppointments: number;
+  notificationsSent: number;
+  notificationsFailed: number;
+  successRate: number;
+  results: Array<{
+    appointmentId: string;
+    patientName: string;
+    appointmentTime: string;
+    staffCount: number;
+    notificationsSent: number;
+    notificationsFailed: number;
+    retryableErrors: number;
+    nonRetryableErrors: number;
+    errors: string[];
+  }>;
+  message: string;
 }
 
 // Job persistence types

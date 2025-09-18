@@ -9,9 +9,7 @@ jest.mock('@/services', () => ({
   auditTrailService: {
     getAuditStatistics: jest.fn(),
   },
-  emailDeliveryService: {
-    getDeliveryStatistics: jest.fn(),
-  },
+  // emailDeliveryService removed - no longer needed
 }));
 
 // Mock Supabase
@@ -38,7 +36,7 @@ describe('/api/reports/statistics', () => {
   });
 
   it('should return statistics with default date range', async () => {
-    const { appointmentService, auditTrailService, emailDeliveryService } = require('@/services');
+    const { appointmentService, auditTrailService } = require('@/services');
 
     // Mock service responses
     appointmentService.getAppointmentStatistics.mockResolvedValue({
@@ -52,7 +50,7 @@ describe('/api/reports/statistics', () => {
       data: { statistics: [] },
     });
 
-    emailDeliveryService.getDeliveryStatistics.mockResolvedValue([]);
+    // emailDeliveryService removed - no longer needed
 
     const request = new NextRequest('http://localhost:3000/api/reports/statistics');
     const response = await GET(request);
@@ -69,7 +67,7 @@ describe('/api/reports/statistics', () => {
   });
 
   it('should return statistics with custom date range', async () => {
-    const { appointmentService, auditTrailService, emailDeliveryService } = require('@/services');
+    const { appointmentService, auditTrailService } = require('@/services');
 
     // Mock service responses
     appointmentService.getAppointmentStatistics.mockResolvedValue({
@@ -83,7 +81,7 @@ describe('/api/reports/statistics', () => {
       data: { statistics: [] },
     });
 
-    emailDeliveryService.getDeliveryStatistics.mockResolvedValue([]);
+    // emailDeliveryService removed - no longer needed
 
     const request = new NextRequest('http://localhost:3000/api/reports/statistics?dateFrom=2024-01-01&dateTo=2024-01-31');
     const response = await GET(request);
@@ -113,7 +111,7 @@ describe('/api/reports/statistics', () => {
   });
 
   it('should include generatedAt timestamp', async () => {
-    const { appointmentService, auditTrailService, emailDeliveryService } = require('@/services');
+    const { appointmentService, auditTrailService } = require('@/services');
 
     // Mock service responses
     appointmentService.getAppointmentStatistics.mockResolvedValue({
@@ -127,7 +125,7 @@ describe('/api/reports/statistics', () => {
       data: { statistics: [] },
     });
 
-    emailDeliveryService.getDeliveryStatistics.mockResolvedValue([]);
+    // emailDeliveryService removed - no longer needed
 
     const request = new NextRequest('http://localhost:3000/api/reports/statistics');
     const response = await GET(request);

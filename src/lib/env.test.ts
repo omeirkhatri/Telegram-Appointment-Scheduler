@@ -99,13 +99,8 @@ describe('Environment Configuration', () => {
 
     it('should handle missing optional configuration', () => {
       // Test that optional environment variables are handled gracefully
-      const googleClientId = process.env.GOOGLE_CALENDAR_CLIENT_ID;
       const smtpHost = process.env.SMTP_HOST;
 
-      // These are optional, so they might be undefined
-      if (googleClientId) {
-        expect(typeof googleClientId).toBe('string');
-      }
       if (smtpHost) {
         expect(typeof smtpHost).toBe('string');
       }

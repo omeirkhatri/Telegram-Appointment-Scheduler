@@ -80,7 +80,6 @@ describe('Validation Utilities', () => {
       email: 'jane.smith@example.com',
       phone: '+971501234568',
       staff_type: 'medical' as const,
-      google_calendar_id: 'test-calendar-id',
       is_active: true,
     };
 

@@ -28,7 +28,7 @@ export default async function PrintAppointmentPage({ params }: PrintAppointmentP
 
     // Get staff assignments
     const staffAssignments = await appointmentStaffService.getStaffForAppointment(params.id);
-    
+
     // Get all staff members
     const staff = await Promise.all(
       staffAssignments.map(async (assignment) => {
@@ -63,7 +63,7 @@ export default async function PrintAppointmentPage({ params }: PrintAppointmentP
 export async function generateMetadata({ params }: PrintAppointmentPageProps) {
   try {
     const appointment = await appointmentService.getAppointment(params.id);
-    
+
     if (!appointment) {
       return {
         title: 'Appointment Not Found',

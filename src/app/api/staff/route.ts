@@ -1,10 +1,11 @@
-import { googleCalendarService } from '@/services/googleCalendarService';
 import { staffService } from '@/services/staffService';
 import type { CreateStaff, StaffFilters } from '@/types';
 import { NextRequest, NextResponse } from 'next/server';
 
 // GET /api/staff - Get all staff with optional filtering
-export async function GET(request: NextRequest) {
+export async function GET(
+  request: NextRequest
+) {
   try {
     const { searchParams } = new URL(request.url);
 
@@ -27,9 +28,6 @@ export async function GET(request: NextRequest) {
       filters.status = searchParams.get('status') as any;
     }
 
-    if (searchParams.has('has_google_calendar')) {
-      filters.has_google_calendar = searchParams.get('has_google_calendar') === 'true';
-    }
 
     if (searchParams.has('available_on_day')) {
       filters.available_on_day = parseInt(searchParams.get('available_on_day')!);
@@ -65,13 +63,13 @@ export async function POST(request: NextRequest) {
       staff_type: body.staff_type,
       specialization: body.specialization,
       phone: body.phone,
-      email: body.email,
-      google_calendar_id: body.google_calendar_id,
+      email: body.email?.trim() || 'no-email@bestdoc.com',
+      telegram_user_id: body.telegram_user_id || null,
       available_days: body.available_days || [1, 2, 3, 4, 5], // Default to Mon-Fri
       working_hours_start: body.working_hours_start || '09:00',
       working_hours_end: body.working_hours_end || '17:00',
       status: body.status || 'active',
-      email_notifications_enabled: body.email_notifications_enabled !== false,
+      telegram_verified: body.telegram_verified || false,
     };
 
     // Validate required fields
@@ -87,38 +85,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate Google Calendar ID if provided
-    if (staffData.google_calendar_id) {
-      try {
-        const isValidFormat = googleCalendarService.validateCalendarId(staffData.google_calendar_id);
-        if (!isValidFormat) {
-          return NextResponse.json(
-            {
-              success: false,
-              error: 'Invalid Google Calendar ID format',
-            },
-            { status: 400 },
-          );
-        }
-
-        // Test calendar connection (only if Google Calendar is configured)
-        const isConnected = await googleCalendarService.testCalendarConnection(staffData.google_calendar_id);
-        if (!isConnected) {
-          return NextResponse.json(
-            {
-              success: false,
-              error: 'Unable to connect to Google Calendar. Please check the calendar ID and permissions.',
-            },
-            { status: 400 },
-          );
-        }
-      } catch (error) {
-        // If Google Calendar is not configured, log the error but allow staff creation to continue
-        console.warn('Google Calendar not configured, skipping calendar validation:', error);
-        // Remove the google_calendar_id to prevent issues later
-        staffData.google_calendar_id = undefined;
-      }
-    }
 
     // Create staff member
     const staff = await staffService.createStaff(staffData);
@@ -156,9 +122,7 @@ function validateStaffData(data: CreateStaff): string[] {
     errors.push('Phone number is required');
   }
 
-  if (!data.email?.trim()) {
-    errors.push('Email is required');
-  } else {
+  if (data.email && data.email.trim()) {
     const emailRegex = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
     if (!emailRegex.test(data.email)) {
       errors.push('Invalid email format');

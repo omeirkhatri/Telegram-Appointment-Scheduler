@@ -1,9 +1,8 @@
 'use client';
 
 import { BackupSection } from '@/components/backup';
-import { AutomatedEmailSection, EmailPreferencesSection, EmailTestSection, StaffPreferencesSection } from '@/components/email';
-import { GoogleCalendarSection, SyncSettingsPanel, SyncStatusCard } from '@/components/google-calendar';
 import Header from '@/components/layout/Header';
+import TelegramSettings from '@/components/settings/TelegramSettings';
 
 export default function SettingsPage() {
 
@@ -56,9 +55,8 @@ export default function SettingsPage() {
               </div>
             </div>
 
-            {/* Email Preferences Section */}
-            <EmailPreferencesSection />
 
+            {/* Security Settings */}
             <div className="bg-[--card] border border-[--border] rounded-xl p-6 shadow-lg">
               <h3 className="text-lg font-semibold text-[--foreground] mb-4">Security Settings</h3>
               <div className="space-y-4">
@@ -74,26 +72,12 @@ export default function SettingsPage() {
               </div>
             </div>
 
-            {/* Email Testing Section */}
-            <EmailTestSection />
-
-            {/* Staff Preferences Section */}
-            <StaffPreferencesSection />
-
-            {/* Automated Email Section */}
-            <AutomatedEmailSection />
-
-            {/* Google Calendar Integration Section */}
-            <GoogleCalendarSection />
-
-            {/* Google Calendar Sync Settings */}
-            <SyncSettingsPanel />
+            {/* Telegram Settings */}
+            <TelegramSettings />
           </div>
 
-          {/* Backup & Export */}
+          {/* Sidebar */}
           <div className="space-y-6">
-            {/* Google Calendar Sync Status */}
-            <SyncStatusCard />
 
             {/* Backup Section */}
             <BackupSection />

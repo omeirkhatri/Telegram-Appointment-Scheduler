@@ -41,10 +41,6 @@ const mockAppointment: Appointment = {
   transportation_type: 'driver',
   driver_id: 'driver-1',
   notes: 'Patient has history of heart disease',
-  google_event_ids: {
-    'doctor-1': 'google-event-1',
-    'driver-1': 'google-event-2',
-  },
   created_at: '2024-01-01T00:00:00Z',
   updated_at: '2024-01-01T00:00:00Z',
 };
@@ -74,12 +70,10 @@ const mockStaff: Staff[] = [
     specialization: 'Cardiology',
     phone: '+971501234569',
     email: 'sarah.ahmed@clinic.com',
-    google_calendar_id: 'doctor-calendar-1',
     available_days: [1, 2, 3, 4, 5],
     working_hours_start: '08:00',
     working_hours_end: '17:00',
     status: 'active',
-    email_notifications_enabled: true,
     created_at: '2024-01-01T00:00:00Z',
     updated_at: '2024-01-01T00:00:00Z',
   },
@@ -91,12 +85,10 @@ const mockStaff: Staff[] = [
     specialization: null,
     phone: '+971501234570',
     email: 'ahmed.hassan@clinic.com',
-    google_calendar_id: 'driver-calendar-1',
     available_days: [1, 2, 3, 4, 5, 6, 7],
     working_hours_start: '06:00',
     working_hours_end: '22:00',
     status: 'active',
-    email_notifications_enabled: true,
     created_at: '2024-01-01T00:00:00Z',
     updated_at: '2024-01-01T00:00:00Z',
   },
@@ -111,7 +103,6 @@ const defaultProps = {
   onEdit: jest.fn(),
   onCopy: jest.fn(),
   onDelete: jest.fn(),
-  onOpenInGoogleCalendar: jest.fn(),
 };
 
 describe('AppointmentDetailsDrawer', () => {
@@ -155,6 +146,7 @@ describe('AppointmentDetailsDrawer', () => {
   it('displays assigned staff correctly', () => {
     render(<AppointmentDetailsDrawer {...defaultProps} />);
 
+    expect(screen.getByText('Staff Details')).toBeInTheDocument();
     expect(screen.getByText('Dr. Sarah Ahmed')).toBeInTheDocument();
     expect(screen.getByText('doctor - Cardiology')).toBeInTheDocument();
     expect(screen.getByText('+971501234569')).toBeInTheDocument();
@@ -233,15 +225,6 @@ describe('AppointmentDetailsDrawer', () => {
     expect(defaultProps.onDelete).toHaveBeenCalledWith(mockAppointment);
   });
 
-  it('calls onOpenInGoogleCalendar when Google Calendar button is clicked', () => {
-    render(<AppointmentDetailsDrawer {...defaultProps} />);
-
-    const googleCalendarButton = screen.getByText('Open in Google Calendar');
-    fireEvent.click(googleCalendarButton);
-
-    expect(defaultProps.onOpenInGoogleCalendar).toHaveBeenCalledWith(mockAppointment);
-  });
-
   it('handles escape key to close drawer', async () => {
     render(<AppointmentDetailsDrawer {...defaultProps} />);
 
@@ -290,14 +273,4 @@ describe('AppointmentDetailsDrawer', () => {
     expect(screen.getByText('Taxi')).toBeInTheDocument();
   });
 
-  it('handles appointments without Google Calendar events', () => {
-    const appointmentWithoutGoogleEvents = {
-      ...mockAppointment,
-      google_event_ids: {},
-    };
-
-    render(<AppointmentDetailsDrawer {...defaultProps} appointment={appointmentWithoutGoogleEvents} />);
-
-    expect(screen.queryByText('Open in Google Calendar')).not.toBeInTheDocument();
-  });
 });

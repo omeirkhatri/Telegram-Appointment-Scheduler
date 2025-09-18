@@ -33,12 +33,10 @@ export const staffInsertSchema = z.object({
   specialization: z.string().nullable().optional(),
   phone: phoneSchema,
   email: emailSchema,
-  google_calendar_id: z.string().nullable().optional(),
   available_days: z.array(z.number().int().min(1).max(7)).min(1, 'At least one available day required'),
   working_hours_start: timeSchema,
   working_hours_end: timeSchema,
   status: z.enum(['active', 'inactive'] as const).default('active'),
-  email_notifications_enabled: z.boolean().default(true),
 }).refine(
   (data) => data.working_hours_start < data.working_hours_end,
   { message: 'Working hours start must be before end', path: ['working_hours_end'] },
@@ -60,7 +58,6 @@ export const appointmentInsertSchema = z.object({
   driver_id: uuidSchema.nullable().optional(),
   notes: z.string().nullable().optional(),
   recurring_rule: z.record(z.string(), z.unknown()).nullable().optional(),
-  google_event_ids: z.record(z.string(), z.string()).default({}),
 }).refine(
   (data) => {
     if (data.transportation_type === 'driver') {
@@ -90,7 +87,6 @@ export const appointmentStaffInsertSchema = z.object({
   staff_id: uuidSchema,
   role: z.enum(['primary', 'assistant'] as const).default('assistant'),
   is_primary: z.boolean().default(false),
-  google_event_id: z.string().nullable().optional(),
 });
 
 export const appointmentStaffUpdateSchema = appointmentStaffInsertSchema.partial();

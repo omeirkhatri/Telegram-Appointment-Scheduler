@@ -3,10 +3,8 @@
 import { AppointmentCalendar } from '@/components/calendar';
 import { AppointmentFilters, type AppointmentFilterState } from '@/components/filters';
 import Header from '@/components/layout/Header';
-import { AppointmentContextMenu, AppointmentDetailsDrawer, AppointmentModal, CopyAppointmentModal } from '@/components/modals';
+import { AppointmentContextMenu, AppointmentDetailsDrawer, AppointmentModal, CopyAppointmentModal, RecurringAppointmentDeleteModal, RecurringAppointmentEditModal } from '@/components/modals';
 import { ErrorMessage, VirtualizedTable, type VirtualizedTableColumn } from '@/components/ui';
-import { ExternalEditBanner } from '@/components/ui/ExternalEditNotification';
-import { ExternalEditNotificationContainer } from '@/components/ui/ExternalEditNotificationContainer';
 import { useToastContext } from '@/components/ui/ToastContainer';
 import { useAppointmentsForDateRange, useUpdateAppointment } from '@/hooks/useAppointments';
 import { createAppointmentShortcuts, useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
@@ -15,17 +13,12 @@ import { useStaff } from '@/hooks/useStaff';
 import type { Appointment } from '@/types';
 import { utcToDateString, utcToTimeString } from '@/utils/timezone';
 import {
-    Calendar,
-    CheckCircle,
-    Clock,
     Grid3X3,
     List,
     MoreHorizontal,
     Plus,
-    Search,
-    XCircle,
 } from 'lucide-react';
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 export default function AppointmentsPage() {
   const [viewMode, setViewMode] = useState<'calendar' | 'table'>('calendar');
@@ -41,20 +34,23 @@ export default function AppointmentsPage() {
   const [selectedDate, setSelectedDate] = useState<{ start: Date; end: Date } | null>(null);
   const [isDetailsDrawerOpen, setIsDetailsDrawerOpen] = useState(false);
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
+  const [editingAppointment, setEditingAppointment] = useState<Appointment | null>(null);
+  const [isRecurringEditModalOpen, setIsRecurringEditModalOpen] = useState(false);
+  const [recurringEditAppointment, setRecurringEditAppointment] = useState<Appointment | null>(null);
+  const [pendingRecurringUpdate, setPendingRecurringUpdate] = useState<{
+    appointment: Appointment;
+    updateData: any;
+  } | null>(null);
+  const [isRecurringDeleteModalOpen, setIsRecurringDeleteModalOpen] = useState(false);
+  const [recurringDeleteAppointment, setRecurringDeleteAppointment] = useState<Appointment | null>(null);
 
   // Debounced refetch to avoid excessive API calls
   const refetchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const searchInputRef = useRef<HTMLInputElement>(null);
 
   const { updateAppointmentTime } = useUpdateAppointment();
 
-  // Focus search input function
-  const focusSearch = useCallback(() => {
-    searchInputRef.current?.focus();
-  }, []);
-
   // Page-specific keyboard shortcuts
-  const appointmentShortcuts = createAppointmentShortcuts(setViewMode, focusSearch);
+  const appointmentShortcuts = createAppointmentShortcuts(setViewMode, () => {});
 
   useKeyboardShortcuts({
     shortcuts: appointmentShortcuts,
@@ -62,16 +58,89 @@ export default function AppointmentsPage() {
     ignoreInputs: true,
   });
 
-  // Fetch real appointment data for the calendar
+  // Calculate date range on client side to avoid hydration mismatches
+  const [dateRange, setDateRange] = useState<{ start: Date; end: Date } | null>(null);
+
+  useEffect(() => {
+    // Only calculate dates on client side
+    if (typeof window !== 'undefined') {
+      const now = new Date();
+      setDateRange({
+        start: new Date(now.getFullYear(), now.getMonth() - 1, now.getDate()),
+        end: new Date(now.getFullYear(), now.getMonth() + 2, now.getDate())
+      });
+    }
+  }, []);
+
+  // Create stable default dates to prevent infinite loops
+  const defaultStartDate = useMemo(() => new Date(2024, 0, 1), []);
+  const defaultEndDate = useMemo(() => new Date(2024, 11, 31), []);
+
+  // Fetch real appointment data for the calendar - only when dateRange is available
   const {
-    appointments: realAppointments,
+    appointments: allAppointments,
     isLoading: isLoadingAppointments,
     error: appointmentsError,
     refetch: refetchAppointments,
   } = useAppointmentsForDateRange(
-    new Date(new Date().setMonth(new Date().getMonth() - 1)), // 1 month ago
-    new Date(new Date().setMonth(new Date().getMonth() + 2)),   // 2 months ahead
+    dateRange?.start || defaultStartDate,
+    dateRange?.end || defaultEndDate
   );
+
+  // Apply multiselect filters on the client side
+  const realAppointments = useMemo(() => {
+    let filtered = allAppointments;
+
+    console.log('Filtering appointments:', {
+      totalAppointments: allAppointments.length,
+      filters,
+      appointmentTypes: allAppointments.map(a => a.appointment_type)
+    });
+
+    // Filter by staff (if any staff selected)
+    if (filters.staffIds && filters.staffIds.length > 0) {
+      // Note: This is a simplified filter - in a real app, you'd need to join with appointment_staff table
+      // For now, we'll filter by any staff-related field if it exists
+      filtered = filtered.filter(() => {
+        // This is a placeholder - you'll need to implement proper staff filtering
+        // based on your actual data structure
+        return true; // For now, show all appointments
+      });
+    }
+
+    // Filter by appointment types (if any types selected)
+    if (filters.appointmentTypes && filters.appointmentTypes.length > 0) {
+      console.log('Filtering by appointment types:', filters.appointmentTypes);
+      const beforeCount = filtered.length;
+      filtered = filtered.filter(appointment =>
+        filters.appointmentTypes!.includes(appointment.appointment_type)
+      );
+      console.log(`Appointment type filter: ${beforeCount} -> ${filtered.length}`);
+    }
+
+    // Filter by statuses (if any statuses selected)
+    if (filters.statuses && filters.statuses.length > 0) {
+      console.log('Filtering by statuses:', filters.statuses);
+      const beforeCount = filtered.length;
+      filtered = filtered.filter(appointment =>
+        filters.statuses!.includes(appointment.status)
+      );
+      console.log(`Status filter: ${beforeCount} -> ${filtered.length}`);
+    }
+
+    // Filter by date range
+    if (filters.dateFrom) {
+      filtered = filtered.filter(appointment => appointment.appointment_date >= filters.dateFrom!);
+    }
+
+    if (filters.dateTo) {
+      filtered = filtered.filter(appointment => appointment.appointment_date <= filters.dateTo!);
+    }
+
+    console.log('Final filtered appointments:', filtered.length);
+    return filtered;
+  }, [allAppointments, filters]);
+
 
   // Fetch patients and staff data for the modal
   const {
@@ -113,9 +182,12 @@ export default function AppointmentsPage() {
   // Drag-and-drop handlers
   const handleEventDrop = async (appointmentId: string, newStart: Date, newEnd: Date) => {
     try {
-      // Get appointment type from the event data for validation
+      // Get appointment type and original duration from the event data for validation
       const appointmentType = getAppointmentTypeFromEvent(appointmentId);
-      await updateAppointmentTime(appointmentId, newStart, newEnd, appointmentType);
+      const originalAppointment = allAppointments.find((apt: Appointment) => apt.id === appointmentId);
+      const originalDuration = originalAppointment?.duration_minutes;
+
+      await updateAppointmentTime(appointmentId, newStart, newEnd, appointmentType, originalDuration);
       showNotification('success', 'Appointment rescheduled successfully');
       // Refresh calendar data with debounce
       await debouncedRefetch();
@@ -130,6 +202,7 @@ export default function AppointmentsPage() {
     try {
       // Get appointment type from the event data for validation
       const appointmentType = getAppointmentTypeFromEvent(appointmentId);
+      // For resize operations, we want to use the new duration calculated from the resize
       await updateAppointmentTime(appointmentId, newStart, newEnd, appointmentType);
       showNotification('success', 'Appointment duration updated successfully');
       // Refresh calendar data with debounce
@@ -141,12 +214,11 @@ export default function AppointmentsPage() {
     }
   };
 
-  // Helper function to get appointment type from event (this would need to be implemented based on your data structure)
-  const getAppointmentTypeFromEvent = (_appointmentId: string): string | undefined => {
-    // For now, we'll return undefined to skip validation
-    // In a real implementation, you'd look up the appointment type from the event data
-    // This could be stored in the event's extendedProps or fetched from the appointment data
-    return undefined;
+  // Helper function to get appointment type from event
+  const getAppointmentTypeFromEvent = (appointmentId: string): string | undefined => {
+    // Find the appointment in the current appointments list
+    const appointment = allAppointments.find((apt: Appointment) => apt.id === appointmentId);
+    return appointment?.appointment_type;
   };
 
   // Filter handlers
@@ -172,10 +244,11 @@ export default function AppointmentsPage() {
   };
 
   const handleEditAppointment = async (appointment: Appointment) => {
-    // TODO: Open edit modal
-    showNotification('success', `Edit appointment: ${appointment.id}`);
-    // Refresh calendar data after edit
-    await debouncedRefetch();
+    console.log('Edit appointment clicked:', appointment);
+
+    // Always open the regular AppointmentModal for editing
+    setEditingAppointment(appointment);
+    setIsAppointmentModalOpen(true);
   };
 
   const handleCopyAppointment = async (appointment: Appointment) => {
@@ -190,10 +263,103 @@ export default function AppointmentsPage() {
     await debouncedRefetch();
   };
 
-  const handleOpenInGoogleCalendar = (appointment: Appointment) => {
-    // TODO: Open Google Calendar URL
-    showNotification('success', `Open in Google Calendar: ${appointment.id}`);
+  // Handle recurring appointment update
+  const handleRecurringAppointmentUpdate = async (
+    updateType: 'this_occurrence' | 'all_future' | 'until_date',
+    _updateData: any,
+    untilDate?: string
+  ) => {
+    if (!pendingRecurringUpdate) return;
+
+    try {
+      // Extract base appointment ID if this is a recurring occurrence
+      let appointmentId = pendingRecurringUpdate.appointment.id;
+      if (appointmentId.includes('_occurrence_')) {
+        appointmentId = appointmentId.split('_occurrence_')[0];
+      }
+
+      const requestBody: any = {
+        updateType,
+        occurrenceNumber: (pendingRecurringUpdate.appointment.custom_fields as any)?.occurrence_number,
+        updateData: pendingRecurringUpdate.updateData,
+      };
+
+      // Add until date if specified
+      if (updateType === 'until_date' && untilDate) {
+        requestBody.untilDate = untilDate;
+      }
+
+      const response = await fetch(`/api/appointments/${appointmentId}/recurring`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || 'Failed to update recurring appointment');
+      }
+
+      showNotification('success', 'Recurring appointment updated successfully');
+      await refetchAppointments();
+
+      // Close both modals
+      setIsRecurringEditModalOpen(false);
+      setRecurringEditAppointment(null);
+      setPendingRecurringUpdate(null);
+      setIsAppointmentModalOpen(false);
+      setEditingAppointment(null);
+    } catch (error) {
+      console.error('Error updating recurring appointment:', error);
+      showNotification('error', error instanceof Error ? error.message : 'Failed to update recurring appointment');
+    }
   };
+
+  // Handle recurring appointment deletion
+  const handleRecurringAppointmentDelete = async (
+    deleteType: 'this_occurrence' | 'all_future'
+  ) => {
+    if (!recurringDeleteAppointment) return;
+
+    try {
+      // Extract base appointment ID if this is a recurring occurrence
+      let appointmentId = recurringDeleteAppointment.id;
+      if (appointmentId.includes('_occurrence_')) {
+        appointmentId = appointmentId.split('_occurrence_')[0];
+      }
+
+      const response = await fetch(`/api/appointments/${appointmentId}/recurring`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          deleteType,
+          occurrenceNumber: (recurringDeleteAppointment.custom_fields as any)?.occurrence_number,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || 'Failed to delete recurring appointment');
+      }
+
+      const message = deleteType === 'this_occurrence'
+        ? 'Appointment occurrence deleted successfully'
+        : 'Recurring appointment series deleted successfully';
+
+      showNotification('success', message);
+      await refetchAppointments();
+    } catch (error) {
+      console.error('Error deleting recurring appointment:', error);
+      showNotification('error', error instanceof Error ? error.message : 'Failed to delete recurring appointment');
+    }
+  };
+
 
   // Drawer handlers
   const handleOpenDetailsDrawer = (appointment: Appointment) => {
@@ -221,20 +387,57 @@ export default function AppointmentsPage() {
     handleDeleteAppointment(appointment);
   };
 
-  const handleOpenInGoogleCalendarFromDrawer = (appointment: Appointment) => {
-    handleCloseDetailsDrawer();
-    handleOpenInGoogleCalendar(appointment);
-  };
 
   const handleDeleteAppointment = async (appointment: Appointment) => {
-    // TODO: Implement delete logic
-    showNotification('success', `Delete appointment: ${appointment.id}`);
-    // Refresh calendar data after delete
-    await debouncedRefetch();
+    // Check if this is a recurring appointment
+    const isRecurring = appointment.recurring_rule ||
+                       (appointment.custom_fields as any)?.is_recurring_generated ||
+                       (appointment.custom_fields as any)?.is_recurring_occurrence;
+
+    if (isRecurring) {
+      setRecurringDeleteAppointment(appointment);
+      setIsRecurringDeleteModalOpen(true);
+    } else {
+      // Handle regular appointment deletion
+      try {
+        const response = await fetch(`/api/appointments/${appointment.id}`, {
+          method: 'DELETE',
+        });
+
+        if (!response.ok) {
+          let errorMessage = 'Failed to delete appointment';
+
+          try {
+            // Try to parse as JSON first
+            const errorData = await response.json();
+            errorMessage = errorData.error || errorMessage;
+          } catch (jsonError) {
+            // If JSON parsing fails, get the text response
+            try {
+              const errorText = await response.text();
+              errorMessage = errorText || errorMessage;
+            } catch (textError) {
+              // If both fail, use the status text
+              errorMessage = response.statusText || errorMessage;
+            }
+          }
+
+          throw new Error(errorMessage);
+        }
+
+        showNotification('success', 'Appointment deleted successfully');
+        // Refresh calendar data immediately after delete
+        await refetchAppointments();
+      } catch (error) {
+        console.error('Error deleting appointment:', error);
+        showNotification('error', error instanceof Error ? error.message : 'Failed to delete appointment');
+      }
+    }
   };
 
   // Modal handlers
   const handleOpenAppointmentModal = () => {
+    console.log('New appointment button clicked');
     setSelectedDate(null);
     setIsAppointmentModalOpen(true);
   };
@@ -242,10 +445,30 @@ export default function AppointmentsPage() {
   const handleCloseAppointmentModal = () => {
     setIsAppointmentModalOpen(false);
     setSelectedDate(null);
+    setEditingAppointment(null);
   };
 
-  const handleAppointmentModalSuccess = async () => {
-    showNotification('success', 'Appointment created successfully');
+  const handleAppointmentModalSuccess = async (updateData?: any) => {
+    if (editingAppointment) {
+      // Check if this is a recurring appointment
+      const isRecurring = editingAppointment.recurring_rule ||
+                         (editingAppointment.custom_fields as any)?.is_recurring_generated ||
+                         (editingAppointment.custom_fields as any)?.is_recurring_occurrence;
+
+      if (isRecurring) {
+        // Store the update data and show scope selection modal
+        setPendingRecurringUpdate({
+          appointment: editingAppointment,
+          updateData: updateData || {}
+        });
+        setRecurringEditAppointment(editingAppointment);
+        setIsRecurringEditModalOpen(true);
+        return; // Don't close the modal yet
+      }
+    }
+
+    const message = editingAppointment ? 'Appointment updated successfully' : 'Appointment created successfully';
+    showNotification('success', message);
     // Refresh calendar data with debounce
     await debouncedRefetch();
   };
@@ -263,15 +486,18 @@ export default function AppointmentsPage() {
   };
 
   const handleCalendarDateSelect = (start: Date, end: Date) => {
-    // Debug logging to understand the time conversion
+    // FullCalendar provides local timezone dates
+    // We need to convert them to Asia/Dubai timezone for the appointment form
     console.log('Calendar date selection:', {
       startUTC: start.toISOString(),
       endUTC: end.toISOString(),
       startLocal: start.toString(),
       endLocal: end.toString(),
+      timezoneOffset: start.getTimezoneOffset(),
+      // Convert local time to Dubai time
       appointmentDate: utcToDateString(start),
       startTime: utcToTimeString(start),
-      // Also try direct formatting for comparison
+      // Direct formatting for comparison
       directDate: start.toISOString().split('T')[0],
       directTime: start.toTimeString().slice(0, 5),
     });
@@ -426,53 +652,6 @@ export default function AppointmentsPage() {
           </div>
         </div>
 
-        {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          <div className="bg-[--card] border border-[--border] rounded-xl p-6 shadow-lg">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-[--muted-foreground]">Total Appointments</p>
-                <p className="text-3xl font-bold text-[--foreground]">
-                  {isLoadingAppointments ? '...' : realAppointments.length}
-                </p>
-              </div>
-              <Calendar className="w-8 h-8 text-[--medical-blue]" />
-            </div>
-          </div>
-          <div className="bg-[--card] border border-[--border] rounded-xl p-6 shadow-lg">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-[--muted-foreground]">Scheduled</p>
-                <p className="text-3xl font-bold text-[--foreground]">
-                  {isLoadingAppointments ? '...' : realAppointments.filter(a => a.status === 'scheduled').length}
-                </p>
-              </div>
-              <Clock className="w-8 h-8 text-[--warning]" />
-            </div>
-          </div>
-          <div className="bg-[--card] border border-[--border] rounded-xl p-6 shadow-lg">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-[--muted-foreground]">Completed</p>
-                <p className="text-3xl font-bold text-[--foreground]">
-                  {isLoadingAppointments ? '...' : realAppointments.filter(a => a.status === 'completed').length}
-                </p>
-              </div>
-              <CheckCircle className="w-8 h-8 text-[--success]" />
-            </div>
-          </div>
-          <div className="bg-[--card] border border-[--border] rounded-xl p-6 shadow-lg">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-[--muted-foreground]">Cancelled</p>
-                <p className="text-3xl font-bold text-[--foreground]">
-                  {isLoadingAppointments ? '...' : realAppointments.filter(a => a.status === 'cancelled').length}
-                </p>
-              </div>
-              <XCircle className="w-8 h-8 text-[--error]" />
-            </div>
-          </div>
-        </div>
 
 
         {/* Appointments Error */}
@@ -485,9 +664,13 @@ export default function AppointmentsPage() {
           </div>
         )}
 
-        {/* External Edit Banner */}
-        <ExternalEditBanner
-          appointments={realAppointments}
+
+        {/* Filters */}
+        <AppointmentFilters
+          filters={filters}
+          onFiltersChange={handleFiltersChange}
+          onClearFilters={handleClearFilters}
+          staffOptions={staffOptions}
         />
 
         {/* Calendar View */}
@@ -495,7 +678,11 @@ export default function AppointmentsPage() {
           <div className="bg-[--card] border border-[--border] rounded-xl p-6 shadow-lg">
             <AppointmentCalendar
               initialView="timeGridWeek"
-              height={600}
+              height={1000}
+              appointments={realAppointments}
+              isLoading={isLoadingAppointments}
+              error={appointmentsError}
+              refetch={refetchAppointments}
               onEventClick={handleOpenDetailsDrawer}
               onEventRightClick={handleEventRightClick}
               onDateSelect={handleCalendarDateSelect}
@@ -505,32 +692,6 @@ export default function AppointmentsPage() {
             />
           </div>
         )}
-
-        {/* Search and filters */}
-        <div className="space-y-4">
-          {/* Search Bar */}
-          <div className="bg-[--card] border border-[--border] rounded-xl p-6 shadow-lg">
-            <div className="flex flex-col sm:flex-row gap-4">
-              <div className="flex-1 relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[--muted-foreground]" />
-                <input
-                  ref={searchInputRef}
-                  type="text"
-                  placeholder="Search appointments..."
-                  className="w-full pl-10 pr-4 py-3 border border-[--border] rounded-lg bg-[--muted] text-[--foreground] placeholder-[--muted-foreground] focus:outline-none focus:ring-2 focus:ring-[--ring] focus:border-transparent"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Advanced Filters */}
-          <AppointmentFilters
-            filters={filters}
-            onFiltersChange={handleFiltersChange}
-            onClearFilters={handleClearFilters}
-            staffOptions={staffOptions}
-          />
-        </div>
 
         {/* Virtualized Appointments Table */}
         {viewMode === 'table' && (
@@ -557,7 +718,6 @@ export default function AppointmentsPage() {
             onEdit={handleEditAppointment}
             onCopy={handleCopyAppointment}
             onCancel={handleCancelAppointment}
-            onOpenInGoogleCalendar={handleOpenInGoogleCalendar}
             onDelete={handleDeleteAppointment}
           />
         )}
@@ -567,11 +727,11 @@ export default function AppointmentsPage() {
           isOpen={isAppointmentModalOpen}
           onClose={handleCloseAppointmentModal}
           onSuccess={handleAppointmentModalSuccess}
-          initialAppointment={selectedDate ? {
+          initialAppointment={editingAppointment || (selectedDate ? {
             appointment_date: utcToDateString(selectedDate.start),
             start_time: utcToTimeString(selectedDate.start),
             duration_minutes: Math.round((selectedDate.end.getTime() - selectedDate.start.getTime()) / (1000 * 60)),
-          } : undefined}
+          } : undefined)}
           patients={patients}
           staff={staff}
           isLoadingPatients={isLoadingPatients}
@@ -606,11 +766,34 @@ export default function AppointmentsPage() {
           onEdit={handleEditFromDrawer}
           onCopy={handleCopyFromDrawer}
           onDelete={handleDeleteFromDrawer}
-          onOpenInGoogleCalendar={handleOpenInGoogleCalendarFromDrawer}
         />
 
-        {/* External Edit Notifications */}
-        <ExternalEditNotificationContainer appointments={realAppointments} />
+        {/* Recurring Appointment Edit Modal */}
+        {recurringEditAppointment && (
+          <RecurringAppointmentEditModal
+            appointment={recurringEditAppointment}
+            isOpen={isRecurringEditModalOpen}
+            onClose={() => {
+              setIsRecurringEditModalOpen(false);
+              setRecurringEditAppointment(null);
+            }}
+            onUpdate={handleRecurringAppointmentUpdate}
+          />
+        )}
+
+        {/* Recurring Appointment Delete Modal */}
+        {recurringDeleteAppointment && (
+          <RecurringAppointmentDeleteModal
+            appointment={recurringDeleteAppointment}
+            isOpen={isRecurringDeleteModalOpen}
+            onClose={() => {
+              setIsRecurringDeleteModalOpen(false);
+              setRecurringDeleteAppointment(null);
+            }}
+            onDelete={handleRecurringAppointmentDelete}
+          />
+        )}
+
       </main>
     </div>
   );

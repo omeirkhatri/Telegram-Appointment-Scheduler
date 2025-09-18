@@ -21,8 +21,7 @@ export * from './staff';
 export * from './appointment';
 // Export appointment staff types from dedicated file
 export * from './appointmentStaff';
-// Export email types from dedicated file
-export * from './email';
+// Email types removed - no longer needed
 // Export job types from dedicated file
 export * from './job';
 // Export bulk copy types from dedicated file
@@ -50,7 +49,6 @@ export interface StaffFormData {
   email: string;
   phone: string;
   staff_type: 'driver' | 'medical';
-  google_calendar_id?: string;
   is_active: boolean;
 }
 

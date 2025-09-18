@@ -29,7 +29,7 @@ export const ISO_DATE_FMT = 'yyyy-MM-dd';
 export const ISO_TIME_FMT = 'HH:mm:ss';
 
 // Daily agenda schedule
-export const DAILY_AGENDA_TIME = '06:00'; // 06:00 Asia/Dubai time
+export const DAILY_AGENDA_TIME = '21:00'; // 21:00 (9 PM) Asia/Dubai time
 
 /**
  * Convert a date to Dubai timezone
@@ -99,7 +99,7 @@ export function getDubaiDayRange(date: Date): { start: Date; end: Date } {
 }
 
 /**
- * Check if current Dubai time is past the daily agenda time (06:00)
+ * Check if current Dubai time is past the daily agenda time (21:00/9 PM)
  */
 export function isPastDailyAgendaTime(): boolean {
   const now = getCurrentDubaiTime();
@@ -115,7 +115,7 @@ export function getNextDailyAgendaTime(): Date {
   const today = startOfDay(now);
   const todayAgendaTime = parseISO(`${format(today, 'yyyy-MM-dd')}T${DAILY_AGENDA_TIME}:00`);
 
-  // If it's past 06:00 today, schedule for tomorrow
+  // If it's past 21:00 (9 PM) today, schedule for tomorrow
   if (now > todayAgendaTime) {
     const tomorrow = addDays(today, 1);
     return fromDubaiTime(parseISO(`${format(tomorrow, 'yyyy-MM-dd')}T${DAILY_AGENDA_TIME}:00`));
@@ -127,21 +127,14 @@ export function getNextDailyAgendaTime(): Date {
 
 /**
  * Get the date for which to generate daily agenda
- * If it's past 06:00, generate for today
- * If it's before 06:00, generate for yesterday
+ * At 21:00 (9 PM), generate agenda for the next day
  */
 export function getAgendaDate(): Date {
   const now = getCurrentDubaiTime();
   const today = startOfDay(now);
-  const agendaTime = parseISO(`${format(today, 'yyyy-MM-dd')}T${DAILY_AGENDA_TIME}:00`);
 
-  // If it's past 06:00, generate agenda for today
-  if (now > agendaTime) {
-    return today;
-  }
-
-  // If it's before 06:00, generate agenda for yesterday
-  return addDays(today, -1);
+  // Generate agenda for tomorrow (next day)
+  return addDays(today, 1);
 }
 
 /**
@@ -199,15 +192,13 @@ export function isStaffAvailableOnDay(
 /**
  * Get all staff who should receive daily agenda for a given date
  * This includes staff who:
- * 1. Have email notifications enabled
- * 2. Are active
- * 3. Are available on the given day
+ * 1. Are active
+ * 2. Are available on the given day
  */
 export function getStaffForDailyAgenda(
   staff: Array<{
     id: string;
     email: string;
-    email_notifications_enabled: boolean;
     status: 'active' | 'inactive';
     available_days: number[];
   }>,
@@ -215,7 +206,6 @@ export function getStaffForDailyAgenda(
 ): Array<{ id: string; email: string }> {
   return staff
     .filter(member =>
-      member.email_notifications_enabled &&
       member.status === 'active' &&
       isStaffAvailableOnDay(member.available_days, date),
     )
@@ -482,26 +472,6 @@ export function getTimezoneOffset(): number {
 }
 
 /**
- * Format timezone-aware datetime for Google Calendar
- */
-export function formatForGoogleCalendar(date: Date | string, time: string): string {
-  const dateObj = typeof date === 'string' ? parseISO(date) : date;
-  const [hours, minutes] = time.split(':').map(Number);
-
-  const localDate = new Date(dateObj);
-  localDate.setHours(hours, minutes, 0, 0);
-
-  // Format as ISO string with Asia/Dubai timezone offset
-  const year = localDate.getFullYear();
-  const month = String(localDate.getMonth() + 1).padStart(2, '0');
-  const day = String(localDate.getDate()).padStart(2, '0');
-  const hour = String(hours).padStart(2, '0');
-  const minute = String(minutes).padStart(2, '0');
-
-  return `${year}-${month}-${day}T${hour}:${minute}:00+04:00`;
-}
-
-/**
  * Format date for display in Asia/Dubai timezone (legacy compatibility)
  * @deprecated Use formatDubaiDate instead
  */
@@ -636,4 +606,35 @@ export function getRelativeTime(date: Date | string): string {
   }
 
   return formatDubaiDate(dateObj);
+}
+
+/**
+ * Format date for email subject lines
+ * Returns format like "9, Sep" or "10, Sep" for today/tomorrow
+ */
+export function formatEmailSubjectDate(date: Date): string {
+  const dubaiDate = toDubaiTime(date);
+  const day = dubaiDate.getDate();
+  const month = dubaiDate.toLocaleDateString('en-US', { month: 'short' });
+  return `${day}, ${month}`;
+}
+
+/**
+ * Get relative day name for email subjects
+ * Returns "Today", "Tomorrow", or the actual day name
+ */
+export function getRelativeDayName(date: Date): string {
+  const today = getTodayDubai();
+  const tomorrow = addDays(today, 1);
+
+  if (isSameDay(date, today)) {
+    return 'Today';
+  } else if (isSameDay(date, tomorrow)) {
+    return 'Tomorrow';
+  } else {
+    return date.toLocaleDateString('en-US', {
+      weekday: 'long',
+      timeZone: 'Asia/Dubai'
+    });
+  }
 }

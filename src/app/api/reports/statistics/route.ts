@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/supabase';
-import { appointmentService, auditTrailService, emailDeliveryService } from '@/services';
+import { appointmentService, auditTrailService } from '@/services';
 import type { DashboardStatistics, DateRange } from '@/types/reports';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -18,14 +18,12 @@ export async function GET(request: NextRequest) {
       appointmentStats,
       patientStats,
       staffStats,
-      emailStats,
       auditStats,
       systemHealthStats,
     ] = await Promise.all([
       getAppointmentStatistics(dateRange),
       getPatientStatistics(dateRange),
       getStaffStatistics(dateRange),
-      getEmailDeliveryStatistics(dateRange),
       getAuditTrailStatistics(dateRange),
       getSystemHealthStatistics(),
     ]);
@@ -34,7 +32,7 @@ export async function GET(request: NextRequest) {
       appointments: appointmentStats,
       patients: patientStats,
       staff: staffStats,
-      emailDelivery: emailStats,
+      // emailDelivery: emailStats, // Removed - no longer needed
       auditTrail: auditStats,
       systemHealth: systemHealthStats,
     };
@@ -230,56 +228,7 @@ async function getStaffStatistics(dateRange: DateRange) {
   }
 }
 
-async function getEmailDeliveryStatistics(dateRange: DateRange) {
-  try {
-    const stats = await emailDeliveryService.getDeliveryStatistics({
-      dateFrom: dateRange.from,
-      dateTo: dateRange.to,
-    });
-
-    const totalSent = stats.reduce((sum, stat) => sum + stat.totalEmails, 0);
-    const totalDelivered = stats.reduce((sum, stat) => sum + stat.successfulDeliveries, 0);
-    const totalFailed = stats.reduce((sum, stat) => sum + stat.failedDeliveries, 0);
-
-    const successRate = totalSent > 0 ? (totalDelivered / totalSent) * 100 : 0;
-    const failureRate = totalSent > 0 ? (totalFailed / totalSent) * 100 : 0;
-
-    const averageDeliveryTime = stats.length > 0
-      ? stats.reduce((sum, stat) => sum + stat.averageDeliveryTimeMs, 0) / stats.length
-      : 0;
-
-    // Group by type
-    const byType: Record<string, number> = {};
-    stats.forEach(stat => {
-      byType[stat.emailType] = (byType[stat.emailType] || 0) + stat.totalEmails;
-    });
-
-    // Calculate trends
-    const dailyTrends = stats.map(stat => ({
-      date: stat.date,
-      sent: stat.totalEmails,
-      delivered: stat.successfulDeliveries,
-      failed: stat.failedDeliveries,
-    }));
-
-    const monthlyTrends = calculateMonthlyEmailTrends(stats);
-
-    return {
-      totalSent,
-      successRate: Math.round(successRate * 100) / 100,
-      failureRate: Math.round(failureRate * 100) / 100,
-      averageDeliveryTime: Math.round(averageDeliveryTime),
-      byType,
-      trends: {
-        daily: dailyTrends,
-        monthly: monthlyTrends,
-      },
-    };
-  } catch (error) {
-    console.error('Error getting email delivery statistics:', error);
-    throw error;
-  }
-}
+// Email delivery statistics function removed - no longer needed
 
 async function getAuditTrailStatistics(dateRange: DateRange) {
   try {

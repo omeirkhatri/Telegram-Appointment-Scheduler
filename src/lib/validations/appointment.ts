@@ -44,11 +44,29 @@ export const appointmentFormSchema = z.object({
 
   transportation_method: z.string().optional(),
 
-  driver_id: z.string().uuid('Invalid driver ID').optional(),
+  driver_id: z.string().uuid('Invalid driver ID').optional().or(z.literal('')),
 
   notes: z
     .string()
     .max(1000, 'Notes must be less than 1000 characters')
+    .optional()
+    .or(z.literal('')),
+
+  mini_notes: z
+    .string()
+    .max(500, 'Mini notes must be less than 500 characters')
+    .optional()
+    .or(z.literal('')),
+
+  full_notes: z
+    .string()
+    .max(2000, 'Full notes must be less than 2000 characters')
+    .optional()
+    .or(z.literal('')),
+
+  pickup_instructions: z
+    .string()
+    .max(1000, 'Pickup instructions must be less than 1000 characters')
     .optional()
     .or(z.literal('')),
 
@@ -93,6 +111,16 @@ export const appointmentFormSchema = z.object({
   {
     message: 'Transportation method is required when transportation type is self-transport',
     path: ['transportation_method'],
+  },
+).refine(
+  (data) => {
+    // Pickup instructions are recommended when driver is assigned but not strictly required
+    // This allows for flexibility while encouraging proper documentation
+    return true;
+  },
+  {
+    message: 'Pickup instructions are recommended when a driver is assigned',
+    path: ['pickup_instructions'],
   },
 ).refine(
   (data) => {
@@ -160,26 +188,26 @@ export const appointmentUpdateFormSchema = appointmentFormSchema.partial().refin
 
 // Appointment search form schema
 export const appointmentSearchFormSchema = z.object({
-  patient_id: z.string().uuid('Invalid patient ID').optional(),
+  patient_id: z.string().uuid('Invalid patient ID').optional().or(z.literal('')),
   appointment_type: z.enum(['doctor_on_call', 'lab_test', 'teleconsultation', 'physiotherapy', 'caregiver', 'iv_therapy']).optional(),
   status: z.enum(['scheduled', 'confirmed', 'completed', 'cancelled']).optional(),
   appointment_date: z.string().optional(),
   date_from: z.string().optional(),
   date_to: z.string().optional(),
-  driver_id: z.string().uuid('Invalid driver ID').optional(),
+  driver_id: z.string().uuid('Invalid driver ID').optional().or(z.literal('')),
   transportation_type: z.enum(['driver', 'self_transport']).optional(),
   has_recurring_rule: z.boolean().optional(),
 });
 
 // Appointment filter form schema
 export const appointmentFilterFormSchema = z.object({
-  patient_id: z.string().uuid('Invalid patient ID').optional(),
+  patient_id: z.string().uuid('Invalid patient ID').optional().or(z.literal('')),
   appointment_type: z.enum(['doctor_on_call', 'lab_test', 'teleconsultation', 'physiotherapy', 'caregiver', 'iv_therapy']).optional(),
   status: z.enum(['scheduled', 'confirmed', 'completed', 'cancelled']).optional(),
   appointment_date: z.string().optional(),
   date_from: z.string().optional(),
   date_to: z.string().optional(),
-  driver_id: z.string().uuid('Invalid driver ID').optional(),
+  driver_id: z.string().uuid('Invalid driver ID').optional().or(z.literal('')),
   transportation_type: z.enum(['driver', 'self_transport']).optional(),
   has_recurring_rule: z.boolean().optional(),
 });

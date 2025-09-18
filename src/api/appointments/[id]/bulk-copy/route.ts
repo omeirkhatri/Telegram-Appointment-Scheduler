@@ -101,7 +101,6 @@ export async function POST(
           driver_id: sourceAppointment.driver_id,
           notes: sourceAppointment.notes,
           recurring_rule: undefined, // Don't copy recurring rules
-          google_event_ids: {},
         };
 
         // Check for conflicts

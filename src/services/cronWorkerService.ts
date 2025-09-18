@@ -236,6 +236,11 @@ export class CronWorkerService {
       await initializeDailyAgendaJob();
       this.log('info', 'Daily agenda job registered');
 
+      // Initialize Telegram reminder job
+      const { initializeTelegramReminderJob } = await import('@/jobs/telegramReminderJob');
+      await initializeTelegramReminderJob();
+      this.log('info', 'Telegram reminder job registered');
+
       // Add more default jobs here as needed
       // await initializeOtherJobs();
 

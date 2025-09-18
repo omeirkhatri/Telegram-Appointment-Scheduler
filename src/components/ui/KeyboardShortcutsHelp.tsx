@@ -1,4 +1,4 @@
-import { Command, Control, Keyboard, X } from 'lucide-react';
+import { Command, Keyboard, X } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 
 interface KeyboardShortcut {
@@ -49,7 +49,6 @@ export function KeyboardShortcutsHelp({ isOpen, onClose, shortcuts }: KeyboardSh
     if (shortcut.ctrlKey) {
       keys.push(
         <span key="ctrl" className="inline-flex items-center gap-1">
-          <Control className="w-3 h-3" />
           <span>Ctrl</span>
         </span>
       );
@@ -64,12 +63,12 @@ export function KeyboardShortcutsHelp({ isOpen, onClose, shortcuts }: KeyboardSh
       );
     }
 
-    if (shortcut.shiftKey) {
-      keys.push(<span key="shift">Shift</span>);
-    }
-
     if (shortcut.altKey) {
       keys.push(<span key="alt">Alt</span>);
+    }
+
+    if (shortcut.shiftKey) {
+      keys.push(<span key="shift">Shift</span>);
     }
 
     keys.push(

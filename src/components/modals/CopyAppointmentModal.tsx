@@ -69,7 +69,13 @@ export function CopyAppointmentModal({
 
     setIsLoadingStaffAssignments(true);
     try {
-      const response = await fetch(`/api/appointments/${sourceAppointment.id}/staff`);
+      // Extract base appointment ID if this is a recurring occurrence
+      let appointmentId = sourceAppointment.id;
+      if (appointmentId.includes('_occurrence_')) {
+        appointmentId = appointmentId.split('_occurrence_')[0];
+      }
+
+      const response = await fetch(`/api/appointments/${appointmentId}/staff`);
       const result = await response.json();
 
       if (result.success) {
@@ -97,7 +103,13 @@ export function CopyAppointmentModal({
     setSubmitError(null);
 
     try {
-      const response = await fetch(`/api/appointments/${sourceAppointment.id}/copy`, {
+      // Extract base appointment ID if this is a recurring occurrence
+      let appointmentId = sourceAppointment.id;
+      if (appointmentId.includes('_occurrence_')) {
+        appointmentId = appointmentId.split('_occurrence_')[0];
+      }
+
+      const response = await fetch(`/api/appointments/${appointmentId}/copy`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -167,7 +179,13 @@ export function CopyAppointmentModal({
         message: 'Preparing bulk copy...',
       });
 
-      const response = await fetch(`/api/appointments/${sourceAppointment.id}/bulk-copy`, {
+      // Extract base appointment ID if this is a recurring occurrence
+      let appointmentId = sourceAppointment.id;
+      if (appointmentId.includes('_occurrence_')) {
+        appointmentId = appointmentId.split('_occurrence_')[0];
+      }
+
+      const response = await fetch(`/api/appointments/${appointmentId}/bulk-copy`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -238,7 +256,6 @@ export function CopyAppointmentModal({
     appointment_date: '',
     // Keep other fields as defaults for editing
     status: 'scheduled', // Reset status to scheduled for new appointment
-    google_event_ids: {}, // Clear Google event IDs
     // Keep all other fields as they were
   };
 
@@ -548,7 +565,6 @@ export function CopyAppointmentModal({
                             staff_id: '',
                             role: 'assistant',
                             is_primary: false,
-                            google_event_id: null,
                             created_at: new Date().toISOString(),
                             updated_at: new Date().toISOString(),
                             appointment: sourceAppointment,

@@ -96,21 +96,16 @@ jest.mock('./src/lib/supabase', () => ({
   executeQuery: jest.fn((queryFn) => queryFn()),
 }));
 
-// Mock Google Calendar API with comprehensive support
-const { mockGoogleCalendarClient, mockGoogleCalendarAuth, resetMockGoogleCalendar } = require('./src/utils/google-calendar-mocks');
-
-// Initialize mock data
-resetMockGoogleCalendar();
-
-jest.mock('googleapis', () => ({
-  google: {
-    calendar: jest.fn(() => mockGoogleCalendarClient),
+// Mock Telegram Service
+jest.mock('./src/services/telegramService', () => ({
+  telegramService: {
+    sendMessage: jest.fn(() => Promise.resolve({ success: true })),
+    verifyWebhookSecret: jest.fn((secret) => secret === 'test-webhook-secret'),
+    sendMessageToStaff: jest.fn(() => Promise.resolve({ success: true })),
   },
 }));
 
-jest.mock('./src/lib/googleCalendarAuth', () => ({
-  googleCalendarAuth: mockGoogleCalendarAuth,
-}));
+// Note: Telegram Validation Service mocking is handled in individual test files
 
 // Mock environment configuration
 jest.mock('./src/lib/env', () => ({
@@ -123,6 +118,12 @@ jest.mock('./src/lib/env', () => ({
       anonKey: 'test-anon-key',
       serviceRoleKey: 'test-service-role-key',
     },
+    telegram: {
+      botToken: 'test-bot-token',
+      webhookSecret: 'test-webhook-secret',
+      isConfigured: () => true,
+      validateConfig: () => true,
+    },
     app: {
       url: 'http://localhost:3000',
       timezone: 'Asia/Dubai',
@@ -133,6 +134,8 @@ jest.mock('./src/lib/env', () => ({
     NEXT_PUBLIC_SUPABASE_URL: 'http://localhost:54321',
     NEXT_PUBLIC_SUPABASE_ANON_KEY: 'test-anon-key',
     SUPABASE_SERVICE_ROLE_KEY: 'test-service-role-key',
+    TELEGRAM_BOT_TOKEN: 'test-bot-token',
+    TELEGRAM_WEBHOOK_SECRET: 'test-webhook-secret',
   },
 }));
 

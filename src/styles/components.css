@@ -1,9 +1,37 @@
 /* Component-specific styles */
 
+/* Calendar current time indicator styles */
+.calendar-container .fc-now-indicator {
+  border-color: #ef4444 !important;
+  border-width: 12px !important;
+  z-index: 10 !important;
+}
+
+.calendar-container .fc-now-indicator-line {
+  border-color: #ef4444 !important;
+  border-width: 12px !important;
+  height: 12px !important;
+}
+
+.calendar-container .fc-now-indicator-arrow {
+  border-color: #ef4444 !important;
+  border-width: 12px !important;
+}
+
+.calendar-container .fc-now-indicator-arrow::before {
+  border-color: #ef4444 !important;
+  border-width: 12px !important;
+}
+
+.calendar-container .fc-now-indicator-arrow::after {
+  border-color: #ef4444 !important;
+  border-width: 12px !important;
+}
+
 /* Custom scrollbar */
 .custom-scrollbar {
   scrollbar-width: thin;
-  scrollbar-color: #cbd5e0 #f7fafc;
+  scrollbar-color: var(--muted-foreground) var(--muted);
 }
 
 .custom-scrollbar::-webkit-scrollbar {
@@ -11,16 +39,34 @@
 }
 
 .custom-scrollbar::-webkit-scrollbar-track {
-  background: #f7fafc;
+  background: var(--muted);
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background-color: #cbd5e0;
+  background-color: var(--muted-foreground);
   border-radius: 3px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background-color: #a0aec0;
+  background-color: var(--foreground);
+}
+
+/* FullCalendar scrollbar styling */
+.fc-scroller::-webkit-scrollbar {
+  width: 8px;
+}
+
+.fc-scroller::-webkit-scrollbar-track {
+  background: var(--muted);
+}
+
+.fc-scroller::-webkit-scrollbar-thumb {
+  background-color: var(--muted-foreground);
+  border-radius: 4px;
+}
+
+.fc-scroller::-webkit-scrollbar-thumb:hover {
+  background-color: var(--foreground);
 }
 
 /* Loading animations */
@@ -69,110 +115,601 @@
 
 /* Focus styles for accessibility */
 .focus-ring:focus {
-  outline: 2px solid #3182ce;
+  outline: 2px solid var(--ring);
   outline-offset: 2px;
 }
 
 /* Calendar styling for better readability */
 .fc {
   font-family: inherit;
+  background-color: var(--card) !important;
+  color: var(--foreground) !important;
+}
+
+/* FullCalendar main container */
+.fc-view-harness {
+  background-color: var(--card) !important;
+}
+
+.fc-scroller {
+  background-color: var(--card) !important;
+}
+
+/* Comprehensive FullCalendar dark mode overrides */
+.fc .fc-view-harness {
+  background-color: var(--card) !important;
+}
+
+.fc .fc-scroller {
+  background-color: var(--card) !important;
+}
+
+.fc .fc-scroller-liquid-absolute {
+  background-color: var(--card) !important;
+}
+
+/* Force all calendar content to use dark theme */
+.fc .fc-timegrid {
+  background-color: var(--card) !important;
+}
+
+.fc .fc-timegrid-body {
+  background-color: var(--card) !important;
+}
+
+.fc .fc-timegrid-body .fc-timegrid-slot {
+  background-color: var(--card) !important;
+}
+
+/* Ensure day names and dates are visible */
+.fc .fc-col-header-cell {
+  background-color: var(--muted) !important;
+  color: var(--muted-foreground) !important;
+}
+
+.fc .fc-col-header-cell-cushion {
+  color: var(--muted-foreground) !important;
+}
+
+/* Force all day cells to use dark theme */
+.fc .fc-daygrid-day {
+  background-color: var(--card) !important;
+}
+
+.fc .fc-daygrid-day-frame {
+  background-color: var(--card) !important;
+}
+
+.fc .fc-daygrid-day-number {
+  color: var(--foreground) !important;
 }
 
 /* Header toolbar styling */
 .fc-toolbar {
-  background-color: #374151 !important;
-  color: #ffffff !important;
+  background-color: var(--muted) !important;
+  color: var(--muted-foreground) !important;
   padding: 1rem !important;
   border-radius: 0.5rem 0.5rem 0 0 !important;
 }
 
 .fc-toolbar-title {
-  color: #ffffff !important;
+  color: var(--muted-foreground) !important;
   font-weight: 600 !important;
   font-size: 1.25rem !important;
 }
 
 .fc-button {
-  background-color: #4b5563 !important;
-  border-color: #4b5563 !important;
-  color: #ffffff !important;
+  background-color: var(--accent) !important;
+  border-color: var(--border) !important;
+  color: var(--accent-foreground) !important;
   font-weight: 500 !important;
 }
 
 .fc-button:hover {
-  background-color: #6b7280 !important;
-  border-color: #6b7280 !important;
+  background-color: var(--primary) !important;
+  border-color: var(--primary) !important;
+  color: var(--primary-foreground) !important;
 }
 
 .fc-button:focus {
-  box-shadow: 0 0 0 2px #3b82f6 !important;
+  box-shadow: 0 0 0 2px var(--ring) !important;
 }
 
 .fc-button-active {
-  background-color: #3b82f6 !important;
-  border-color: #3b82f6 !important;
+  background-color: var(--primary) !important;
+  border-color: var(--primary) !important;
+  color: var(--primary-foreground) !important;
 }
 
 /* Day headers styling */
 .fc-col-header-cell {
-  background-color: #f9fafb !important;
-  color: #374151 !important;
+  background-color: var(--muted) !important;
+  color: var(--muted-foreground) !important;
   font-weight: 600 !important;
   font-size: 0.875rem !important;
   padding: 0.75rem 0.5rem !important;
-  border-color: #e5e7eb !important;
+  border-color: var(--border) !important;
 }
 
 .fc-col-header-cell-cushion {
-  color: #374151 !important;
+  color: var(--muted-foreground) !important;
   font-weight: 600 !important;
 }
 
 /* Day cells styling */
 .fc-daygrid-day {
-  background-color: #ffffff !important;
-  border-color: #e5e7eb !important;
+  background-color: var(--card) !important;
+  border-color: var(--border) !important;
 }
 
 .fc-daygrid-day-number {
-  color: #374151 !important;
+  color: var(--foreground) !important;
   font-weight: 500 !important;
   font-size: 0.875rem !important;
   padding: 0.5rem !important;
 }
 
 .fc-day-today {
-  background-color: #fef3c7 !important;
+  background-color: transparent !important; /* No background fade */
+  position: relative !important;
 }
 
 .fc-day-today .fc-daygrid-day-number {
-  color: #92400e !important;
+  color: var(--foreground) !important; /* Normal text color */
   font-weight: 700 !important;
+  font-size: 1rem !important;
+  position: relative !important;
+  z-index: 2 !important;
+}
+
+/* Orange circle BEHIND the date number - proper positioning */
+.fc-day-today .fc-daygrid-day-number {
+  position: relative !important;
+  z-index: 2 !important;
+}
+
+.fc-day-today .fc-daygrid-day-number::before {
+  content: '' !important;
+  position: absolute !important;
+  top: 50% !important;
+  left: 50% !important;
+  transform: translate(-50%, -50%) !important;
+  width: 24px !important;
+  height: 24px !important;
+  background-color: #ff5c00 !important;
+  border-radius: 50% !important;
+  z-index: -1 !important;
+}
+
+/* Orange circle for current day in week view - time grid */
+.fc-timegrid .fc-day-today .fc-timegrid-slot-label {
+  position: relative !important;
+  z-index: 2 !important;
+}
+
+.fc-timegrid .fc-day-today .fc-timegrid-slot-label::before {
+  content: '' !important;
+  position: absolute !important;
+  top: 50% !important;
+  left: 50% !important;
+  transform: translate(-50%, -50%) !important;
+  width: 24px !important;
+  height: 24px !important;
+  background-color: #ff5c00 !important;
+  border-radius: 50% !important;
+  z-index: -1 !important;
+}
+
+/* Also target the day number in time grid week view */
+.fc-timegrid .fc-day-today .fc-daygrid-day-number {
+  position: relative !important;
+  z-index: 2 !important;
+}
+
+.fc-timegrid .fc-day-today .fc-daygrid-day-number::before {
+  content: '' !important;
+  position: absolute !important;
+  top: 50% !important;
+  left: 50% !important;
+  transform: translate(-50%, -50%) !important;
+  width: 24px !important;
+  height: 24px !important;
+  background-color: #ff5c00 !important;
+  border-radius: 50% !important;
+  z-index: -1 !important;
 }
 
 /* Time grid styling */
 .fc-timegrid-slot {
-  border-color: #e5e7eb !important;
+  border-color: var(--border) !important;
 }
 
 .fc-timegrid-slot-label {
-  color: #6b7280 !important;
+  color: var(--muted-foreground) !important;
   font-size: 0.75rem !important;
   font-weight: 500 !important;
 }
 
 .fc-timegrid-axis {
-  background-color: #f9fafb !important;
-  border-color: #e5e7eb !important;
+  background-color: var(--muted) !important;
+  border-color: var(--border) !important;
 }
 
-/* Event styling */
+/* All-day section styling */
+.fc-timegrid-slot-label {
+  background-color: var(--muted) !important;
+  color: var(--muted-foreground) !important;
+  font-weight: 600 !important;
+}
+
+.fc-timegrid-slot-label.fc-timegrid-slot-label-cushion {
+  background-color: var(--muted) !important;
+  color: var(--muted-foreground) !important;
+}
+
+/* Force all-day section to use dark theme */
+.fc-timegrid-slot.fc-timegrid-slot-allday {
+  background-color: var(--muted) !important;
+}
+
+.fc-timegrid-slot.fc-timegrid-slot-allday .fc-timegrid-slot-label {
+  background-color: var(--muted) !important;
+  color: var(--muted-foreground) !important;
+}
+
+/* Main calendar grid background */
+.fc-timegrid-body {
+  background-color: var(--card) !important;
+}
+
+.fc-timegrid-slot-minor {
+  border-color: var(--border) !important;
+  background-color: var(--card) !important;
+}
+
+.fc-timegrid-slot-major {
+  border-color: var(--border) !important;
+  background-color: var(--card) !important;
+}
+
+/* Force all calendar cells to use dark theme */
+.fc-timegrid-slot {
+  background-color: var(--card) !important;
+}
+
+.fc-timegrid-slot-lane {
+  background-color: var(--card) !important;
+}
+
+.fc-timegrid-slot-bg {
+  background-color: var(--card) !important;
+}
+
+/* Day grid styling */
+.fc-daygrid-body {
+  background-color: var(--card) !important;
+}
+
+.fc-daygrid-day-frame {
+  background-color: var(--card) !important;
+}
+
+/* List view styling */
+.fc-list {
+  background-color: var(--card) !important;
+}
+
+.fc-list-day-cushion {
+  background-color: var(--muted) !important;
+  color: var(--muted-foreground) !important;
+}
+
+.fc-list-event {
+  background-color: var(--card) !important;
+  color: var(--foreground) !important;
+}
+
+.fc-list-event:hover {
+  background-color: var(--accent) !important;
+}
+
+/* Comprehensive dark mode overrides for all FullCalendar elements */
+.dark .fc {
+  background-color: var(--card) !important;
+  color: var(--foreground) !important;
+}
+
+.dark .fc * {
+  background-color: inherit !important;
+}
+
+/* Force all calendar backgrounds to use dark theme */
+.dark .fc-timegrid-body,
+.dark .fc-daygrid-body,
+.dark .fc-list,
+.dark .fc-scroller,
+.dark .fc-view-harness {
+  background-color: var(--card) !important;
+}
+
+/* Ensure all text is visible in dark mode */
+.dark .fc-timegrid-slot-label,
+.dark .fc-col-header-cell-cushion,
+.dark .fc-daygrid-day-number,
+.dark .fc-list-day-cushion {
+  color: var(--muted-foreground) !important;
+  font-weight: 600 !important;
+}
+
+/* Force day numbers to be visible */
+.dark .fc-daygrid-day-number {
+  color: var(--foreground) !important;
+  font-weight: 600 !important;
+  opacity: 1 !important;
+}
+
+/* Ensure today's date is properly highlighted in dark mode */
+.dark .fc-day-today {
+  background-color: transparent !important; /* No background fade */
+  position: relative !important;
+}
+
+.dark .fc-day-today .fc-daygrid-day-number {
+  color: var(--foreground) !important; /* Normal text color */
+  font-weight: 700 !important;
+  font-size: 1rem !important;
+  position: relative !important;
+  z-index: 2 !important;
+}
+
+/* Orange circle BEHIND the date number in dark mode - proper positioning */
+.dark .fc-day-today .fc-daygrid-day-number {
+  position: relative !important;
+  z-index: 2 !important;
+}
+
+.dark .fc-day-today .fc-daygrid-day-number::before {
+  content: '' !important;
+  position: absolute !important;
+  top: 50% !important;
+  left: 50% !important;
+  transform: translate(-50%, -50%) !important;
+  width: 24px !important;
+  height: 24px !important;
+  background-color: #ff5c00 !important;
+  border-radius: 50% !important;
+  z-index: -1 !important;
+}
+
+/* Orange circle for current day in week view - time grid dark mode */
+.dark .fc-timegrid .fc-day-today .fc-timegrid-slot-label {
+  position: relative !important;
+  z-index: 2 !important;
+}
+
+.dark .fc-timegrid .fc-day-today .fc-timegrid-slot-label::before {
+  content: '' !important;
+  position: absolute !important;
+  top: 50% !important;
+  left: 50% !important;
+  transform: translate(-50%, -50%) !important;
+  width: 24px !important;
+  height: 24px !important;
+  background-color: #ff5c00 !important;
+  border-radius: 50% !important;
+  z-index: -1 !important;
+}
+
+/* Also target the day number in time grid week view dark mode */
+.dark .fc-timegrid .fc-day-today .fc-daygrid-day-number {
+  position: relative !important;
+  z-index: 2 !important;
+}
+
+.dark .fc-timegrid .fc-day-today .fc-daygrid-day-number::before {
+  content: '' !important;
+  position: absolute !important;
+  top: 50% !important;
+  left: 50% !important;
+  transform: translate(-50%, -50%) !important;
+  width: 24px !important;
+  height: 24px !important;
+  background-color: #ff5c00 !important;
+  border-radius: 50% !important;
+  z-index: -1 !important;
+}
+
+
+/* Force all calendar cells to use dark backgrounds */
+.dark .fc-timegrid-slot,
+.dark .fc-daygrid-day,
+.dark .fc-list-event {
+  background-color: var(--card) !important;
+}
+
+/* Ensure proper contrast for all-day section */
+.dark .fc-timegrid-slot-allday {
+  background-color: var(--muted) !important;
+}
+
+.dark .fc-timegrid-slot-allday .fc-timegrid-slot-label {
+  color: var(--muted-foreground) !important;
+  font-weight: 600 !important;
+}
+
+/* Add vertical lines between days in week mode */
+.fc-timegrid-slot {
+  border-right: 1px solid var(--border) !important;
+}
+
+.fc-timegrid-slot:last-child {
+  border-right: none !important;
+}
+
+/* Ensure vertical lines are visible in week view */
+.fc-timegrid-body .fc-timegrid-slot {
+  border-right: 1px solid var(--border) !important;
+}
+
+.fc-timegrid-body .fc-timegrid-slot:last-child {
+  border-right: none !important;
+}
+
+/* Add vertical lines for day grid in week view */
+.fc-daygrid-day {
+  border-right: 1px solid var(--border) !important;
+}
+
+.fc-daygrid-day:last-child {
+  border-right: none !important;
+}
+
+/* More specific selectors for time grid week view vertical lines */
+.fc-timegrid .fc-timegrid-body .fc-timegrid-slot {
+  border-right: 1px solid var(--border) !important;
+}
+
+.fc-timegrid .fc-timegrid-body .fc-timegrid-slot:last-child {
+  border-right: none !important;
+}
+
+/* Target the actual day columns in time grid */
+.fc-timegrid .fc-timegrid-body .fc-timegrid-slot-lane {
+  border-right: 1px solid var(--border) !important;
+}
+
+.fc-timegrid .fc-timegrid-body .fc-timegrid-slot-lane:last-child {
+  border-right: none !important;
+}
+
+/* Force vertical lines on all time grid slots */
+.fc-timegrid-slot-lane {
+  border-right: 1px solid var(--border) !important;
+}
+
+.fc-timegrid-slot-lane:last-child {
+  border-right: none !important;
+}
+
+/* Additional selector for week view columns */
+.fc-timegrid-body .fc-timegrid-slot-lane {
+  border-right: 1px solid var(--border) !important;
+}
+
+.fc-timegrid-body .fc-timegrid-slot-lane:last-child {
+  border-right: none !important;
+}
+
+/* Comprehensive vertical lines for week view - multiple approaches */
+.fc-timegrid .fc-timegrid-body .fc-timegrid-slot-lane {
+  border-right: 1px solid var(--border) !important;
+}
+
+.fc-timegrid .fc-timegrid-body .fc-timegrid-slot-lane:last-child {
+  border-right: none !important;
+}
+
+/* Target the table cells directly */
+.fc-timegrid .fc-timegrid-body table td {
+  border-right: 1px solid var(--border) !important;
+}
+
+.fc-timegrid .fc-timegrid-body table td:last-child {
+  border-right: none !important;
+}
+
+/* Force vertical lines on all time grid elements */
+.fc-timegrid .fc-timegrid-body .fc-timegrid-slot {
+  border-right: 1px solid var(--border) !important;
+}
+
+.fc-timegrid .fc-timegrid-body .fc-timegrid-slot:last-child {
+  border-right: none !important;
+}
+
+/* Additional approach using table structure */
+.fc-timegrid .fc-timegrid-body .fc-timegrid-slot-lane {
+  border-right: 1px solid var(--border) !important;
+  position: relative;
+}
+
+.fc-timegrid .fc-timegrid-body .fc-timegrid-slot-lane:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 1px;
+  background-color: var(--border);
+  z-index: 1;
+}
+
+/* VERTICAL LINES BETWEEN CALENDAR DAYS - TARGET GRID ONLY */
+.fc-timegrid .fc-timegrid-body .fc-timegrid-slot-lane {
+  border-right: 1px solid var(--border) !important;
+}
+
+.fc-timegrid .fc-timegrid-body .fc-timegrid-slot-lane:last-child {
+  border-right: none !important;
+}
+
+/* Target the actual table structure */
+.fc-timegrid .fc-timegrid-body table tbody tr td {
+  border-right: 1px solid var(--border) !important;
+}
+
+.fc-timegrid .fc-timegrid-body table tbody tr td:last-child {
+  border-right: none !important;
+}
+
+/* Ensure events don't get the border */
+.fc-event {
+  border-right: none !important;
+}
+
+/* Force vertical lines on the grid background only */
+.fc-timegrid .fc-timegrid-body .fc-timegrid-slot-bg {
+  border-right: 1px solid var(--border) !important;
+}
+
+.fc-timegrid .fc-timegrid-body .fc-timegrid-slot-bg:last-child {
+  border-right: none !important;
+}
+
+/* Event styling - FORCE BLUE in both dark and light modes */
 .fc-event {
   border: none !important;
   border-radius: 0.25rem !important;
   font-size: 0.75rem !important;
   font-weight: 500 !important;
   padding: 0.125rem 0.25rem !important;
+  background-color: #3b82f6 !important; /* Blue for both modes */
+  color: #ffffff !important; /* White text for both modes */
+  background: #3b82f6 !important; /* Override any background property */
+}
+
+/* Force event colors in dark mode */
+.dark .fc-event {
+  background-color: #3b82f6 !important;
+  color: #ffffff !important;
+  background: #3b82f6 !important;
+}
+
+/* Force event colors in light mode */
+.fc-event {
+  background-color: #3b82f6 !important;
+  color: #ffffff !important;
+  background: #3b82f6 !important;
+}
+
+/* Override any FullCalendar default event styling */
+.fc-event,
+.fc-event:hover,
+.fc-event:focus,
+.fc-event:active {
+  background-color: #3b82f6 !important;
+  color: #ffffff !important;
+  background: #3b82f6 !important;
 }
 
 .fc-event-title {
@@ -182,31 +719,32 @@
 
 /* More link styling */
 .fc-more-link {
-  color: #3b82f6 !important;
+  color: var(--primary) !important;
   font-weight: 500 !important;
 }
 
 .fc-more-link:hover {
-  color: #1d4ed8 !important;
+  color: var(--primary) !important;
+  opacity: 0.8 !important;
 }
 
 /* Popover styling */
 .fc-popover {
-  border: 1px solid #e5e7eb !important;
+  border: 1px solid var(--border) !important;
   border-radius: 0.5rem !important;
   box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
 }
 
 .fc-popover-header {
-  background-color: #f9fafb !important;
-  color: #374151 !important;
+  background-color: var(--muted) !important;
+  color: var(--muted-foreground) !important;
   font-weight: 600 !important;
-  border-bottom: 1px solid #e5e7eb !important;
+  border-bottom: 1px solid var(--border) !important;
 }
 
 .fc-popover-body {
-  background-color: #ffffff !important;
-  color: #374151 !important;
+  background-color: var(--card) !important;
+  color: var(--foreground) !important;
 }
 
 /* Form input styling for better readability */
@@ -219,7 +757,7 @@ input[type="time"],
 input[type="datetime-local"],
 textarea,
 select {
-  color: #1f2937 !important;
+  color: var(--foreground) !important;
   font-weight: 500 !important;
   font-size: 0.875rem !important;
   line-height: 1.25rem !important;
@@ -234,28 +772,28 @@ input[type="time"]:focus,
 input[type="datetime-local"]:focus,
 textarea:focus,
 select:focus {
-  color: #111827 !important;
+  color: var(--foreground) !important;
   font-weight: 600 !important;
 }
 
 /* Placeholder text styling */
 input::placeholder,
 textarea::placeholder {
-  color: #6b7280 !important;
+  color: var(--muted-foreground) !important;
   font-weight: 400 !important;
   opacity: 1 !important;
 }
 
 /* Select option styling */
 select option {
-  color: #1f2937 !important;
+  color: var(--foreground) !important;
   font-weight: 500 !important;
-  background-color: #ffffff !important;
+  background-color: var(--card) !important;
 }
 
 /* Form labels */
 label {
-  color: #374151 !important;
+  color: var(--muted-foreground) !important;
   font-weight: 600 !important;
   font-size: 0.875rem !important;
 }

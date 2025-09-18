@@ -1,192 +1,109 @@
 /**
- * Retry utilities for Google Calendar API operations
- * Provides exponential backoff retry logic with configurable parameters
+ * Retry utilities for handling failed operations with exponential backoff
  */
 
-export interface RetryConfig {
-  maxAttempts: number;
-  baseDelay: number; // milliseconds
-  maxDelay: number; // milliseconds
-  backoffMultiplier: number;
-  jitter: boolean; // Add random jitter to prevent thundering herd
+export interface RetryOptions {
+  maxAttempts?: number;
+  baseDelay?: number;
+  maxDelay?: number;
+  backoffMultiplier?: number;
+  jitter?: boolean;
 }
 
-export interface RetryResult<T> {
-  success: boolean;
-  data?: T;
-  error?: Error;
-  attempts: number;
-  totalTime: number; // milliseconds
-}
-
-export class RetryError extends Error {
-  constructor(
-    message: string,
-    public readonly attempts: number,
-    public readonly lastError: Error,
-    public readonly totalTime: number,
-  ) {
-    super(message);
-    this.name = 'RetryError';
-  }
-}
-
-/**
- * Default retry configuration for Google Calendar API operations
- */
-export const DEFAULT_RETRY_CONFIG: RetryConfig = {
+const DEFAULT_OPTIONS: Required<RetryOptions> = {
   maxAttempts: 3,
-  baseDelay: 1000, // 1 second
-  maxDelay: 30000, // 30 seconds
+  baseDelay: 1000,
+  maxDelay: 10000,
   backoffMultiplier: 2,
   jitter: true,
 };
 
 /**
- * Calculate delay with exponential backoff and optional jitter
+ * Calculates the delay for the next retry attempt
  */
-function calculateDelay(attempt: number, config: RetryConfig): number {
-  const delay = Math.min(
-    config.baseDelay * Math.pow(config.backoffMultiplier, attempt - 1),
-    config.maxDelay,
-  );
+function calculateDelay(attempt: number, options: Required<RetryOptions>): number {
+  const exponentialDelay = options.baseDelay * Math.pow(options.backoffMultiplier, attempt - 1);
+  const cappedDelay = Math.min(exponentialDelay, options.maxDelay);
 
-  if (config.jitter) {
-    // Add ±25% jitter to prevent thundering herd
-    const jitter = delay * 0.25 * (Math.random() - 0.5);
-    return Math.max(0, delay + jitter);
+  if (options.jitter) {
+    // Add random jitter to prevent thundering herd
+    const jitterAmount = cappedDelay * 0.1; // 10% jitter
+    return cappedDelay + (Math.random() * jitterAmount * 2 - jitterAmount);
   }
 
-  return delay;
+  return cappedDelay;
 }
 
 /**
- * Check if an error is retryable
+ * Sleeps for the specified number of milliseconds
  */
-export function isRetryableError(error: any): boolean {
-  // Network errors
-  if (error.code === 'ECONNRESET' || error.code === 'ENOTFOUND' || error.code === 'ETIMEDOUT') {
-    return true;
-  }
-
-  // Google Calendar API rate limiting
-  if (error.code === 429 || error.status === 429) {
-    return true;
-  }
-
-  // Google Calendar API server errors
-  if (error.code >= 500 && error.code < 600) {
-    return true;
-  }
-
-  // Google Calendar API specific retryable errors
-  if (error.code === 403 && error.message?.includes('quota')) {
-    return true;
-  }
-
-  // Timeout errors
-  if (error.code === 'TIMEOUT' || error.message?.includes('timeout')) {
-    return true;
-  }
-
-  // For testing purposes, treat generic errors as retryable
-  if (error instanceof Error && error.message.includes('Rate limit')) {
-    return true;
-  }
-
-  if (error instanceof Error && error.message.includes('Server error')) {
-    return true;
-  }
-
-  return false;
+function sleep(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
 }
 
 /**
- * Retry a function with exponential backoff
+ * Retries an async operation with exponential backoff
  */
 export async function retryWithBackoff<T>(
   operation: () => Promise<T>,
-  config: Partial<RetryConfig> = {},
-): Promise<RetryResult<T>> {
-  const finalConfig = { ...DEFAULT_RETRY_CONFIG, ...config };
-  const startTime = Date.now();
+  options: RetryOptions = {}
+): Promise<T> {
+  const config = { ...DEFAULT_OPTIONS, ...options };
   let lastError: Error;
 
-  for (let attempt = 1; attempt <= finalConfig.maxAttempts; attempt++) {
+  for (let attempt = 1; attempt <= config.maxAttempts; attempt++) {
     try {
-      const data = await operation();
-      return {
-        success: true,
-        data,
-        attempts: attempt,
-        totalTime: Date.now() - startTime,
-      };
+      return await operation();
     } catch (error) {
       lastError = error instanceof Error ? error : new Error(String(error));
 
-      // Don't retry if it's not a retryable error
-      if (!isRetryableError(lastError)) {
-        return {
-          success: false,
-          error: lastError,
-          attempts: attempt,
-          totalTime: Date.now() - startTime,
-        };
-      }
-
       // Don't retry on the last attempt
-      if (attempt === finalConfig.maxAttempts) {
-        break;
+      if (attempt === config.maxAttempts) {
+        throw lastError;
       }
 
-      // Wait before retrying
-      const delay = calculateDelay(attempt, finalConfig);
-      console.log(`Retry attempt ${attempt} failed, retrying in ${delay}ms:`, lastError.message);
-      await new Promise(resolve => setTimeout(resolve, delay));
+      // Calculate delay for next attempt
+      const delay = calculateDelay(attempt, config);
+      console.warn(`Operation failed (attempt ${attempt}/${config.maxAttempts}), retrying in ${delay}ms:`, lastError.message);
+
+      await sleep(delay);
     }
   }
 
-  return {
-    success: false,
-    error: new RetryError(
-      `Operation failed after ${finalConfig.maxAttempts} attempts`,
-      finalConfig.maxAttempts,
-      lastError!,
-      Date.now() - startTime,
-    ),
-    attempts: finalConfig.maxAttempts,
-    totalTime: Date.now() - startTime,
-  };
+  throw lastError;
 }
 
 /**
- * Retry with different configurations based on operation type
+ * Retries an operation with a simple fixed delay
  */
-export const RETRY_CONFIGS = {
-  // Quick retries for read operations
-  read: {
-    maxAttempts: 2,
-    baseDelay: 500,
-    maxDelay: 5000,
-    backoffMultiplier: 2,
-    jitter: true,
-  },
+export async function retryWithFixedDelay<T>(
+  operation: () => Promise<T>,
+  maxAttempts: number = 3,
+  delayMs: number = 1000
+): Promise<T> {
+  let lastError: Error;
 
-  // More retries for write operations
-  write: {
-    maxAttempts: 3,
-    baseDelay: 1000,
-    maxDelay: 30000,
-    backoffMultiplier: 2,
-    jitter: true,
-  },
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      return await operation();
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error));
 
-  // Aggressive retries for critical operations
-  critical: {
-    maxAttempts: 5,
-    baseDelay: 2000,
-    maxDelay: 60000,
-    backoffMultiplier: 2,
-    jitter: true,
-  },
-} as const;
+      if (attempt === maxAttempts) {
+        throw lastError;
+      }
+
+      console.warn(`Operation failed (attempt ${attempt}/${maxAttempts}), retrying in ${delayMs}ms:`, lastError.message);
+      await sleep(delayMs);
+    }
+  }
+
+  throw lastError;
+}
+
+/**
+ * Creates a retry wrapper function with predefined options
+ */
+export function createRetryWrapper(options: RetryOptions = {}) {
+  return <T>(operation: () => Promise<T>) => retryWithBackoff(operation, options);
+}

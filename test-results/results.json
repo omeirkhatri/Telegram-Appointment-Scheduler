@@ -10,7 +10,9 @@
     "grep": {},
     "grepInvert": null,
     "maxFailures": 0,
-    "metadata": {},
+    "metadata": {
+      "actualWorkers": 5
+    },
     "preserveOutput": "always",
     "reporter": [
       [
@@ -40,7 +42,9 @@
         "outputDir": "/Volumes/BestDOC/Scheduler/test-results",
         "repeatEach": 1,
         "retries": 0,
-        "metadata": {},
+        "metadata": {
+          "actualWorkers": 5
+        },
         "id": "chromium",
         "name": "chromium",
         "testDir": "/Volumes/BestDOC/Scheduler/tests/e2e",
@@ -54,7 +58,9 @@
         "outputDir": "/Volumes/BestDOC/Scheduler/test-results",
         "repeatEach": 1,
         "retries": 0,
-        "metadata": {},
+        "metadata": {
+          "actualWorkers": 5
+        },
         "id": "firefox",
         "name": "firefox",
         "testDir": "/Volumes/BestDOC/Scheduler/tests/e2e",
@@ -68,7 +74,9 @@
         "outputDir": "/Volumes/BestDOC/Scheduler/test-results",
         "repeatEach": 1,
         "retries": 0,
-        "metadata": {},
+        "metadata": {
+          "actualWorkers": 5
+        },
         "id": "webkit",
         "name": "webkit",
         "testDir": "/Volumes/BestDOC/Scheduler/tests/e2e",
@@ -82,7 +90,9 @@
         "outputDir": "/Volumes/BestDOC/Scheduler/test-results",
         "repeatEach": 1,
         "retries": 0,
-        "metadata": {},
+        "metadata": {
+          "actualWorkers": 5
+        },
         "id": "Mobile Chrome",
         "name": "Mobile Chrome",
         "testDir": "/Volumes/BestDOC/Scheduler/tests/e2e",
@@ -96,7 +106,9 @@
         "outputDir": "/Volumes/BestDOC/Scheduler/test-results",
         "repeatEach": 1,
         "retries": 0,
-        "metadata": {},
+        "metadata": {
+          "actualWorkers": 5
+        },
         "id": "Mobile Safari",
         "name": "Mobile Safari",
         "testDir": "/Volumes/BestDOC/Scheduler/tests/e2e",
@@ -110,7 +122,9 @@
         "outputDir": "/Volumes/BestDOC/Scheduler/test-results",
         "repeatEach": 1,
         "retries": 0,
-        "metadata": {},
+        "metadata": {
+          "actualWorkers": 5
+        },
         "id": "performance",
         "name": "performance",
         "testDir": "/Volumes/BestDOC/Scheduler/tests/performance",
@@ -118,13 +132,15 @@
         "testMatch": [
           "**/*.@(spec|test).?(c|m)[jt]s?(x)"
         ],
-        "timeout": 60000
+        "timeout": 30000
       },
       {
         "outputDir": "/Volumes/BestDOC/Scheduler/test-results",
         "repeatEach": 1,
         "retries": 0,
-        "metadata": {},
+        "metadata": {
+          "actualWorkers": 5
+        },
         "id": "accessibility",
         "name": "accessibility",
         "testDir": "/Volumes/BestDOC/Scheduler/tests/accessibility",
@@ -147,25 +163,560 @@
       "timeout": 120000
     }
   },
-  "suites": [],
-  "errors": [
+  "suites": [
     {
-      "message": "Error: browserType.launch: Executable doesn't exist at /Users/user/Library/Caches/ms-playwright/chromium_headless_shell-1187/chrome-mac/headless_shell\n╔═════════════════════════════════════════════════════════════════════════╗\n║ Looks like Playwright Test or Playwright was just installed or updated. ║\n║ Please run the following command to download new browsers:              ║\n║                                                                         ║\n║     npx playwright install                                              ║\n║                                                                         ║\n║ <3 Playwright Team                                                      ║\n╚═════════════════════════════════════════════════════════════════════════╝",
-      "stack": "Error: browserType.launch: Executable doesn't exist at /Users/user/Library/Caches/ms-playwright/chromium_headless_shell-1187/chrome-mac/headless_shell\n╔═════════════════════════════════════════════════════════════════════════╗\n║ Looks like Playwright Test or Playwright was just installed or updated. ║\n║ Please run the following command to download new browsers:              ║\n║                                                                         ║\n║     npx playwright install                                              ║\n║                                                                         ║\n║ <3 Playwright Team                                                      ║\n╚═════════════════════════════════════════════════════════════════════════╝\n    at globalSetup (/Volumes/BestDOC/Scheduler/tests/e2e/global-setup.ts:7:34)",
-      "location": {
-        "file": "/Volumes/BestDOC/Scheduler/tests/e2e/global-setup.ts",
-        "column": 34,
-        "line": 7
-      },
-      "snippet": "\u001b[90m   at \u001b[39mglobal-setup.ts:7\n\n\u001b[0m \u001b[90m  5 |\u001b[39m\n \u001b[90m  6 |\u001b[39m   \u001b[90m// Start browser for setup tasks\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m  7 |\u001b[39m   \u001b[36mconst\u001b[39m browser \u001b[33m=\u001b[39m \u001b[36mawait\u001b[39m chromium\u001b[33m.\u001b[39mlaunch()\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m                                  \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m  8 |\u001b[39m   \u001b[36mconst\u001b[39m page \u001b[33m=\u001b[39m \u001b[36mawait\u001b[39m browser\u001b[33m.\u001b[39mnewPage()\u001b[33m;\u001b[39m\n \u001b[90m  9 |\u001b[39m\n \u001b[90m 10 |\u001b[39m   \u001b[36mtry\u001b[39m {\u001b[0m"
+      "title": "critical-flows/patient-management.spec.ts",
+      "file": "critical-flows/patient-management.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Patient Management Critical Flows",
+          "file": "critical-flows/patient-management.spec.ts",
+          "line": 5,
+          "column": 6,
+          "specs": [
+            {
+              "title": "should create a new patient with all required fields",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "timedOut",
+                      "duration": 30874,
+                      "error": {
+                        "message": "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m",
+                        "stack": "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m"
+                      },
+                      "errors": [
+                        {
+                          "message": "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m"
+                        },
+                        {
+                          "location": {
+                            "file": "/Volumes/BestDOC/Scheduler/tests/e2e/utils/page-objects.ts",
+                            "column": 33,
+                            "line": 44
+                          },
+                          "message": "Error: locator.click: Test timeout of 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('[data-testid=\"new-patient-button\"]')\u001b[22m\n\n\n\u001b[90m   at \u001b[39mutils/page-objects.ts:44\n\n\u001b[0m \u001b[90m 42 |\u001b[39m\n \u001b[90m 43 |\u001b[39m   \u001b[36masync\u001b[39m clickNewPatient() {\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 44 |\u001b[39m     \u001b[36mawait\u001b[39m \u001b[36mthis\u001b[39m\u001b[33m.\u001b[39mnewPatientButton\u001b[33m.\u001b[39mclick()\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m                                 \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 45 |\u001b[39m     \u001b[36mawait\u001b[39m \u001b[36mthis\u001b[39m\u001b[33m.\u001b[39mpage\u001b[33m.\u001b[39mwaitForSelector(selectors\u001b[33m.\u001b[39mmodals\u001b[33m.\u001b[39mpatientModal)\u001b[33m;\u001b[39m\n \u001b[90m 46 |\u001b[39m   }\n \u001b[90m 47 |\u001b[39m\u001b[0m\n\u001b[2m    at PatientPage.clickNewPatient (/Volumes/BestDOC/Scheduler/tests/e2e/utils/page-objects.ts:44:33)\u001b[22m\n\u001b[2m    at /Volumes/BestDOC/Scheduler/tests/e2e/critical-flows/patient-management.spec.ts:15:23\u001b[22m"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-09-03T23:58:01.077Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Volumes/BestDOC/Scheduler/test-results/critical-flows-patient-man-2b226-nt-with-all-required-fields-chromium/test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/Volumes/BestDOC/Scheduler/test-results/critical-flows-patient-man-2b226-nt-with-all-required-fields-chromium/video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/Volumes/BestDOC/Scheduler/test-results/critical-flows-patient-man-2b226-nt-with-all-required-fields-chromium/error-context.md"
+                        }
+                      ]
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "34125ff7875f67adf0e5-fed25be2c8f7c55355b2",
+              "file": "critical-flows/patient-management.spec.ts",
+              "line": 13,
+              "column": 7
+            },
+            {
+              "title": "should create a new patient with minimal required fields",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "timedOut",
+                      "duration": 30853,
+                      "error": {
+                        "message": "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m",
+                        "stack": "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m"
+                      },
+                      "errors": [
+                        {
+                          "message": "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m"
+                        },
+                        {
+                          "location": {
+                            "file": "/Volumes/BestDOC/Scheduler/tests/e2e/utils/page-objects.ts",
+                            "column": 33,
+                            "line": 44
+                          },
+                          "message": "Error: locator.click: Test timeout of 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('[data-testid=\"new-patient-button\"]')\u001b[22m\n\n\n\u001b[90m   at \u001b[39mutils/page-objects.ts:44\n\n\u001b[0m \u001b[90m 42 |\u001b[39m\n \u001b[90m 43 |\u001b[39m   \u001b[36masync\u001b[39m clickNewPatient() {\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 44 |\u001b[39m     \u001b[36mawait\u001b[39m \u001b[36mthis\u001b[39m\u001b[33m.\u001b[39mnewPatientButton\u001b[33m.\u001b[39mclick()\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m                                 \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 45 |\u001b[39m     \u001b[36mawait\u001b[39m \u001b[36mthis\u001b[39m\u001b[33m.\u001b[39mpage\u001b[33m.\u001b[39mwaitForSelector(selectors\u001b[33m.\u001b[39mmodals\u001b[33m.\u001b[39mpatientModal)\u001b[33m;\u001b[39m\n \u001b[90m 46 |\u001b[39m   }\n \u001b[90m 47 |\u001b[39m\u001b[0m\n\u001b[2m    at PatientPage.clickNewPatient (/Volumes/BestDOC/Scheduler/tests/e2e/utils/page-objects.ts:44:33)\u001b[22m\n\u001b[2m    at /Volumes/BestDOC/Scheduler/tests/e2e/critical-flows/patient-management.spec.ts:32:23\u001b[22m"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-09-03T23:58:01.077Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Volumes/BestDOC/Scheduler/test-results/critical-flows-patient-man-50129-ith-minimal-required-fields-chromium/test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/Volumes/BestDOC/Scheduler/test-results/critical-flows-patient-man-50129-ith-minimal-required-fields-chromium/video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/Volumes/BestDOC/Scheduler/test-results/critical-flows-patient-man-50129-ith-minimal-required-fields-chromium/error-context.md"
+                        }
+                      ]
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "34125ff7875f67adf0e5-b9edfb49b14a88ddd36d",
+              "file": "critical-flows/patient-management.spec.ts",
+              "line": 30,
+              "column": 7
+            },
+            {
+              "title": "should validate required fields when creating patient",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 2,
+                      "parallelIndex": 2,
+                      "status": "timedOut",
+                      "duration": 30896,
+                      "error": {
+                        "message": "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m",
+                        "stack": "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m"
+                      },
+                      "errors": [
+                        {
+                          "message": "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m"
+                        },
+                        {
+                          "location": {
+                            "file": "/Volumes/BestDOC/Scheduler/tests/e2e/utils/page-objects.ts",
+                            "column": 33,
+                            "line": 44
+                          },
+                          "message": "Error: locator.click: Test timeout of 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('[data-testid=\"new-patient-button\"]')\u001b[22m\n\n\n\u001b[90m   at \u001b[39mutils/page-objects.ts:44\n\n\u001b[0m \u001b[90m 42 |\u001b[39m\n \u001b[90m 43 |\u001b[39m   \u001b[36masync\u001b[39m clickNewPatient() {\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 44 |\u001b[39m     \u001b[36mawait\u001b[39m \u001b[36mthis\u001b[39m\u001b[33m.\u001b[39mnewPatientButton\u001b[33m.\u001b[39mclick()\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m                                 \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 45 |\u001b[39m     \u001b[36mawait\u001b[39m \u001b[36mthis\u001b[39m\u001b[33m.\u001b[39mpage\u001b[33m.\u001b[39mwaitForSelector(selectors\u001b[33m.\u001b[39mmodals\u001b[33m.\u001b[39mpatientModal)\u001b[33m;\u001b[39m\n \u001b[90m 46 |\u001b[39m   }\n \u001b[90m 47 |\u001b[39m\u001b[0m\n\u001b[2m    at PatientPage.clickNewPatient (/Volumes/BestDOC/Scheduler/tests/e2e/utils/page-objects.ts:44:33)\u001b[22m\n\u001b[2m    at /Volumes/BestDOC/Scheduler/tests/e2e/critical-flows/patient-management.spec.ts:49:23\u001b[22m"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-09-03T23:58:01.071Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Volumes/BestDOC/Scheduler/test-results/critical-flows-patient-man-36c1d-ields-when-creating-patient-chromium/test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/Volumes/BestDOC/Scheduler/test-results/critical-flows-patient-man-36c1d-ields-when-creating-patient-chromium/video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/Volumes/BestDOC/Scheduler/test-results/critical-flows-patient-man-36c1d-ields-when-creating-patient-chromium/error-context.md"
+                        }
+                      ]
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "34125ff7875f67adf0e5-019f13a874c11f10f280",
+              "file": "critical-flows/patient-management.spec.ts",
+              "line": 47,
+              "column": 7
+            },
+            {
+              "title": "should cancel patient creation",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 3,
+                      "parallelIndex": 3,
+                      "status": "timedOut",
+                      "duration": 31006,
+                      "error": {
+                        "message": "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m",
+                        "stack": "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m"
+                      },
+                      "errors": [
+                        {
+                          "message": "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m"
+                        },
+                        {
+                          "location": {
+                            "file": "/Volumes/BestDOC/Scheduler/tests/e2e/utils/page-objects.ts",
+                            "column": 33,
+                            "line": 44
+                          },
+                          "message": "Error: locator.click: Test timeout of 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('[data-testid=\"new-patient-button\"]')\u001b[22m\n\n\n\u001b[90m   at \u001b[39mutils/page-objects.ts:44\n\n\u001b[0m \u001b[90m 42 |\u001b[39m\n \u001b[90m 43 |\u001b[39m   \u001b[36masync\u001b[39m clickNewPatient() {\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 44 |\u001b[39m     \u001b[36mawait\u001b[39m \u001b[36mthis\u001b[39m\u001b[33m.\u001b[39mnewPatientButton\u001b[33m.\u001b[39mclick()\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m                                 \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 45 |\u001b[39m     \u001b[36mawait\u001b[39m \u001b[36mthis\u001b[39m\u001b[33m.\u001b[39mpage\u001b[33m.\u001b[39mwaitForSelector(selectors\u001b[33m.\u001b[39mmodals\u001b[33m.\u001b[39mpatientModal)\u001b[33m;\u001b[39m\n \u001b[90m 46 |\u001b[39m   }\n \u001b[90m 47 |\u001b[39m\u001b[0m\n\u001b[2m    at PatientPage.clickNewPatient (/Volumes/BestDOC/Scheduler/tests/e2e/utils/page-objects.ts:44:33)\u001b[22m\n\u001b[2m    at /Volumes/BestDOC/Scheduler/tests/e2e/critical-flows/patient-management.spec.ts:69:23\u001b[22m"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-09-03T23:58:01.086Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Volumes/BestDOC/Scheduler/test-results/critical-flows-patient-man-a4967-uld-cancel-patient-creation-chromium/test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/Volumes/BestDOC/Scheduler/test-results/critical-flows-patient-man-a4967-uld-cancel-patient-creation-chromium/video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/Volumes/BestDOC/Scheduler/test-results/critical-flows-patient-man-a4967-uld-cancel-patient-creation-chromium/error-context.md"
+                        }
+                      ]
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "34125ff7875f67adf0e5-14aecb7241bbdbb53142",
+              "file": "critical-flows/patient-management.spec.ts",
+              "line": 67,
+              "column": 7
+            },
+            {
+              "title": "should edit an existing patient",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 4,
+                      "parallelIndex": 4,
+                      "status": "timedOut",
+                      "duration": 30892,
+                      "error": {
+                        "message": "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m",
+                        "stack": "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m"
+                      },
+                      "errors": [
+                        {
+                          "message": "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m"
+                        },
+                        {
+                          "location": {
+                            "file": "/Volumes/BestDOC/Scheduler/tests/e2e/utils/page-objects.ts",
+                            "column": 33,
+                            "line": 44
+                          },
+                          "message": "Error: locator.click: Test timeout of 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('[data-testid=\"new-patient-button\"]')\u001b[22m\n\n\n\u001b[90m   at \u001b[39mutils/page-objects.ts:44\n\n\u001b[0m \u001b[90m 42 |\u001b[39m\n \u001b[90m 43 |\u001b[39m   \u001b[36masync\u001b[39m clickNewPatient() {\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 44 |\u001b[39m     \u001b[36mawait\u001b[39m \u001b[36mthis\u001b[39m\u001b[33m.\u001b[39mnewPatientButton\u001b[33m.\u001b[39mclick()\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m                                 \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 45 |\u001b[39m     \u001b[36mawait\u001b[39m \u001b[36mthis\u001b[39m\u001b[33m.\u001b[39mpage\u001b[33m.\u001b[39mwaitForSelector(selectors\u001b[33m.\u001b[39mmodals\u001b[33m.\u001b[39mpatientModal)\u001b[33m;\u001b[39m\n \u001b[90m 46 |\u001b[39m   }\n \u001b[90m 47 |\u001b[39m\u001b[0m\n\u001b[2m    at PatientPage.clickNewPatient (/Volumes/BestDOC/Scheduler/tests/e2e/utils/page-objects.ts:44:33)\u001b[22m\n\u001b[2m    at /Volumes/BestDOC/Scheduler/tests/e2e/critical-flows/patient-management.spec.ts:85:23\u001b[22m"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-09-03T23:58:01.070Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Volumes/BestDOC/Scheduler/test-results/critical-flows-patient-man-12da5-ld-edit-an-existing-patient-chromium/test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/Volumes/BestDOC/Scheduler/test-results/critical-flows-patient-man-12da5-ld-edit-an-existing-patient-chromium/video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/Volumes/BestDOC/Scheduler/test-results/critical-flows-patient-man-12da5-ld-edit-an-existing-patient-chromium/error-context.md"
+                        }
+                      ]
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "34125ff7875f67adf0e5-02f1dd0d92331347f9d3",
+              "file": "critical-flows/patient-management.spec.ts",
+              "line": 83,
+              "column": 7
+            },
+            {
+              "title": "should search for patients",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 5,
+                      "parallelIndex": 1,
+                      "status": "timedOut",
+                      "duration": 30649,
+                      "error": {
+                        "message": "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m",
+                        "stack": "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m"
+                      },
+                      "errors": [
+                        {
+                          "message": "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m"
+                        },
+                        {
+                          "location": {
+                            "file": "/Volumes/BestDOC/Scheduler/tests/e2e/utils/page-objects.ts",
+                            "column": 33,
+                            "line": 44
+                          },
+                          "message": "Error: locator.click: Test timeout of 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('[data-testid=\"new-patient-button\"]')\u001b[22m\n\n\n\u001b[90m   at \u001b[39mutils/page-objects.ts:44\n\n\u001b[0m \u001b[90m 42 |\u001b[39m\n \u001b[90m 43 |\u001b[39m   \u001b[36masync\u001b[39m clickNewPatient() {\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 44 |\u001b[39m     \u001b[36mawait\u001b[39m \u001b[36mthis\u001b[39m\u001b[33m.\u001b[39mnewPatientButton\u001b[33m.\u001b[39mclick()\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m                                 \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 45 |\u001b[39m     \u001b[36mawait\u001b[39m \u001b[36mthis\u001b[39m\u001b[33m.\u001b[39mpage\u001b[33m.\u001b[39mwaitForSelector(selectors\u001b[33m.\u001b[39mmodals\u001b[33m.\u001b[39mpatientModal)\u001b[33m;\u001b[39m\n \u001b[90m 46 |\u001b[39m   }\n \u001b[90m 47 |\u001b[39m\u001b[0m\n\u001b[2m    at PatientPage.clickNewPatient (/Volumes/BestDOC/Scheduler/tests/e2e/utils/page-objects.ts:44:33)\u001b[22m\n\u001b[2m    at /Volumes/BestDOC/Scheduler/tests/e2e/critical-flows/patient-management.spec.ts:108:23\u001b[22m"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-09-03T23:58:32.585Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Volumes/BestDOC/Scheduler/test-results/critical-flows-patient-man-8275a--should-search-for-patients-chromium/test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/Volumes/BestDOC/Scheduler/test-results/critical-flows-patient-man-8275a--should-search-for-patients-chromium/video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/Volumes/BestDOC/Scheduler/test-results/critical-flows-patient-man-8275a--should-search-for-patients-chromium/error-context.md"
+                        }
+                      ]
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "34125ff7875f67adf0e5-32693732c52f3f965379",
+              "file": "critical-flows/patient-management.spec.ts",
+              "line": 106,
+              "column": 7
+            },
+            {
+              "title": "should handle patient creation with invalid phone number",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 6,
+                      "parallelIndex": 4,
+                      "status": "timedOut",
+                      "duration": 30639,
+                      "error": {
+                        "message": "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m",
+                        "stack": "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m"
+                      },
+                      "errors": [
+                        {
+                          "message": "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m"
+                        },
+                        {
+                          "location": {
+                            "file": "/Volumes/BestDOC/Scheduler/tests/e2e/utils/page-objects.ts",
+                            "column": 33,
+                            "line": 44
+                          },
+                          "message": "Error: locator.click: Test timeout of 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('[data-testid=\"new-patient-button\"]')\u001b[22m\n\n\n\u001b[90m   at \u001b[39mutils/page-objects.ts:44\n\n\u001b[0m \u001b[90m 42 |\u001b[39m\n \u001b[90m 43 |\u001b[39m   \u001b[36masync\u001b[39m clickNewPatient() {\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 44 |\u001b[39m     \u001b[36mawait\u001b[39m \u001b[36mthis\u001b[39m\u001b[33m.\u001b[39mnewPatientButton\u001b[33m.\u001b[39mclick()\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m                                 \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 45 |\u001b[39m     \u001b[36mawait\u001b[39m \u001b[36mthis\u001b[39m\u001b[33m.\u001b[39mpage\u001b[33m.\u001b[39mwaitForSelector(selectors\u001b[33m.\u001b[39mmodals\u001b[33m.\u001b[39mpatientModal)\u001b[33m;\u001b[39m\n \u001b[90m 46 |\u001b[39m   }\n \u001b[90m 47 |\u001b[39m\u001b[0m\n\u001b[2m    at PatientPage.clickNewPatient (/Volumes/BestDOC/Scheduler/tests/e2e/utils/page-objects.ts:44:33)\u001b[22m\n\u001b[2m    at /Volumes/BestDOC/Scheduler/tests/e2e/critical-flows/patient-management.spec.ts:126:23\u001b[22m"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-09-03T23:58:32.585Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Volumes/BestDOC/Scheduler/test-results/critical-flows-patient-man-92d48-n-with-invalid-phone-number-chromium/test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/Volumes/BestDOC/Scheduler/test-results/critical-flows-patient-man-92d48-n-with-invalid-phone-number-chromium/video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/Volumes/BestDOC/Scheduler/test-results/critical-flows-patient-man-92d48-n-with-invalid-phone-number-chromium/error-context.md"
+                        }
+                      ]
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "34125ff7875f67adf0e5-d2940031bb1d7fe5a871",
+              "file": "critical-flows/patient-management.spec.ts",
+              "line": 124,
+              "column": 7
+            },
+            {
+              "title": "should handle patient creation with invalid Google Maps link",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 7,
+                      "parallelIndex": 0,
+                      "status": "timedOut",
+                      "duration": 30632,
+                      "error": {
+                        "message": "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m",
+                        "stack": "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m"
+                      },
+                      "errors": [
+                        {
+                          "message": "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m"
+                        },
+                        {
+                          "location": {
+                            "file": "/Volumes/BestDOC/Scheduler/tests/e2e/utils/page-objects.ts",
+                            "column": 33,
+                            "line": 44
+                          },
+                          "message": "Error: locator.click: Test timeout of 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('[data-testid=\"new-patient-button\"]')\u001b[22m\n\n\n\u001b[90m   at \u001b[39mutils/page-objects.ts:44\n\n\u001b[0m \u001b[90m 42 |\u001b[39m\n \u001b[90m 43 |\u001b[39m   \u001b[36masync\u001b[39m clickNewPatient() {\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 44 |\u001b[39m     \u001b[36mawait\u001b[39m \u001b[36mthis\u001b[39m\u001b[33m.\u001b[39mnewPatientButton\u001b[33m.\u001b[39mclick()\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m                                 \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 45 |\u001b[39m     \u001b[36mawait\u001b[39m \u001b[36mthis\u001b[39m\u001b[33m.\u001b[39mpage\u001b[33m.\u001b[39mwaitForSelector(selectors\u001b[33m.\u001b[39mmodals\u001b[33m.\u001b[39mpatientModal)\u001b[33m;\u001b[39m\n \u001b[90m 46 |\u001b[39m   }\n \u001b[90m 47 |\u001b[39m\u001b[0m\n\u001b[2m    at PatientPage.clickNewPatient (/Volumes/BestDOC/Scheduler/tests/e2e/utils/page-objects.ts:44:33)\u001b[22m\n\u001b[2m    at /Volumes/BestDOC/Scheduler/tests/e2e/critical-flows/patient-management.spec.ts:143:23\u001b[22m"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-09-03T23:58:32.585Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Volumes/BestDOC/Scheduler/test-results/critical-flows-patient-man-fbf4e-th-invalid-Google-Maps-link-chromium/test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/Volumes/BestDOC/Scheduler/test-results/critical-flows-patient-man-fbf4e-th-invalid-Google-Maps-link-chromium/video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/Volumes/BestDOC/Scheduler/test-results/critical-flows-patient-man-fbf4e-th-invalid-Google-Maps-link-chromium/error-context.md"
+                        }
+                      ]
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "34125ff7875f67adf0e5-029731982104d4bf1ab9",
+              "file": "critical-flows/patient-management.spec.ts",
+              "line": 141,
+              "column": 7
+            }
+          ]
+        }
+      ]
     }
   ],
+  "errors": [],
   "stats": {
-    "startTime": "2025-09-03T22:40:37.550Z",
-    "duration": 520.477,
+    "startTime": "2025-09-03T23:57:59.325Z",
+    "duration": 64104.104999999996,
     "expected": 0,
     "skipped": 0,
-    "unexpected": 0,
+    "unexpected": 8,
     "flaky": 0
   }
 }

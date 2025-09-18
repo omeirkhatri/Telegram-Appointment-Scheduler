@@ -20,9 +20,10 @@ export const staffFormSchema = z.object({
 
   specialization: z
     .string()
-    .max(100, 'Specialization must be less than 100 characters')
     .optional()
-    .or(z.literal('')),
+    .refine((val) => !val || val === '' || val.length <= 100, {
+      message: 'Specialization must be less than 100 characters'
+    }),
 
   phone: z
     .string()
@@ -33,59 +34,31 @@ export const staffFormSchema = z.object({
 
   email: z
     .string()
-    .min(1, 'Email is required')
-    .email('Invalid email format')
-    .max(100, 'Email must be less than 100 characters'),
-
-  google_calendar_id: z
-    .string()
-    .email('Invalid Google Calendar ID format')
     .optional()
-    .or(z.literal('')),
+    .refine((val) => !val || val === '' || z.string().email().safeParse(val).success, {
+      message: 'Invalid email format'
+    })
+    .refine((val) => !val || val === '' || val.length <= 255, {
+      message: 'Email must be less than 255 characters'
+    }),
 
-  available_days: z
-    .array(z.number().min(1).max(7))
-    .min(1, 'At least one available day is required')
-    .max(7, 'Cannot select more than 7 days'),
-
-  working_hours_start: z
+  telegram_user_id: z
     .string()
-    .regex(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/, 'Invalid time format (HH:MM)'),
-
-  working_hours_end: z
-    .string()
-    .regex(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/, 'Invalid time format (HH:MM)'),
+    .optional()
+    .refine((val) => !val || val === '' || /^\d+$/.test(val), {
+      message: 'Telegram user ID must be numeric'
+    })
+    .refine((val) => !val || val === '' || val.length <= 20, {
+      message: 'Telegram user ID must be less than 20 characters'
+    }),
 
   status: z.enum(['active', 'inactive']),
 
-  email_notifications_enabled: z.boolean().default(true),
-}).refine(
-  (data) => {
-    const startTime = new Date(`2000-01-01T${data.working_hours_start}:00`);
-    const endTime = new Date(`2000-01-01T${data.working_hours_end}:00`);
-    return startTime < endTime;
-  },
-  {
-    message: 'Working hours start must be before end time',
-    path: ['working_hours_end'],
-  },
-);
+  telegram_verified: z.boolean().default(false),
+});
 
 // Staff update form schema (all fields optional)
-export const staffUpdateFormSchema = staffFormSchema.partial().refine(
-  (data) => {
-    if (data.working_hours_start && data.working_hours_end) {
-      const startTime = new Date(`2000-01-01T${data.working_hours_start}:00`);
-      const endTime = new Date(`2000-01-01T${data.working_hours_end}:00`);
-      return startTime < endTime;
-    }
-    return true;
-  },
-  {
-    message: 'Working hours start must be before end time',
-    path: ['working_hours_end'],
-  },
-);
+export const staffUpdateFormSchema = staffFormSchema.partial();
 
 // Staff search form schema
 export const staffSearchFormSchema = z.object({
@@ -93,7 +66,6 @@ export const staffSearchFormSchema = z.object({
   last_name: z.string().optional(),
   staff_type: z.enum(['doctor', 'nurse', 'physiotherapist', 'caregiver', 'driver', 'lab_technician']).optional(),
   status: z.enum(['active', 'inactive']).optional(),
-  has_google_calendar: z.boolean().optional(),
   available_on_day: z.number().min(1).max(7).optional(),
 });
 
@@ -103,16 +75,7 @@ export const staffFilterFormSchema = z.object({
   last_name: z.string().optional(),
   staff_type: z.enum(['doctor', 'nurse', 'physiotherapist', 'caregiver', 'driver', 'lab_technician']).optional(),
   status: z.enum(['active', 'inactive']).optional(),
-  has_google_calendar: z.boolean().optional(),
   available_on_day: z.number().min(1).max(7).optional(),
-});
-
-// Google Calendar validation schema
-export const googleCalendarValidationSchema = z.object({
-  calendar_id: z
-    .string()
-    .min(1, 'Calendar ID is required')
-    .email('Invalid Google Calendar ID format'),
 });
 
 // Type exports
@@ -120,4 +83,3 @@ export type StaffFormData = z.infer<typeof staffFormSchema>;
 export type StaffUpdateFormData = z.infer<typeof staffUpdateFormSchema>;
 export type StaffSearchFormData = z.infer<typeof staffSearchFormSchema>;
 export type StaffFilterFormData = z.infer<typeof staffFilterFormSchema>;
-export type GoogleCalendarValidationData = z.infer<typeof googleCalendarValidationSchema>;

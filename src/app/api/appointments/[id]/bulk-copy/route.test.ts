@@ -53,7 +53,6 @@ describe('/api/appointments/[id]/bulk-copy', () => {
     driver_id: 'driver-1',
     notes: 'Test notes',
     recurring_rule: null,
-    google_event_ids: {},
     created_at: '2024-01-01T00:00:00Z',
     updated_at: '2024-01-01T00:00:00Z',
   };

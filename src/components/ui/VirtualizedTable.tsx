@@ -118,17 +118,14 @@ export function VirtualizedTable<T>({
     <div className={`bg-[--card] border border-[--border] rounded-xl overflow-hidden shadow-lg ${className}`}>
       {/* Table Header */}
       <div className="bg-[--muted]/50 border-b border-[--border]">
-        <div
-          className="flex"
-          style={{ width: totalWidth }}
-        >
+        <div className="flex w-full">
           {columns.map((column) => (
             <div
               key={column.key}
               className={`py-4 px-6 text-sm font-medium text-[--muted-foreground] ${column.className || ''} ${headerClassName}`}
               style={{
-                width: column.width || 200,
-                minWidth: column.minWidth,
+                width: `${((column.width || 200) / totalWidth) * 100}%`,
+                minWidth: column.minWidth || Math.min(column.width || 200, 120),
                 maxWidth: column.maxWidth,
               }}
             >
@@ -183,8 +180,8 @@ export function VirtualizedTable<T>({
                     key={column.key}
                     className={`py-4 px-6 ${column.className || ''}`}
                     style={{
-                      width: column.width || 200,
-                      minWidth: column.minWidth,
+                      width: `${((column.width || 200) / totalWidth) * 100}%`,
+                      minWidth: column.minWidth || Math.min(column.width || 200, 120),
                       maxWidth: column.maxWidth,
                     }}
                     role="cell"

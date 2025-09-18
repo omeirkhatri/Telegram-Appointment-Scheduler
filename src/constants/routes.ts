@@ -35,8 +35,5 @@ export const ROUTES = {
     PATIENTS: '/api/patients',
     STAFF: '/api/staff',
     APPOINTMENTS: '/api/appointments',
-    WEBHOOKS: {
-      CALENDAR: '/api/webhooks/calendar',
-    },
   },
 } as const;

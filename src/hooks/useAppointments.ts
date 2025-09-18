@@ -1,7 +1,31 @@
 import type { Appointment, CalendarEvent } from '@/types';
 import { getAppointmentTypeDisplayName } from '@/types/appointment';
-import { getAppointmentTypeColor, validateDurationForType } from '@/utils/appointmentTypes';
+import { getAppointmentTypeColor, getDurationConstraints, validateDurationForType } from '@/utils/appointmentTypes';
 import { useCallback, useEffect, useState } from 'react';
+
+// Helper function to snap duration to nearest allowed value
+function snapToNearestAllowedDuration(appointmentType: string, durationMinutes: number): number {
+  const constraints = getDurationConstraints(appointmentType as any);
+
+  if (!constraints.allowedValues) {
+    // If no allowed values, just ensure it's within min/max bounds
+    return Math.max(constraints.min, Math.min(constraints.max, durationMinutes));
+  }
+
+  // Find the closest allowed value
+  let closest = constraints.allowedValues[0];
+  let minDiff = Math.abs(durationMinutes - closest);
+
+  for (const allowedValue of constraints.allowedValues) {
+    const diff = Math.abs(durationMinutes - allowedValue);
+    if (diff < minDiff) {
+      minDiff = diff;
+      closest = allowedValue;
+    }
+  }
+
+  return closest;
+}
 
 interface UseAppointmentsOptions {
   dateFrom?: string;
@@ -41,6 +65,8 @@ export function useAppointments(options: UseAppointmentsOptions = {}): UseAppoin
       if (options.appointmentType) params.append('appointment_type', options.appointmentType);
       if (options.status) params.append('status', options.status);
 
+      // Add cache-busting parameter to ensure fresh data
+      params.append('_t', Date.now().toString());
       const response = await fetch(`/api/appointments?${params.toString()}`);
 
       if (!response.ok) {
@@ -167,6 +193,7 @@ export function useUpdateAppointment() {
     newStart: Date,
     newEnd: Date,
     appointmentType?: string,
+    originalDuration?: number,
   ) => {
     setIsUpdating(true);
     setError(null);
@@ -175,9 +202,33 @@ export function useUpdateAppointment() {
       // Format the new date and time
       const appointmentDate = newStart.toISOString().split('T')[0];
       const startTime = newStart.toTimeString().slice(0, 5); // HH:MM format
-      const durationMinutes = Math.round((newEnd.getTime() - newStart.getTime()) / (1000 * 60));
 
-      // Validate duration against appointment type constraints if type is provided
+      // Use original duration if provided, otherwise calculate from drag distance
+      let durationMinutes = originalDuration || Math.round((newEnd.getTime() - newStart.getTime()) / (1000 * 60));
+
+      // If we have an appointment type and the duration doesn't match allowed values, snap to nearest
+      if (appointmentType) {
+        const validation = validateDurationForType(appointmentType as any, durationMinutes);
+        if (!validation.isValid) {
+          // Snap to nearest allowed duration
+          const originalCalculatedDuration = durationMinutes;
+          durationMinutes = snapToNearestAllowedDuration(appointmentType, durationMinutes);
+          console.log(`Snapped duration from ${originalCalculatedDuration} to ${durationMinutes} minutes for ${appointmentType}`);
+        }
+      }
+
+      console.log('Updating appointment time:', {
+        appointmentId,
+        appointmentDate,
+        startTime,
+        durationMinutes,
+        originalDuration,
+        appointmentType,
+        newStart: newStart.toISOString(),
+        newEnd: newEnd.toISOString()
+      });
+
+      // Final validation
       if (appointmentType) {
         const validation = validateDurationForType(appointmentType as any, durationMinutes);
         if (!validation.isValid) {

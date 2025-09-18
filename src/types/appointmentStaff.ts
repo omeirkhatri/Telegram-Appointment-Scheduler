@@ -7,7 +7,6 @@ export interface AppointmentStaff {
   staff_id: string;
   role: StaffRole;
   is_primary: boolean;
-  google_event_id?: string;
   created_at: string;
   updated_at: string;
 }
@@ -18,7 +17,6 @@ export interface CreateAppointmentStaff {
   staff_id: string;
   role?: StaffRole;
   is_primary?: boolean;
-  google_event_id?: string;
 }
 
 // AppointmentStaff update type (all fields optional except id)
@@ -26,7 +24,6 @@ export interface UpdateAppointmentStaff {
   id: string;
   role?: StaffRole;
   is_primary?: boolean;
-  google_event_id?: string;
 }
 
 // AppointmentStaff search/filter options
@@ -35,7 +32,6 @@ export interface AppointmentStaffFilters {
   staff_id?: string;
   role?: StaffRole;
   is_primary?: boolean;
-  has_google_event_id?: boolean;
 }
 
 // Extended AppointmentStaff with related data
@@ -71,12 +67,6 @@ export function isValidStaffRole(role: string): role is StaffRole {
   return ['primary', 'assistant', 'driver', 'backup'].includes(role);
 }
 
-// Helper function to validate Google Calendar event ID
-export function isValidGoogleEventId(eventId: string): boolean {
-  const eventIdRegex = /^[a-zA-Z0-9_-]+$/;
-  return eventIdRegex.test(eventId);
-}
-
 // Helper function to validate required fields
 export function validateAppointmentStaffData(data: CreateAppointmentStaff): string[] {
   const errors: string[] = [];
@@ -93,17 +83,15 @@ export function validateAppointmentStaffData(data: CreateAppointmentStaff): stri
     errors.push('Invalid staff role');
   }
 
-  if (data.google_event_id && !isValidGoogleEventId(data.google_event_id)) {
-    errors.push('Invalid Google Calendar event ID format');
-  }
+  // Validate role and is_primary consistency (only if role is provided)
+  if (data.role) {
+    if (data.role === 'primary' && data.is_primary === false) {
+      errors.push('Primary role must have is_primary set to true');
+    }
 
-  // Validate role and is_primary consistency
-  if (data.role === 'primary' && data.is_primary === false) {
-    errors.push('Primary role must have is_primary set to true');
-  }
-
-  if (data.role !== 'primary' && data.is_primary === true) {
-    errors.push('Non-primary role cannot have is_primary set to true');
+    if (data.role !== 'primary' && data.is_primary === true) {
+      errors.push('Non-primary role cannot have is_primary set to true');
+    }
   }
 
   return errors;

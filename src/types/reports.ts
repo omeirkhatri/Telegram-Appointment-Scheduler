@@ -18,7 +18,7 @@ export interface DashboardStatistics {
   appointments: AppointmentStatistics;
   patients: PatientStatistics;
   staff: StaffStatistics;
-  emailDelivery: EmailDeliveryStatistics;
+  // emailDelivery: EmailDeliveryStatistics; // Removed - no longer needed
   auditTrail: AuditTrailStatistics;
   systemHealth: SystemHealthStatistics;
 }
@@ -63,17 +63,7 @@ export interface StaffStatistics {
   };
 }
 
-export interface EmailDeliveryStatistics {
-  totalSent: number;
-  successRate: number;
-  failureRate: number;
-  averageDeliveryTime: number;
-  byType: Record<string, number>;
-  trends: {
-    daily: Array<{ date: string; sent: number; delivered: number; failed: number }>;
-    monthly: Array<{ month: string; sent: number; delivered: number; failed: number }>;
-  };
-}
+// EmailDeliveryStatistics removed - no longer needed
 
 export interface AuditTrailStatistics {
   totalOperations: number;

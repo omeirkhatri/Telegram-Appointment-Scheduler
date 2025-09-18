@@ -1,4 +1,3 @@
-import { googleCalendarService } from '@/services/googleCalendarService';
 import { staffService } from '@/services/staffService';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -91,26 +90,6 @@ export async function GET(
           isAvailable = false;
           reason = 'Time slot is outside working hours';
         } else {
-          // Check Google Calendar availability if integrated
-          if (staff.google_calendar_id) {
-            try {
-              const calendarAvailable = await googleCalendarService.checkStaffAvailability(
-                staff,
-                startTime,
-                endTime,
-                date,
-              );
-
-              if (!calendarAvailable) {
-                isAvailable = false;
-                reason = 'Staff member has conflicting appointments';
-              }
-            } catch (error) {
-              console.error('Error checking calendar availability:', error);
-              // If we can't check calendar, assume available but warn
-              reason = 'Calendar availability could not be verified';
-            }
-          }
         }
       }
 

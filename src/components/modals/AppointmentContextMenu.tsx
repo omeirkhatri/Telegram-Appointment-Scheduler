@@ -1,7 +1,7 @@
 'use client';
 
 import type { Appointment } from '@/types';
-import { Copy, Edit, ExternalLink, Printer, Trash2, X } from 'lucide-react';
+import { Copy, Edit, Printer, Trash2, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
 interface AppointmentContextMenuProps {
@@ -11,7 +11,6 @@ interface AppointmentContextMenuProps {
   onEdit?: (appointment: Appointment) => void;
   onCopy?: (appointment: Appointment) => void;
   onCancel?: (appointment: Appointment) => void;
-  onOpenInGoogleCalendar?: (appointment: Appointment) => void;
   onDelete?: (appointment: Appointment) => void;
 }
 
@@ -22,7 +21,6 @@ export function AppointmentContextMenu({
   onEdit,
   onCopy,
   onCancel,
-  onOpenInGoogleCalendar,
   onDelete,
 }: AppointmentContextMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null);
@@ -174,16 +172,6 @@ export function AppointmentContextMenu({
           >
             <Copy className="w-4 h-4 mr-3 text-[--muted-foreground]" />
             Copy Appointment
-          </button>
-        )}
-
-        {onOpenInGoogleCalendar && (
-          <button
-            onClick={() => handleAction(() => onOpenInGoogleCalendar(appointment))}
-            className="w-full flex items-center px-3 py-2 text-sm text-[--foreground] hover:bg-[--accent] transition-colors"
-          >
-            <ExternalLink className="w-4 h-4 mr-3 text-[--muted-foreground]" />
-            Open in Google Calendar
           </button>
         )}
 

@@ -1,6 +1,6 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
-import LoadingPage from './LoadingPage';
+import { LoadingPage } from './LoadingPage';
 
 describe('LoadingPage', () => {
   it('renders with default message', () => {
@@ -24,7 +24,7 @@ describe('LoadingPage', () => {
 
   it('renders loading spinner', () => {
     const { container } = render(<LoadingPage />);
-    const spinner = container.querySelector('svg');
+    const spinner = container.querySelector('[role="status"]');
 
     expect(spinner).toBeInTheDocument();
     expect(spinner).toHaveClass('animate-spin');

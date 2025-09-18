@@ -201,47 +201,6 @@ export class LoggingService {
     });
   }
 
-  /**
-   * Log email operation
-   */
-  emailOperation(
-    operation: string,
-    recipient: string,
-    success: boolean,
-    context: LogContext = {}
-  ): void {
-    const level = success ? 'info' : 'error';
-    this.log(level, `Email ${operation} to ${recipient}`, {
-      ...context,
-      component: 'email',
-      action: operation,
-      metadata: {
-        recipient,
-        success,
-      },
-    });
-  }
-
-  /**
-   * Log calendar operation
-   */
-  calendarOperation(
-    operation: string,
-    eventId: string,
-    success: boolean,
-    context: LogContext = {}
-  ): void {
-    const level = success ? 'info' : 'error';
-    this.log(level, `Calendar ${operation} for event ${eventId}`, {
-      ...context,
-      component: 'calendar',
-      action: operation,
-      metadata: {
-        eventId,
-        success,
-      },
-    });
-  }
 
   /**
    * Core logging method

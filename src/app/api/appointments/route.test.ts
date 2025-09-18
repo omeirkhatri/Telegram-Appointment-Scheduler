@@ -1,6 +1,5 @@
 import { appointmentService } from '@/services/appointmentService';
 import { appointmentStaffService } from '@/services/appointmentStaffService';
-import { googleCalendarService } from '@/services/googleCalendarService';
 import { staffService } from '@/services/staffService';
 import { NextRequest } from 'next/server';
 import { GET, POST } from './route';
@@ -9,12 +8,10 @@ import { GET, POST } from './route';
 jest.mock('@/services/appointmentService');
 jest.mock('@/services/appointmentStaffService');
 jest.mock('@/services/staffService');
-jest.mock('@/services/googleCalendarService');
 
 const mockAppointmentService = appointmentService as jest.Mocked<typeof appointmentService>;
 const mockAppointmentStaffService = appointmentStaffService as jest.Mocked<typeof appointmentStaffService>;
 const mockStaffService = staffService as jest.Mocked<typeof staffService>;
-const mockGoogleCalendarService = googleCalendarService as jest.Mocked<typeof googleCalendarService>;
 
 describe('Appointment API Routes', () => {
   beforeEach(() => {
@@ -37,7 +34,6 @@ describe('Appointment API Routes', () => {
           driver_id: 'driver-1',
           notes: 'Regular checkup',
           recurring_rule: null,
-          google_event_ids: {},
           created_at: '2024-01-01T00:00:00Z',
           updated_at: '2024-01-01T00:00:00Z',
         },
@@ -70,7 +66,6 @@ describe('Appointment API Routes', () => {
           driver_id: 'driver-1',
           notes: 'Regular checkup',
           recurring_rule: null,
-          google_event_ids: {},
           created_at: '2024-01-01T00:00:00Z',
           updated_at: '2024-01-01T00:00:00Z',
         },
@@ -124,7 +119,6 @@ describe('Appointment API Routes', () => {
         driver_id: 'driver-1',
         notes: 'Regular checkup',
         recurring_rule: null,
-        google_event_ids: {},
         created_at: '2024-01-01T00:00:00Z',
         updated_at: '2024-01-01T00:00:00Z',
       };
@@ -173,7 +167,6 @@ describe('Appointment API Routes', () => {
         driver_id: 'driver-1',
         notes: 'Regular checkup',
         recurring_rule: null,
-        google_event_ids: {},
         created_at: '2024-01-01T00:00:00Z',
         updated_at: '2024-01-01T00:00:00Z',
       };
@@ -190,7 +183,6 @@ describe('Appointment API Routes', () => {
         working_hours_start: '09:00',
         working_hours_end: '17:00',
         status: 'active' as const,
-        email_notifications_enabled: true,
         created_at: '2024-01-01T00:00:00Z',
         updated_at: '2024-01-01T00:00:00Z',
       };
@@ -201,14 +193,12 @@ describe('Appointment API Routes', () => {
         staff_id: 'staff-1',
         role: 'primary' as const,
         is_primary: true,
-        google_event_id: 'event-1',
         created_at: '2024-01-01T00:00:00Z',
       };
 
       mockAppointmentService.createAppointment.mockResolvedValue(mockAppointment);
       mockAppointmentService.getAppointment.mockResolvedValue(mockAppointment);
       mockStaffService.getStaffMember.mockResolvedValue(mockStaff);
-      mockGoogleCalendarService.checkStaffAvailability.mockResolvedValue(true);
       mockAppointmentStaffService.assignStaffToAppointment.mockResolvedValue([mockStaffAssignment]);
       mockAppointmentStaffService.getStaffForAppointment.mockResolvedValue([mockStaffAssignment]);
 
@@ -283,7 +273,6 @@ describe('Appointment API Routes', () => {
         driver_id: 'driver-1',
         notes: 'Regular checkup',
         recurring_rule: null,
-        google_event_ids: {},
         created_at: '2024-01-01T00:00:00Z',
         updated_at: '2024-01-01T00:00:00Z',
       };

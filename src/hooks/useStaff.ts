@@ -42,10 +42,6 @@ interface UseStaffReturn {
   setPage: (page: number) => void;
   setPageSize: (size: number) => void;
 
-  // Google Calendar operations
-  validateCalendarId: (calendarId: string) => Promise<boolean>;
-  checkStaffAvailability: (staffId: string, startTime: string, endTime: string, date: string) => Promise<boolean>;
-
   // State management
   refresh: () => void;
   clearError: () => void;
@@ -258,106 +254,40 @@ export function useStaff(options: UseStaffOptions = {}): UseStaffReturn {
       setIsLoading(false);
     }
   }, []);
-
-  // Validate Google Calendar ID
-  const validateCalendarId = useCallback(async (calendarId: string): Promise<boolean> => {
-    try {
-      const response = await fetch('/api/staff/validate-calendar', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ calendarId }),
-      });
-
-      const data = await response.json();
-      return data.success;
-    } catch (err) {
-      return false;
-    }
+  // Filter helpers
+  const updateFilters = useCallback((nextFilters: StaffFilters) => {
+    setFilters(nextFilters);
   }, []);
 
-  // Check staff availability
-  const checkStaffAvailability = useCallback(async (
-    staffId: string,
-    startTime: string,
-    endTime: string,
-    date: string,
-  ): Promise<boolean> => {
-    try {
-      const queryParams = new URLSearchParams();
-      queryParams.append('start_time', startTime);
-      queryParams.append('end_time', endTime);
-      queryParams.append('date', date);
-
-      const response = await fetch(`/api/staff/${staffId}/availability?${queryParams.toString()}`);
-      const data = await response.json();
-
-      if (!data.success) {
-        throw new Error(data.error || 'Failed to check availability');
-      }
-
-      return data.data.isAvailable;
-    } catch (err) {
-      return false;
-    }
-  }, []);
-
-  // Update filters
-  const updateFilters = useCallback((newFilters: StaffFilters) => {
-    setFilters(newFilters);
-    setCurrentPage(1); // Reset to first page when filters change
-  }, []);
-
-  // Clear filters
   const clearFilters = useCallback(() => {
-    setFilters(initialFilters);
-    setSearchTerm('');
-    setCurrentPage(1);
-  }, [initialFilters]);
-
-  // Update search term
-  const updateSearchTerm = useCallback((term: string) => {
-    setSearchTerm(term);
-    setCurrentPage(1); // Reset to first page when search changes
+    setFilters({});
   }, []);
 
-  // Update page
-  const updatePage = useCallback((page: number) => {
+  const setSearchTermSafe = useCallback((term: string) => {
+    setSearchTerm(term);
+  }, []);
+
+  const setPageHandler = useCallback((page: number) => {
     setCurrentPage(page);
   }, []);
 
-  // Update page size
-  const updatePageSize = useCallback((size: number) => {
+  const setPageSizeHandler = useCallback((size: number) => {
     setPageSize(size);
-    setCurrentPage(1); // Reset to first page when page size changes
   }, []);
 
-  // Refresh data
-  const refresh = useCallback(() => {
-    if (searchTerm) {
-      searchStaff(searchTerm);
-    } else {
-      fetchStaff();
-    }
-  }, [searchTerm, searchStaff, fetchStaff]);
+  const refresh = useCallback(async () => {
+    await fetchStaff();
+  }, [fetchStaff]);
 
-  // Clear error
   const clearError = useCallback(() => {
     setError(null);
   }, []);
 
-  // Auto-fetch on mount and when dependencies change
   useEffect(() => {
-    // Only fetch on client-side to prevent hydration mismatches
-    if (typeof window !== 'undefined' && autoFetch) {
-      if (searchTerm) {
-        searchStaff(searchTerm);
-      } else {
-        fetchStaff();
-      }
+    if (autoFetch) {
+      fetchStaff();
     }
-  }, [autoFetch, searchTerm, currentPage, pageSize, fetchStaff, searchStaff]);
+  }, [autoFetch, fetchStaff]);
 
   return {
     // Data
@@ -389,15 +319,11 @@ export function useStaff(options: UseStaffOptions = {}): UseStaffReturn {
     // Filter management
     setFilters: updateFilters,
     clearFilters,
-    setSearchTerm: updateSearchTerm,
+    setSearchTerm: setSearchTermSafe,
 
     // Pagination
-    setPage: updatePage,
-    setPageSize: updatePageSize,
-
-    // Google Calendar operations
-    validateCalendarId,
-    checkStaffAvailability,
+    setPage: setPageHandler,
+    setPageSize: setPageSizeHandler,
 
     // State management
     refresh,

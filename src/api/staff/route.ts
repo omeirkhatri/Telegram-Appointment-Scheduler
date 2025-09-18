@@ -1,4 +1,3 @@
-import { googleCalendarService } from '@/services/googleCalendarService';
 import { staffService } from '@/services/staffService';
 import type { CreateStaff, StaffFilters } from '@/types';
 import { NextRequest, NextResponse } from 'next/server';
@@ -25,10 +24,6 @@ export async function GET(request: NextRequest) {
 
     if (searchParams.has('status')) {
       filters.status = searchParams.get('status') as any;
-    }
-
-    if (searchParams.has('has_google_calendar')) {
-      filters.has_google_calendar = searchParams.get('has_google_calendar') === 'true';
     }
 
     if (searchParams.has('available_on_day')) {
@@ -66,12 +61,10 @@ export async function POST(request: NextRequest) {
       specialization: body.specialization,
       phone: body.phone,
       email: body.email,
-      google_calendar_id: body.google_calendar_id,
       available_days: body.available_days || [1, 2, 3, 4, 5], // Default to Mon-Fri
       working_hours_start: body.working_hours_start || '09:00',
       working_hours_end: body.working_hours_end || '17:00',
       status: body.status || 'active',
-      email_notifications_enabled: body.email_notifications_enabled !== false,
     };
 
     // Validate required fields
@@ -85,32 +78,6 @@ export async function POST(request: NextRequest) {
         },
         { status: 400 },
       );
-    }
-
-    // Validate Google Calendar ID if provided
-    if (staffData.google_calendar_id) {
-      const isValidFormat = googleCalendarService.validateCalendarId(staffData.google_calendar_id);
-      if (!isValidFormat) {
-        return NextResponse.json(
-          {
-            success: false,
-            error: 'Invalid Google Calendar ID format',
-          },
-          { status: 400 },
-        );
-      }
-
-      // Test calendar connection
-      const isConnected = await googleCalendarService.testCalendarConnection(staffData.google_calendar_id);
-      if (!isConnected) {
-        return NextResponse.json(
-          {
-            success: false,
-            error: 'Unable to connect to Google Calendar. Please check the calendar ID and permissions.',
-          },
-          { status: 400 },
-        );
-      }
     }
 
     // Create staff member

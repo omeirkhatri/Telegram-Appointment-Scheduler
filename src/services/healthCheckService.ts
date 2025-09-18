@@ -21,8 +21,7 @@ export interface HealthStatus {
 export interface SystemHealth {
   database: HealthCheck;
   api: HealthCheck;
-  email: HealthCheck;
-  calendar: HealthCheck;
+  telegram: HealthCheck;
   storage: HealthCheck;
   worker: HealthCheck;
   memory: HealthCheck;
@@ -67,8 +66,7 @@ export class HealthCheckService {
       const [
         databaseCheck,
         apiCheck,
-        emailCheck,
-        calendarCheck,
+        telegramCheck,
         storageCheck,
         workerCheck,
         memoryCheck,
@@ -76,8 +74,7 @@ export class HealthCheckService {
       ] = await Promise.allSettled([
         this.checkDatabase(),
         this.checkApi(),
-        this.checkEmail(),
-        this.checkCalendar(),
+        this.checkTelegram(),
         this.checkStorage(),
         this.checkWorker(),
         this.checkMemory(),
@@ -88,8 +85,7 @@ export class HealthCheckService {
       checks.push(
         this.processCheckResult('database', databaseCheck),
         this.processCheckResult('api', apiCheck),
-        this.processCheckResult('email', emailCheck),
-        this.processCheckResult('calendar', calendarCheck),
+        this.processCheckResult('telegram', telegramCheck),
         this.processCheckResult('storage', storageCheck),
         this.processCheckResult('worker', workerCheck),
         this.processCheckResult('memory', memoryCheck),
@@ -216,8 +212,10 @@ export class HealthCheckService {
     const startTime = Date.now();
 
     try {
-      // Test API endpoint
-      const response = await fetch('/api/health', {
+      // Test API endpoint - use full URL for server-side requests
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+      console.log('Health check API URL:', `${baseUrl}/api/health`);
+      const response = await fetch(`${baseUrl}/api/health`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -254,47 +252,44 @@ export class HealthCheckService {
   }
 
   /**
-   * Check email service health
+   * Check Telegram service health
    */
-  private async checkEmail(): Promise<HealthCheck> {
+  private async checkTelegram(): Promise<HealthCheck> {
     const startTime = Date.now();
 
     try {
-      // Check if email service is configured
-      const smtpHost = process.env.SMTP_HOST;
-      const smtpPort = process.env.SMTP_PORT;
-      const smtpUser = process.env.SMTP_USER;
+      // Check if Telegram service is configured
+      const telegramBotToken = process.env.TELEGRAM_BOT_TOKEN;
 
-      if (!smtpHost || !smtpPort || !smtpUser) {
+      if (!telegramBotToken) {
         return {
-          name: 'email',
+          name: 'telegram',
           status: 'unhealthy',
-          message: 'Email service not configured',
+          message: 'Telegram service not configured',
           duration: Date.now() - startTime,
           lastChecked: new Date(),
           metadata: { configured: false },
         };
       }
 
-      // In a real implementation, you would test SMTP connection here
+      // In a real implementation, you would test Telegram API connection here
       // For now, we'll just check configuration
       return {
-        name: 'email',
+        name: 'telegram',
         status: 'healthy',
-        message: 'Email service is configured',
+        message: 'Telegram service is configured',
         duration: Date.now() - startTime,
         lastChecked: new Date(),
         metadata: {
           configured: true,
-          host: smtpHost,
-          port: smtpPort,
+          botToken: telegramBotToken.substring(0, 10) + '...',
         },
       };
     } catch (error) {
       return {
-        name: 'email',
+        name: 'telegram',
         status: 'unhealthy',
-        message: `Email check failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        message: `Telegram check failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
         duration: Date.now() - startTime,
         lastChecked: new Date(),
         metadata: { error: error instanceof Error ? error.message : 'Unknown error' },
@@ -302,51 +297,6 @@ export class HealthCheckService {
     }
   }
 
-  /**
-   * Check calendar service health
-   */
-  private async checkCalendar(): Promise<HealthCheck> {
-    const startTime = Date.now();
-
-    try {
-      // Check if Google Calendar is configured
-      const googleClientId = process.env.GOOGLE_CLIENT_ID;
-      const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET;
-
-      if (!googleClientId || !googleClientSecret) {
-        return {
-          name: 'calendar',
-          status: 'unhealthy',
-          message: 'Google Calendar not configured',
-          duration: Date.now() - startTime,
-          lastChecked: new Date(),
-          metadata: { configured: false },
-        };
-      }
-
-      // In a real implementation, you would test Google Calendar API here
-      return {
-        name: 'calendar',
-        status: 'healthy',
-        message: 'Google Calendar is configured',
-        duration: Date.now() - startTime,
-        lastChecked: new Date(),
-        metadata: {
-          configured: true,
-          clientId: googleClientId,
-        },
-      };
-    } catch (error) {
-      return {
-        name: 'calendar',
-        status: 'unhealthy',
-        message: `Calendar check failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        duration: Date.now() - startTime,
-        lastChecked: new Date(),
-        metadata: { error: error instanceof Error ? error.message : 'Unknown error' },
-      };
-    }
-  }
 
   /**
    * Check storage health
@@ -398,8 +348,9 @@ export class HealthCheckService {
     const startTime = Date.now();
 
     try {
-      // Check if worker is running
-      const response = await fetch('/api/worker/status', {
+      // Check if worker is running - use full URL for server-side requests
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+      const response = await fetch(`${baseUrl}/api/worker/status`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',

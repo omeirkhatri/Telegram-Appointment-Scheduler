@@ -126,31 +126,12 @@ function isConfigured(value) {
   return value !== undefined && value !== null && value !== '';
 }
 
-function validateGoogleCalendarConfig(env) {
-  const hasServiceAccount = isConfigured(env.GOOGLE_CALENDAR_SERVICE_ACCOUNT_EMAIL) &&
-                           isConfigured(env.GOOGLE_CALENDAR_PRIVATE_KEY) &&
-                           isConfigured(env.GOOGLE_CALENDAR_PROJECT_ID);
+function validateTelegramConfig(env) {
+  const hasTelegramConfig = isConfigured(env.TELEGRAM_BOT_TOKEN);
 
-  const hasOAuth = isConfigured(env.GOOGLE_CALENDAR_CLIENT_ID) &&
-                  isConfigured(env.GOOGLE_CALENDAR_CLIENT_SECRET);
-
-  if (!hasServiceAccount && !hasOAuth) {
-    addWarning('Google Calendar API is not configured. Calendar integration will not work.', 'GOOGLE_CALENDAR_*');
-    addSuggestion('Configure either service account authentication or OAuth2 client authentication for Google Calendar integration.');
-  } else if (hasServiceAccount && hasOAuth) {
-    addWarning('Both service account and OAuth2 authentication are configured. Service account will be used by default.');
-  }
-}
-
-function validateEmailConfig(env) {
-  const hasEmailConfig = isConfigured(env.SMTP_HOST) &&
-                        isConfigured(env.SMTP_PORT) &&
-                        isConfigured(env.SMTP_USER) &&
-                        isConfigured(env.SMTP_PASS);
-
-  if (!hasEmailConfig) {
-    addWarning('Email configuration is incomplete. Daily agenda emails and notifications will not work.', 'SMTP_*');
-    addSuggestion('Configure SMTP settings for email functionality.');
+  if (!hasTelegramConfig) {
+    addWarning('Telegram Bot Token is not configured. Telegram notifications will not work.', 'TELEGRAM_BOT_TOKEN');
+    addSuggestion('Configure Telegram Bot Token for notification functionality.');
   }
 }
 
@@ -159,9 +140,9 @@ function validateSecurityConfig(env) {
     addError('JWT_SECRET is required in production environment.', 'JWT_SECRET');
   }
 
-  if (!isConfigured(env.GOOGLE_CALENDAR_WEBHOOK_SECRET)) {
-    addWarning('Google Calendar webhook secret is not configured. Webhook security may be compromised.', 'GOOGLE_CALENDAR_WEBHOOK_SECRET');
-    addSuggestion('Generate a secure random string for webhook validation.');
+  if (!isConfigured(env.TELEGRAM_WEBHOOK_SECRET)) {
+    addWarning('Telegram webhook secret is not configured. Webhook security may be compromised.', 'TELEGRAM_WEBHOOK_SECRET');
+    addSuggestion('Generate a secure random string for Telegram webhook validation.');
   }
 }
 
@@ -232,8 +213,7 @@ function validateEnvironment() {
     });
 
     // Additional validations
-    validateGoogleCalendarConfig(env);
-    validateEmailConfig(env);
+    validateTelegramConfig(env);
     validateSecurityConfig(env);
     validateSupabaseConfig(env);
     validateDockerConfig(env);

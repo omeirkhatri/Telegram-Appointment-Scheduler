@@ -1,19 +1,19 @@
-import {
-  formatPrintDate,
-  formatPrintTime,
-  getPrintEndTime,
-  formatAppointmentTypeForPrint,
-  getAppointmentTypePrintClass,
-  formatPatientAddressForPrint,
-  formatStaffNameForPrint,
-  formatStaffTypeForPrint,
-  formatTransportationForPrint,
-  formatCustomFieldsForPrint,
-  generateAppointmentPrintSummary,
-  generateAgendaPrintData,
-  printUtils,
-} from './printUtils';
 import type { Appointment, Patient, Staff } from '@/types';
+import {
+    formatAppointmentTypeForPrint,
+    formatCustomFieldsForPrint,
+    formatPatientAddressForPrint,
+    formatPrintDate,
+    formatPrintTime,
+    formatStaffNameForPrint,
+    formatStaffTypeForPrint,
+    formatTransportationForPrint,
+    generateAgendaPrintData,
+    generateAppointmentPrintSummary,
+    getAppointmentTypePrintClass,
+    getPrintEndTime,
+    printUtils,
+} from './printUtils';
 
 // Mock data
 const mockPatient: Patient = {
@@ -40,12 +40,10 @@ const mockStaff: Staff = {
   specialization: 'Cardiology',
   phone: '+971501234569',
   email: 'ahmed@medicare.com',
-  google_calendar_id: 'ahmed@medicare.com',
   available_days: [1, 2, 3, 4, 5],
   working_hours_start: '09:00',
   working_hours_end: '17:00',
   status: 'active',
-  email_notifications_enabled: true,
   created_at: '2024-01-01T00:00:00Z',
   updated_at: '2024-01-01T00:00:00Z',
 };
@@ -58,12 +56,10 @@ const mockDriver: Staff = {
   specialization: null,
   phone: '+971501234570',
   email: 'mohammed@medicare.com',
-  google_calendar_id: 'mohammed@medicare.com',
   available_days: [1, 2, 3, 4, 5, 6, 7],
   working_hours_start: '06:00',
   working_hours_end: '22:00',
   status: 'active',
-  email_notifications_enabled: true,
   created_at: '2024-01-01T00:00:00Z',
   updated_at: '2024-01-01T00:00:00Z',
 };
@@ -85,7 +81,6 @@ const mockAppointment: Appointment = {
   driver_id: 'driver-1',
   notes: 'Patient prefers morning appointments',
   recurring_rule: null,
-  google_event_ids: {},
   created_at: '2024-01-01T00:00:00Z',
   updated_at: '2024-01-01T00:00:00Z',
 };
@@ -329,9 +324,9 @@ describe('printUtils', () => {
 
       it('should handle missing element', () => {
         const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
-        
+
         printUtils.printElement('non-existent');
-        
+
         expect(consoleSpy).toHaveBeenCalledWith('Element with id "non-existent" not found');
         consoleSpy.mockRestore();
       });
@@ -352,7 +347,7 @@ describe('printUtils', () => {
         });
 
         printUtils.printElement('test-element');
-        
+
         expect(mockOpen).toHaveBeenCalledWith('', '_blank');
       });
     });

@@ -105,7 +105,6 @@ describe('Supabase Mocking Utilities', () => {
           transportation_type: 'driver',
         });
         expect(appointment.custom_fields).toBeDefined();
-        expect(appointment.google_event_ids).toBeDefined();
       });
     });
 
@@ -119,7 +118,6 @@ describe('Supabase Mocking Utilities', () => {
           staff_id: 'test-staff-id',
           role: 'primary',
           is_primary: true,
-          google_event_id: 'test-event-id',
         });
       });
     });

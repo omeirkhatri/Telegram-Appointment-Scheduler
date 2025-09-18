@@ -1,6 +1,6 @@
+import type { Appointment, Patient, Staff } from '@/types';
 import { render, screen } from '@testing-library/react';
 import { PrintableAgenda } from './PrintableAgenda';
-import type { Appointment, Patient, Staff } from '@/types';
 
 // Mock data
 const mockStaff: Staff = {
@@ -11,12 +11,10 @@ const mockStaff: Staff = {
   specialization: 'Cardiology',
   phone: '+971501234569',
   email: 'ahmed@medicare.com',
-  google_calendar_id: 'ahmed@medicare.com',
   available_days: [1, 2, 3, 4, 5],
   working_hours_start: '09:00',
   working_hours_end: '17:00',
   status: 'active',
-  email_notifications_enabled: true,
   created_at: '2024-01-01T00:00:00Z',
   updated_at: '2024-01-01T00:00:00Z',
 };
@@ -53,7 +51,6 @@ const mockAppointment: Appointment = {
   driver_id: 'driver-1',
   notes: 'Patient prefers morning appointments',
   recurring_rule: null,
-  google_event_ids: {},
   created_at: '2024-01-01T00:00:00Z',
   updated_at: '2024-01-01T00:00:00Z',
 };
@@ -66,12 +63,10 @@ const mockDriver: Staff = {
   specialization: null,
   phone: '+971501234570',
   email: 'mohammed@medicare.com',
-  google_calendar_id: 'mohammed@medicare.com',
   available_days: [1, 2, 3, 4, 5, 6, 7],
   working_hours_start: '06:00',
   working_hours_end: '22:00',
   status: 'active',
-  email_notifications_enabled: true,
   created_at: '2024-01-01T00:00:00Z',
   updated_at: '2024-01-01T00:00:00Z',
 };
@@ -96,10 +91,10 @@ describe('PrintableAgenda', () => {
 
   it('should render agenda header with staff information', async () => {
     render(<PrintableAgenda {...defaultProps} />);
-    
+
     // Wait for client-side rendering
     await new Promise(resolve => setTimeout(resolve, 0));
-    
+
     expect(screen.getByText('MediCare Scheduler')).toBeInTheDocument();
     expect(screen.getByText('Daily Appointment Agenda')).toBeInTheDocument();
     expect(screen.getByText('Schedule for 15/01/2024')).toBeInTheDocument();
@@ -111,10 +106,10 @@ describe('PrintableAgenda', () => {
 
   it('should render appointment details', async () => {
     render(<PrintableAgenda {...defaultProps} />);
-    
+
     // Wait for client-side rendering
     await new Promise(resolve => setTimeout(resolve, 0));
-    
+
     expect(screen.getByText('10:00')).toBeInTheDocument();
     expect(screen.getByText('11:00')).toBeInTheDocument();
     expect(screen.getByText('Doctor On Call')).toBeInTheDocument();
@@ -126,56 +121,56 @@ describe('PrintableAgenda', () => {
 
   it('should render staff assignments', async () => {
     render(<PrintableAgenda {...defaultProps} />);
-    
+
     // Wait for client-side rendering
     await new Promise(resolve => setTimeout(resolve, 0));
-    
+
     expect(screen.getByText('Dr. Ahmed Hassan (+971501234569)')).toBeInTheDocument();
   });
 
   it('should render transportation information', async () => {
     render(<PrintableAgenda {...defaultProps} />);
-    
+
     // Wait for client-side rendering
     await new Promise(resolve => setTimeout(resolve, 0));
-    
+
     expect(screen.getByText('Driver: Mohammed Ali')).toBeInTheDocument();
   });
 
   it('should render custom fields', async () => {
     render(<PrintableAgenda {...defaultProps} />);
-    
+
     // Wait for client-side rendering
     await new Promise(resolve => setTimeout(resolve, 0));
-    
+
     expect(screen.getByText('Chief Complaint:')).toBeInTheDocument();
     expect(screen.getByText('Chest pain')).toBeInTheDocument();
   });
 
   it('should render notes', async () => {
     render(<PrintableAgenda {...defaultProps} />);
-    
+
     // Wait for client-side rendering
     await new Promise(resolve => setTimeout(resolve, 0));
-    
+
     expect(screen.getByText('Patient prefers morning appointments')).toBeInTheDocument();
   });
 
   it('should render appointment ID', async () => {
     render(<PrintableAgenda {...defaultProps} />);
-    
+
     // Wait for client-side rendering
     await new Promise(resolve => setTimeout(resolve, 0));
-    
+
     expect(screen.getByText('Appointment ID: appointment-1')).toBeInTheDocument();
   });
 
   it('should render summary with total appointments', async () => {
     render(<PrintableAgenda {...defaultProps} />);
-    
+
     // Wait for client-side rendering
     await new Promise(resolve => setTimeout(resolve, 0));
-    
+
     expect(screen.getByText('Total: 1 appointment')).toBeInTheDocument();
   });
 
@@ -184,12 +179,12 @@ describe('PrintableAgenda', () => {
       ...defaultProps,
       appointments: [],
     };
-    
+
     render(<PrintableAgenda {...emptyProps} />);
-    
+
     // Wait for client-side rendering
     await new Promise(resolve => setTimeout(resolve, 0));
-    
+
     expect(screen.getByText('No appointments scheduled')).toBeInTheDocument();
     expect(screen.getByText('You have no appointments scheduled for 15/01/2024.')).toBeInTheDocument();
   });
@@ -216,10 +211,10 @@ describe('PrintableAgenda', () => {
     };
 
     render(<PrintableAgenda {...multipleProps} />);
-    
+
     // Wait for client-side rendering
     await new Promise(resolve => setTimeout(resolve, 0));
-    
+
     expect(screen.getByText('Total: 2 appointments')).toBeInTheDocument();
     expect(screen.getByText('10:00')).toBeInTheDocument();
     expect(screen.getByText('11:00')).toBeInTheDocument();
@@ -229,10 +224,10 @@ describe('PrintableAgenda', () => {
 
   it('should apply custom className', async () => {
     render(<PrintableAgenda {...defaultProps} className="custom-class" />);
-    
+
     // Wait for client-side rendering
     await new Promise(resolve => setTimeout(resolve, 0));
-    
+
     const agendaElement = screen.getByText('MediCare Scheduler').closest('.print-agenda');
     expect(agendaElement).toHaveClass('custom-class');
   });

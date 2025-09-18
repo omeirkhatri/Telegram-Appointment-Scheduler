@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/supabase';
-import type { Staff, CreateStaff, UpdateStaff, StaffFilters } from '@/types';
+import type { CreateStaff, Staff, StaffFilters, UpdateStaff } from '@/types';
 
 export class StaffService {
   // Get all staff with optional filtering
@@ -26,17 +26,8 @@ export class StaffService {
       query = query.eq('status', filters.status);
     }
 
-    if (filters?.has_google_calendar !== undefined) {
-      if (filters.has_google_calendar) {
-        query = query.not('google_calendar_id', 'is', null);
-      } else {
-        query = query.is('google_calendar_id', null);
-      }
-    }
 
-    if (filters?.available_on_day) {
-      query = query.contains('available_days', [filters.available_on_day]);
-    }
+    // Note: available_days filter removed as it's not needed
 
     const { data, error } = await query;
 
@@ -53,13 +44,26 @@ export class StaffService {
       .from('staff')
       .select('*')
       .eq('id', id)
-      .single();
+      .maybeSingle();
 
     if (error) {
-      if (error.code === 'PGRST116') {
-        return null; // Staff member not found
-      }
       throw new Error(`Failed to fetch staff member: ${error.message}`);
+    }
+
+    return data;
+  }
+
+  // Get a staff member by Telegram user ID
+  async getStaffByTelegramUserId(telegramUserId: string): Promise<Staff | null> {
+    const { data, error } = await supabase
+      .from('staff')
+      .select('*')
+      .eq('telegram_user_id', telegramUserId)
+      .eq('status', 'active')
+      .maybeSingle();
+
+    if (error) {
+      throw new Error(`Failed to fetch staff by Telegram user ID: ${error.message}`);
     }
 
     return data;
@@ -82,15 +86,25 @@ export class StaffService {
 
   // Update an existing staff member
   async updateStaff(id: string, updates: Partial<UpdateStaff>): Promise<Staff> {
+    // First check if the staff member exists
+    const existingStaff = await this.getStaffMember(id);
+    if (!existingStaff) {
+      throw new Error('Staff member not found');
+    }
+
     const { data, error } = await supabase
       .from('staff')
       .update(updates)
       .eq('id', id)
       .select()
-      .single();
+      .maybeSingle();
 
     if (error) {
       throw new Error(`Failed to update staff member: ${error.message}`);
+    }
+
+    if (!data) {
+      throw new Error('Staff member not found');
     }
 
     return data;
@@ -139,21 +153,6 @@ export class StaffService {
     return data || [];
   }
 
-  // Get staff with Google Calendar integration
-  async getStaffWithGoogleCalendar(): Promise<Staff[]> {
-    const { data, error } = await supabase
-      .from('staff')
-      .select('*')
-      .not('google_calendar_id', 'is', null)
-      .eq('status', 'active')
-      .order('first_name', { ascending: true });
-
-    if (error) {
-      throw new Error(`Failed to fetch staff with Google Calendar: ${error.message}`);
-    }
-
-    return data || [];
-  }
 
   // Get staff available on a specific day
   async getStaffAvailableOnDay(day: number): Promise<Staff[]> {
@@ -201,37 +200,7 @@ export class StaffService {
     return types.sort();
   }
 
-  // Update Google Calendar ID for a staff member
-  async updateGoogleCalendarId(id: string, googleCalendarId: string): Promise<Staff> {
-    const { data, error } = await supabase
-      .from('staff')
-      .update({ google_calendar_id: googleCalendarId })
-      .eq('id', id)
-      .select()
-      .single();
 
-    if (error) {
-      throw new Error(`Failed to update Google Calendar ID: ${error.message}`);
-    }
-
-    return data;
-  }
-
-  // Toggle email notifications for a staff member
-  async toggleEmailNotifications(id: string, enabled: boolean): Promise<Staff> {
-    const { data, error } = await supabase
-      .from('staff')
-      .update({ email_notifications_enabled: enabled })
-      .eq('id', id)
-      .select()
-      .single();
-
-    if (error) {
-      throw new Error(`Failed to toggle email notifications: ${error.message}`);
-    }
-
-    return data;
-  }
 
   // Get staff working hours
   async getStaffWorkingHours(id: string): Promise<{ start: string; end: string } | null> {

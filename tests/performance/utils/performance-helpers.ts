@@ -50,18 +50,6 @@ export const CALENDAR_THRESHOLDS: PerformanceThresholds = {
   speedIndex: 1000, // < 1s SI
 };
 
-/**
- * Google Calendar sync performance thresholds
- */
-export const GOOGLE_SYNC_THRESHOLDS: PerformanceThresholds = {
-  loadTime: 5000, // < 5s Google sync latency
-  firstContentfulPaint: 3000, // < 3s FCP
-  largestContentfulPaint: 4000, // < 4s LCP
-  firstInputDelay: 200, // < 200ms FID
-  cumulativeLayoutShift: 0.1, // < 0.1 CLS
-  totalBlockingTime: 500, // < 500ms TBT
-  speedIndex: 3000, // < 3s SI
-};
 
 /**
  * Measure page load performance using Web Vitals
@@ -150,40 +138,6 @@ export async function measureCalendarPerformance(page: Page, eventCount: number)
   return metrics;
 }
 
-/**
- * Measure Google Calendar sync performance
- */
-export async function measureGoogleSyncPerformance(page: Page): Promise<PerformanceMetrics> {
-  const startTime = Date.now();
-
-  // Create an appointment to trigger Google Calendar sync
-  await page.goto('/appointments');
-  await page.click('[data-testid="new-appointment-button"]');
-
-  // Fill appointment form
-  await page.selectOption('[data-testid="appointment-type"]', 'Doctor on Call');
-  await page.fill('[data-testid="appointment-date"]', '2024-12-25');
-  await page.fill('[data-testid="appointment-start-time"]', '10:00');
-
-  // Submit form and measure sync time
-  await page.click('[data-testid="appointment-submit"]');
-
-  // Wait for Google Calendar sync to complete
-  await page.waitForSelector('[data-testid="google-calendar-sync-status"]', { timeout: 10000 });
-
-  const endTime = Date.now();
-  const syncTime = endTime - startTime;
-
-  return {
-    loadTime: syncTime,
-    firstContentfulPaint: 0,
-    largestContentfulPaint: 0,
-    firstInputDelay: 0,
-    cumulativeLayoutShift: 0,
-    totalBlockingTime: 0,
-    speedIndex: 0,
-  };
-}
 
 /**
  * Assert performance metrics against thresholds

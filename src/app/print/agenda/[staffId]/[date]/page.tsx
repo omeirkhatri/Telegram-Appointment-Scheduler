@@ -38,7 +38,7 @@ export default async function PrintAgendaPage({ params }: PrintAgendaPageProps) 
     for (const appointment of appointments) {
       const staffAssignments = await appointmentStaffService.getStaffForAppointment(appointment.id);
       const isAssignedToStaff = staffAssignments.some(assignment => assignment.staff_id === params.staffId);
-      
+
       if (isAssignedToStaff) {
         // Get patient
         const patient = await patientService.getPatient(appointment.patient_id);
@@ -68,7 +68,7 @@ export default async function PrintAgendaPage({ params }: PrintAgendaPageProps) 
     }
 
     // Sort appointments by start time
-    staffAppointments.sort((a, b) => 
+    staffAppointments.sort((a, b) =>
       a.appointment.start_time.localeCompare(b.appointment.start_time)
     );
 
@@ -92,7 +92,7 @@ export async function generateMetadata({ params }: PrintAgendaPageProps) {
   try {
     const staff = await staffService.getStaff(params.staffId);
     const agendaDate = new Date(params.date);
-    
+
     if (!staff || isNaN(agendaDate.getTime())) {
       return {
         title: 'Agenda Not Found',

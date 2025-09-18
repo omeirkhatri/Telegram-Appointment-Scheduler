@@ -32,7 +32,7 @@ services:
 
   # Supabase Database
   supabase-db:
-    image: supabase/postgres:17.1.0.117
+    image: postgres:17
     ports:
       - "54322:5432"
     environment:

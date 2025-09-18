@@ -1,9 +1,10 @@
 'use client';
 
+import { TimePicker } from '@/components/ui/TimePicker';
 import { appointmentFormSchema, type AppointmentFormData } from '@/lib/validations/appointment';
-import type { Appointment, Patient, Staff } from '@/types';
+import type { Appointment, Patient, Staff, StaffAssignment } from '@/types';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useFieldArray, useForm } from 'react-hook-form';
 import { RecurrenceRuleBuilder } from './RecurrenceRuleBuilder';
 
@@ -14,6 +15,7 @@ interface AppointmentFormProps {
   onSubmit: (data: AppointmentFormData) => Promise<void>;
   onCancel: () => void;
   isLoading?: boolean;
+  staffAssignments?: StaffAssignment[];
 }
 
 const APPOINTMENT_TYPES = [
@@ -52,8 +54,10 @@ export function AppointmentForm({
   onSubmit,
   onCancel,
   isLoading = false,
+  staffAssignments = [],
 }: AppointmentFormProps) {
   const [showCustomFields, setShowCustomFields] = useState(false);
+
 
   // Helper function to calculate end time from start time and duration
   const calculateEndTime = (startTime: string, durationMinutes: number): string => {
@@ -70,6 +74,35 @@ export function AppointmentForm({
     return `${endHours.toString().padStart(2, '0')}:${endMins.toString().padStart(2, '0')}`;
   };
 
+  // Helper function to calculate duration from start and end times
+  const calculateDuration = () => {
+    const startTime = watch('start_time');
+    const endTime = watch('end_time');
+
+    if (startTime && endTime) {
+      const [startHours, startMinutes] = startTime.split(':').map(Number);
+      const [endHours, endMinutes] = endTime.split(':').map(Number);
+
+      const startTimeInMinutes = startHours * 60 + startMinutes;
+      const endTimeInMinutes = endHours * 60 + endMinutes;
+
+      const duration = endTimeInMinutes - startTimeInMinutes;
+
+      if (duration > 0) {
+        setValue('duration_minutes', duration);
+      }
+    }
+  };
+
+  // Helper function to update end time when duration changes
+  const updateEndTimeFromDuration = (duration: number) => {
+    const startTime = watch('start_time');
+    if (startTime && duration > 0) {
+      const endTime = calculateEndTime(startTime, duration);
+      setValue('end_time', endTime, { shouldValidate: true });
+    }
+  };
+
   const {
     register,
     handleSubmit,
@@ -84,19 +117,45 @@ export function AppointmentForm({
       patient_id: appointment?.patient_id || '',
       appointment_type: appointment?.appointment_type || 'doctor_on_call',
       appointment_date: appointment?.appointment_date || '',
-      start_time: appointment?.start_time || '',
-      end_time: appointment?.end_time || calculateEndTime(appointment?.start_time || '', appointment?.duration_minutes || 60),
+      start_time: appointment?.start_time || '09:00',
+      end_time: appointment?.end_time || calculateEndTime(appointment?.start_time || '09:00', appointment?.duration_minutes || 60),
       duration_minutes: appointment?.duration_minutes || 60,
       status: appointment?.status || 'scheduled',
       transportation_type: appointment?.transportation_type || undefined,
       transportation_method: appointment?.transportation_method || '',
       driver_id: appointment?.driver_id || '',
       notes: appointment?.notes || '',
+      mini_notes: appointment?.mini_notes || '',
+      full_notes: appointment?.full_notes || '',
+      pickup_instructions: appointment?.pickup_instructions || '',
       custom_fields: appointment?.custom_fields || {},
       recurring_rule: appointment?.recurring_rule || undefined,
-      staff_assignments: appointment ? [] : [],
+      staff_assignments: staffAssignments && staffAssignments.length > 0 ? staffAssignments : undefined,
     },
+    mode: 'onSubmit', // Only validate on submit to avoid premature validation
   });
+
+  // Debug form state
+  console.log('Form errors:', errors);
+  console.log('Form isSubmitting:', isSubmitting);
+  console.log('Appointment data:', appointment);
+
+  // Ensure form is properly initialized when editing
+  useEffect(() => {
+    if (appointment) {
+      // Set the time values explicitly to ensure they're in the correct format
+      // Use a small delay to ensure the form is fully initialized
+      setTimeout(() => {
+        if (appointment.start_time) {
+          setValue('start_time', appointment.start_time, { shouldValidate: false });
+        }
+        if (appointment.end_time) {
+          setValue('end_time', appointment.end_time, { shouldValidate: false });
+        }
+      }, 100);
+    }
+  }, [appointment, setValue]);
+
 
   const { fields, append, remove } = useFieldArray({
     control,
@@ -107,30 +166,17 @@ export function AppointmentForm({
   const watchedTransportationType = watch('transportation_type');
   const watchedRecurringRule = watch('recurring_rule');
 
-  // Calculate duration from start and end times
-  const calculateDuration = () => {
-    const startTime = watch('start_time');
-    const endTime = watch('end_time');
+  // Stabilize the recurring rule value to prevent infinite re-renders
+  const stableRecurringRule = useMemo(() => watchedRecurringRule, [
+    watchedRecurringRule?.frequency,
+    watchedRecurringRule?.interval,
+    watchedRecurringRule?.days_of_week,
+    watchedRecurringRule?.day_of_month,
+    watchedRecurringRule?.month_of_year,
+    watchedRecurringRule?.end_date,
+    watchedRecurringRule?.end_occurrences,
+  ]);
 
-    if (startTime && endTime) {
-      const [startHours, startMinutes] = startTime.split(':').map(Number);
-      const [endHours, endMinutes] = endTime.split(':').map(Number);
-
-      const startTotalMinutes = startHours * 60 + startMinutes;
-      const endTotalMinutes = endHours * 60 + endMinutes;
-
-      let duration = endTotalMinutes - startTotalMinutes;
-
-      // Handle case where end time is next day (e.g., 23:00 to 01:00)
-      if (duration < 0) {
-        duration += 24 * 60; // Add 24 hours in minutes
-      }
-
-      if (duration > 0) {
-        setValue('duration_minutes', duration);
-      }
-    }
-  };
 
   // Filter staff by appointment type
   const filteredStaff = staff.filter(s => {
@@ -156,8 +202,11 @@ export function AppointmentForm({
   const drivers = staff.filter(s => s.staff_type === 'driver' && s.status === 'active');
 
   const handleFormSubmit = async (data: AppointmentFormData) => {
+    console.log('Form submitted with data:', data);
+
     try {
       await onSubmit(data);
+      console.log('Form submission successful');
       reset();
     } catch (error) {
       console.error('Form submission error:', error);
@@ -199,6 +248,7 @@ export function AppointmentForm({
       <div className="bg-white p-6 rounded-lg shadow-sm border">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">Appointment Details</h3>
 
+        {/* Patient and Appointment Type Row */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label htmlFor="patient_id" className="block text-sm font-medium text-gray-700 mb-1">
@@ -244,7 +294,10 @@ export function AppointmentForm({
               <p className="mt-1 text-sm text-red-600">{errors.appointment_type.message}</p>
             )}
           </div>
+        </div>
 
+        {/* Appointment Date Row */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label htmlFor="appointment_date" className="block text-sm font-medium text-gray-700 mb-1">
               Appointment Date *
@@ -261,65 +314,76 @@ export function AppointmentForm({
               <p className="mt-1 text-sm text-red-600">{errors.appointment_date.message}</p>
             )}
           </div>
+        </div>
 
-          <div>
-            <label htmlFor="start_time" className="block text-sm font-medium text-gray-700 mb-1">
+        {/* Start Time and End Time Row */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+            <label htmlFor="start_time" className="block text-sm font-medium text-blue-800 mb-2">
               Start Time *
             </label>
-            <input
-              {...register('start_time')}
-              type="time"
-              id="start_time"
-              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-900 font-medium ${
-                errors.start_time ? 'border-red-500' : 'border-gray-300'
-              }`}
-              onChange={(e) => {
-                register('start_time').onChange(e);
+            <TimePicker
+              value={watch('start_time') || '09:00'}
+              onChange={(time) => {
+                setValue('start_time', time, { shouldValidate: true });
                 calculateDuration();
               }}
+              disabled={isSubmitting}
+              className={errors.start_time ? 'border-red-500' : ''}
             />
             {errors.start_time && (
               <p className="mt-1 text-sm text-red-600">{errors.start_time.message}</p>
             )}
           </div>
 
-          <div>
-            <label htmlFor="end_time" className="block text-sm font-medium text-gray-700 mb-1">
+          <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+            <label htmlFor="end_time" className="block text-sm font-medium text-green-800 mb-2">
               End Time *
             </label>
-            <input
-              {...register('end_time')}
-              type="time"
-              id="end_time"
-              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-900 font-medium ${
-                errors.end_time ? 'border-red-500' : 'border-gray-300'
-              }`}
-              onChange={(e) => {
-                register('end_time').onChange(e);
+            <TimePicker
+              value={watch('end_time') || '10:00'}
+              onChange={(time) => {
+                setValue('end_time', time, { shouldValidate: true });
                 calculateDuration();
               }}
+              disabled={isSubmitting}
+              className={errors.end_time ? 'border-red-500' : ''}
             />
             {errors.end_time && (
               <p className="mt-1 text-sm text-red-600">{errors.end_time.message}</p>
             )}
           </div>
+        </div>
 
+        {/* Duration and Status Row */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label htmlFor="duration_minutes" className="block text-sm font-medium text-gray-700 mb-1">
               Duration (minutes) *
             </label>
             <input
-              {...register('duration_minutes', { valueAsNumber: true })}
+              {...register('duration_minutes', {
+                valueAsNumber: true,
+                onChange: (e) => {
+                  const duration = parseInt(e.target.value) || 0;
+                  // Round to nearest 15-minute interval
+                  const roundedDuration = Math.round(duration / 15) * 15;
+                  if (roundedDuration !== duration) {
+                    e.target.value = roundedDuration.toString();
+                  }
+                  updateEndTimeFromDuration(roundedDuration);
+                }
+              })}
               type="number"
               id="duration_minutes"
-              min="1"
+              min="15"
               max="1440"
-              readOnly
-              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 text-gray-900 font-medium ${
+              step="15"
+              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-900 font-medium ${
                 errors.duration_minutes ? 'border-red-500' : 'border-gray-300'
               }`}
             />
-            <p className="mt-1 text-xs text-gray-500">Automatically calculated from start and end times</p>
+            <p className="mt-1 text-xs text-gray-500">Editable in 15-minute intervals. Changes end time.</p>
             {errors.duration_minutes && (
               <p className="mt-1 text-sm text-red-600">{errors.duration_minutes.message}</p>
             )}
@@ -332,7 +396,7 @@ export function AppointmentForm({
             <select
               {...register('status')}
               id="status"
-              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-900 font-medium ${
                 errors.status ? 'border-red-500' : 'border-gray-300'
               }`}
             >
@@ -516,32 +580,116 @@ export function AppointmentForm({
 
       {/* Recurring Options */}
       <RecurrenceRuleBuilder
-        value={watchedRecurringRule}
+        value={stableRecurringRule}
         onChange={(rule) => setValue('recurring_rule', rule)}
         baseDate={watch('appointment_date') || new Date().toISOString().split('T')[0]}
         disabled={isLoading}
       />
 
-      {/* Notes */}
+      {/* Notes and Instructions */}
       <div className="bg-white p-6 rounded-lg shadow-sm border">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Notes</h3>
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">Notes and Instructions</h3>
 
-        <div>
-          <label htmlFor="notes" className="block text-sm font-medium text-gray-700 mb-1">
-            Appointment Notes
-          </label>
-          <textarea
-            {...register('notes')}
-            id="notes"
-            rows={3}
-            className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-              errors.notes ? 'border-red-500' : 'border-gray-300'
-            }`}
-            placeholder="Enter any additional notes or special instructions..."
-          />
-          {errors.notes && (
-            <p className="mt-1 text-sm text-red-600">{errors.notes.message}</p>
-          )}
+        <div className="space-y-6">
+          {/* Mini Notes */}
+          <div>
+            <label htmlFor="mini_notes" className="block text-sm font-medium text-gray-700 mb-1">
+              Brief Notes <span className="text-gray-500">(for schedule views)</span>
+            </label>
+            <textarea
+              {...register('mini_notes')}
+              id="mini_notes"
+              rows={2}
+              maxLength={500}
+              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                errors.mini_notes ? 'border-red-500' : 'border-gray-300'
+              }`}
+              placeholder="Brief summary for quick reference (e.g., 'Mounjaro 2.5mg', 'Blood work - fasting required')"
+            />
+            <div className="flex justify-between items-center mt-1">
+              {errors.mini_notes && (
+                <p className="text-sm text-red-600">{errors.mini_notes.message}</p>
+              )}
+              <p className="text-xs text-gray-500 ml-auto">
+                {watch('mini_notes')?.length || 0}/500 characters
+              </p>
+            </div>
+          </div>
+
+          {/* Full Notes */}
+          <div>
+            <label htmlFor="full_notes" className="block text-sm font-medium text-gray-700 mb-1">
+              Detailed Notes <span className="text-gray-500">(for 1-hour reminders)</span>
+            </label>
+            <textarea
+              {...register('full_notes')}
+              id="full_notes"
+              rows={4}
+              maxLength={2000}
+              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                errors.full_notes ? 'border-red-500' : 'border-gray-300'
+              }`}
+              placeholder="Detailed notes for comprehensive reminders (e.g., 'Patient requires special attention due to diabetes. Check blood sugar levels before treatment. Bring insulin supplies.')"
+            />
+            <div className="flex justify-between items-center mt-1">
+              {errors.full_notes && (
+                <p className="text-sm text-red-600">{errors.full_notes.message}</p>
+              )}
+              <p className="text-xs text-gray-500 ml-auto">
+                {watch('full_notes')?.length || 0}/2000 characters
+              </p>
+            </div>
+          </div>
+
+          {/* Pickup Instructions */}
+          <div>
+            <label htmlFor="pickup_instructions" className="block text-sm font-medium text-gray-700 mb-1">
+              Pickup Instructions <span className="text-gray-500">(for drivers)</span>
+            </label>
+            <textarea
+              {...register('pickup_instructions')}
+              id="pickup_instructions"
+              rows={3}
+              maxLength={1000}
+              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                errors.pickup_instructions ? 'border-red-500' : 'border-gray-300'
+              }`}
+              placeholder="Special pickup instructions for drivers (e.g., 'Patient is wheelchair-bound. Use accessible vehicle. Ring doorbell twice. Patient's son will assist.')"
+            />
+            <div className="flex justify-between items-center mt-1">
+              {errors.pickup_instructions && (
+                <p className="text-sm text-red-600">{errors.pickup_instructions.message}</p>
+              )}
+              <p className="text-xs text-gray-500 ml-auto">
+                {watch('pickup_instructions')?.length || 0}/1000 characters
+              </p>
+            </div>
+          </div>
+
+          {/* Legacy Notes Field */}
+          <div>
+            <label htmlFor="notes" className="block text-sm font-medium text-gray-700 mb-1">
+              General Notes <span className="text-gray-500">(legacy field)</span>
+            </label>
+            <textarea
+              {...register('notes')}
+              id="notes"
+              rows={3}
+              maxLength={1000}
+              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                errors.notes ? 'border-red-500' : 'border-gray-300'
+              }`}
+              placeholder="General appointment notes (use specific fields above when possible)..."
+            />
+            <div className="flex justify-between items-center mt-1">
+              {errors.notes && (
+                <p className="text-sm text-red-600">{errors.notes.message}</p>
+              )}
+              <p className="text-xs text-gray-500 ml-auto">
+                {watch('notes')?.length || 0}/1000 characters
+              </p>
+            </div>
+          </div>
         </div>
       </div>
 

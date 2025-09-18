@@ -1,26 +1,75 @@
+import {
+    getNextOccurrenceDate,
+} from '@/lib/recurrenceUtils';
 import { supabase } from '@/lib/supabase';
+// No longer using custom UUID utilities - using standard UUIDs
 import type {
     Appointment,
     AppointmentFilters,
     CreateAppointment,
-    EditSource,
-    UpdateAppointment,
+    UpdateAppointment
 } from '@/types';
 import {
-    getNextOccurrenceDate,
     isValidAppointmentDate,
     isValidAppointmentTime,
     isValidDuration,
     isValidRecurringRule,
     validateAppointmentData,
 } from '@/types/appointment';
+import { appointmentStaffService } from './appointmentStaffService';
+import { telegramNotificationService } from './telegramNotificationService';
 
 export class AppointmentService {
+  // Helper method to send notifications for appointment changes
+  private async sendAppointmentNotifications(
+    appointment: Appointment,
+    notificationType: 'created' | 'updated' | 'cancelled',
+    changedFields?: string[]
+  ): Promise<void> {
+    try {
+      // Check if Telegram is configured
+      if (!process.env.TELEGRAM_BOT_TOKEN) {
+        console.log('📱 Telegram not configured, skipping notifications');
+        return;
+      }
+
+      // Get staff assignments for this appointment
+      const staffAssignments = await appointmentStaffService.getStaffForAppointment(appointment.id);
+
+      if (!staffAssignments || staffAssignments.length === 0) {
+        console.log(`📱 No staff assignments found for appointment ${appointment.id}, skipping notifications`);
+        return;
+      }
+
+      console.log(`📱 Sending ${notificationType} notifications for appointment ${appointment.id} to ${staffAssignments.length} staff members`);
+
+      // Send notifications to all assigned staff members
+      const result = await telegramNotificationService.sendAppointmentNotificationsToStaff(
+        appointment,
+        staffAssignments,
+        notificationType
+      );
+
+      if (result.success) {
+        const successCount = result.results.filter(r => r.success).length;
+        console.log(`📱 ${notificationType} notifications completed: ${successCount}/${result.results.length} successful`);
+      } else {
+        console.error(`❌ Failed to send ${notificationType} notifications:`, result.results);
+      }
+    } catch (error) {
+      console.error(`❌ Error sending ${notificationType} notifications for appointment ${appointment.id}:`, error);
+      // Don't throw error to prevent breaking the main operation
+    }
+  }
+
   // Get all appointments with optional filtering
   async getAppointments(filters?: AppointmentFilters): Promise<Appointment[]> {
     let query = supabase
       .from('appointments')
-      .select('*')
+      .select(`
+        *,
+        patient:patients(id, name, phone, flat_villa_no, building_street, area, city)
+      `)
       .order('appointment_date', { ascending: true })
       .order('start_time', { ascending: true });
 
@@ -71,7 +120,38 @@ export class AppointmentService {
       throw new Error(`Failed to fetch appointments: ${error.message}`);
     }
 
-    return data || [];
+    const regularAppointments = data || [];
+
+    // If we have date filters, also get recurring appointments for that range
+    if (filters?.date_from && filters?.date_to) {
+      try {
+        const recurringAppointments = await this.getRecurringAppointmentsForDateRange(
+          filters.date_from,
+          filters.date_to
+        );
+
+        // Combine regular and recurring appointments
+        const allAppointments = [...regularAppointments, ...recurringAppointments];
+
+        // Remove duplicates (in case a recurring appointment was also stored as a regular appointment)
+        const uniqueAppointments = allAppointments.filter((appointment, index, self) =>
+          index === self.findIndex(a => a.id === appointment.id)
+        );
+
+        return uniqueAppointments.sort((a, b) => {
+          if (a.appointment_date !== b.appointment_date) {
+            return a.appointment_date.localeCompare(b.appointment_date);
+          }
+          return a.start_time.localeCompare(b.start_time);
+        });
+      } catch (error) {
+        console.error('Error fetching recurring appointments:', error);
+        // Return regular appointments if recurring fetch fails
+        return regularAppointments;
+      }
+    }
+
+    return regularAppointments;
   }
 
   // Get a single appointment by ID
@@ -110,6 +190,9 @@ export class AppointmentService {
       throw new Error(`Failed to create appointment: ${error.message}`);
     }
 
+    // Send same-day appointment notifications if applicable
+    await this.sendAppointmentNotifications(data, 'created');
+
     return data;
   }
 
@@ -143,11 +226,16 @@ export class AppointmentService {
       throw new Error(`Failed to update appointment: ${error.message}`);
     }
 
+    // Note: Reschedule notifications are handled by the API route to avoid duplicates
+
     return data;
   }
 
   // Delete an appointment
   async deleteAppointment(id: string): Promise<void> {
+    // Get appointment data before deletion for notifications
+    const appointment = await this.getAppointment(id);
+
     const { error } = await supabase
       .from('appointments')
       .delete()
@@ -155,6 +243,11 @@ export class AppointmentService {
 
     if (error) {
       throw new Error(`Failed to delete appointment: ${error.message}`);
+    }
+
+    // Send cancellation notifications
+    if (appointment) {
+      await this.sendAppointmentNotifications(appointment, 'cancelled');
     }
   }
 
@@ -302,137 +395,6 @@ export class AppointmentService {
     return data;
   }
 
-  // Add Google Calendar event ID
-  async addGoogleCalendarEventId(
-    appointmentId: string,
-    staffId: string,
-    eventId: string,
-  ): Promise<Appointment> {
-    const appointment = await this.getAppointment(appointmentId);
-    if (!appointment) {
-      throw new Error('Appointment not found');
-    }
-
-    // Validate staff ID exists and is active
-    const { data: staff, error: staffError } = await supabase
-      .from('staff')
-      .select('id, status')
-      .eq('id', staffId)
-      .eq('status', 'active')
-      .single();
-
-    if (staffError || !staff) {
-      throw new Error(`Invalid staff ID: ${staffId} (not found or inactive)`);
-    }
-
-    // Validate event ID format
-    const eventIdRegex = /^[a-zA-Z0-9_-]+$/;
-    if (!eventIdRegex.test(eventId)) {
-      throw new Error(`Invalid Google Calendar event ID format: ${eventId}`);
-    }
-
-    const updatedEventIds = {
-      ...appointment.google_event_ids,
-      [staffId]: eventId,
-    };
-
-    const { data, error } = await supabase
-      .from('appointments')
-      .update({ google_event_ids: updatedEventIds })
-      .eq('id', appointmentId)
-      .select()
-      .single();
-
-    if (error) {
-      throw new Error(`Failed to add Google Calendar event ID: ${error.message}`);
-    }
-
-    return data;
-  }
-
-  // Remove Google Calendar event ID
-  async removeGoogleCalendarEventId(appointmentId: string, staffId: string): Promise<Appointment> {
-    const appointment = await this.getAppointment(appointmentId);
-    if (!appointment) {
-      throw new Error('Appointment not found');
-    }
-
-    const updatedEventIds = { ...appointment.google_event_ids };
-    delete updatedEventIds[staffId];
-
-    const { data, error } = await supabase
-      .from('appointments')
-      .update({ google_event_ids: updatedEventIds })
-      .eq('id', appointmentId)
-      .select()
-      .single();
-
-    if (error) {
-      throw new Error(`Failed to remove Google Calendar event ID: ${error.message}`);
-    }
-
-    return data;
-  }
-
-  // Check integrity of google_event_ids for this appointment
-  async checkGoogleEventIdsIntegrity(appointmentId: string): Promise<{
-    isValid: boolean;
-    errors: string[];
-    warnings: string[];
-  }> {
-    const appointment = await this.getAppointment(appointmentId);
-    if (!appointment) {
-      throw new Error('Appointment not found');
-    }
-
-    const errors: string[] = [];
-    const warnings: string[] = [];
-
-    if (!appointment.google_event_ids || Object.keys(appointment.google_event_ids).length === 0) {
-      return { isValid: true, errors: [], warnings: [] };
-    }
-
-    // Validate structure
-    const eventIdRegex = /^[a-zA-Z0-9_-]+$/;
-    for (const [staffId, eventId] of Object.entries(appointment.google_event_ids)) {
-      // Check staff ID format (should be UUID)
-      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-      if (!uuidRegex.test(staffId)) {
-        errors.push(`Invalid staff ID format: ${staffId}`);
-      }
-
-      // Check event ID format
-      if (!eventIdRegex.test(eventId)) {
-        errors.push(`Invalid Google Calendar event ID format: ${eventId}`);
-      }
-    }
-
-    // Check if staff IDs exist and are active
-    const staffIds = Object.keys(appointment.google_event_ids);
-    if (staffIds.length > 0) {
-      const { data: staff, error } = await supabase
-        .from('staff')
-        .select('id, status')
-        .in('id', staffIds);
-
-      if (error) {
-        errors.push(`Failed to validate staff IDs: ${error.message}`);
-      } else {
-        const validStaffIds = new Set(staff?.map(s => s.id) || []);
-        for (const staffId of staffIds) {
-          if (!validStaffIds.has(staffId)) {
-            errors.push(`Staff ID ${staffId} does not exist or is inactive`);
-          }
-        }
-      }
-    }
-
-    return {
-      isValid: errors.length === 0,
-      errors,
-      warnings
-    };
-  }
 
   // Generate recurring appointments
   async generateRecurringAppointments(
@@ -448,15 +410,29 @@ export class AppointmentService {
 
     for (let i = 1; i <= occurrences; i++) {
       const nextDate = getNextOccurrenceDate(
-        baseAppointment.appointment_date,
-        baseAppointment.recurring_rule,
+        new Date(baseAppointment.appointment_date),
+        baseAppointment.recurring_rule!,
         i,
       );
 
+      console.log(`Generating recurring appointment ${i}:`, {
+        baseDate: baseAppointment.appointment_date,
+        rule: baseAppointment.recurring_rule,
+        occurrence: i,
+        nextDate: nextDate.toISOString().split('T')[0]
+      });
+
       const newAppointment: CreateAppointment = {
         ...baseAppointment,
-        appointment_date: nextDate,
+        appointment_date: nextDate.toISOString().split('T')[0], // Convert Date to YYYY-MM-DD string
         recurring_rule: undefined, // Don't make the generated appointments recurring
+        // Add metadata to track this is a generated recurring appointment
+        custom_fields: {
+          ...baseAppointment.custom_fields,
+          is_recurring_generated: true,
+          base_appointment_id: baseAppointmentId,
+          occurrence_number: i
+        }
       };
 
       delete (newAppointment as any).id;
@@ -472,6 +448,371 @@ export class AppointmentService {
     }
 
     return generatedAppointments;
+  }
+
+  // Get recurring appointments for a date range (including generated ones)
+  async getRecurringAppointmentsForDateRange(
+    dateFrom: string,
+    dateTo: string,
+    baseAppointmentId?: string
+  ): Promise<Appointment[]> {
+    try {
+      // First, get all base recurring appointments
+      const baseQuery = supabase
+        .from('appointments')
+        .select(`
+          *,
+          patient:patients(id, name, phone, flat_villa_no, building_street, area, city)
+        `)
+        .not('recurring_rule', 'is', null)
+        .order('appointment_date', { ascending: true });
+
+      if (baseAppointmentId) {
+        baseQuery.eq('id', baseAppointmentId);
+      }
+
+      const { data: baseAppointments, error: baseError } = await baseQuery;
+
+      if (baseError) {
+        console.error('Error fetching base recurring appointments:', baseError);
+        return []; // Return empty array instead of throwing error
+      }
+
+      if (!baseAppointments || baseAppointments.length === 0) {
+        return [];
+      }
+
+      const allAppointments: Appointment[] = [];
+
+      for (const baseAppointment of baseAppointments) {
+        try {
+          // Validate that the base appointment has a valid recurring rule
+          if (!baseAppointment.recurring_rule) {
+            console.warn(`Base appointment ${baseAppointment.id} has no recurring rule, skipping`);
+            continue;
+          }
+
+          // Add the base appointment if it's in the date range
+          if (baseAppointment.appointment_date >= dateFrom && baseAppointment.appointment_date <= dateTo) {
+            allAppointments.push(baseAppointment);
+          }
+
+          // Generate occurrences for this base appointment
+          const occurrences = this.calculateOccurrencesForDateRange(
+            baseAppointment.appointment_date,
+            baseAppointment.recurring_rule,
+            dateFrom,
+            dateTo
+          );
+
+          // Get cancelled occurrences from custom_fields
+          const customFields = baseAppointment.custom_fields as any || {};
+          const cancelledOccurrences = customFields.cancelled_occurrences || [];
+
+          for (let i = 1; i <= occurrences; i++) {
+            try {
+              // Skip cancelled occurrences
+              if (cancelledOccurrences.includes(i)) {
+                continue;
+              }
+
+              const nextDate = getNextOccurrenceDate(
+                new Date(baseAppointment.appointment_date),
+                baseAppointment.recurring_rule!,
+                i,
+              );
+
+              const occurrenceDate = nextDate.toISOString().split('T')[0];
+
+              if (occurrenceDate >= dateFrom && occurrenceDate <= dateTo) {
+                // Create a virtual appointment for this occurrence
+                const virtualAppointment: Appointment = {
+                  ...baseAppointment,
+                  id: `${baseAppointment.id}_occurrence_${i}`,
+                  appointment_date: occurrenceDate,
+                  recurring_rule: undefined,
+                  custom_fields: {
+                    ...baseAppointment.custom_fields,
+                    is_recurring_generated: true,
+                    base_appointment_id: baseAppointment.id,
+                    occurrence_number: i
+                  }
+                };
+
+                allAppointments.push(virtualAppointment);
+              }
+            } catch (occurrenceError) {
+              console.error(`Error generating occurrence ${i} for appointment ${baseAppointment.id}:`, occurrenceError);
+              // Continue with other occurrences
+            }
+          }
+        } catch (appointmentError) {
+          console.error(`Error processing base appointment ${baseAppointment.id}:`, appointmentError);
+          // Continue with other appointments
+        }
+      }
+
+      return allAppointments.sort((a, b) => {
+        if (a.appointment_date !== b.appointment_date) {
+          return a.appointment_date.localeCompare(b.appointment_date);
+        }
+        return a.start_time.localeCompare(b.start_time);
+      });
+    } catch (error) {
+      console.error('Error in getRecurringAppointmentsForDateRange:', error);
+      return []; // Return empty array instead of throwing error
+    }
+  }
+
+  // Calculate how many occurrences are needed for a date range
+  private calculateOccurrencesForDateRange(
+    baseDate: string,
+    rule: any,
+    dateFrom: string,
+    dateTo: string
+  ): number {
+    const startDate = new Date(dateFrom);
+    const endDate = new Date(dateTo);
+    const base = new Date(baseDate);
+
+    // Calculate maximum occurrences needed
+    let maxOccurrences = 0;
+
+    switch (rule.frequency) {
+      case 'daily':
+        maxOccurrences = Math.ceil((endDate.getTime() - base.getTime()) / (1000 * 60 * 60 * 24 * rule.interval));
+        break;
+      case 'weekly':
+        maxOccurrences = Math.ceil((endDate.getTime() - base.getTime()) / (1000 * 60 * 60 * 24 * 7 * rule.interval));
+        break;
+      case 'monthly':
+        maxOccurrences = Math.ceil((endDate.getTime() - base.getTime()) / (1000 * 60 * 60 * 24 * 30 * rule.interval));
+        break;
+      case 'yearly':
+        maxOccurrences = Math.ceil((endDate.getTime() - base.getTime()) / (1000 * 60 * 60 * 24 * 365 * rule.interval));
+        break;
+    }
+
+    // Respect end conditions
+    if (rule.end_occurrences) {
+      maxOccurrences = Math.min(maxOccurrences, rule.end_occurrences);
+    }
+
+    if (rule.end_date) {
+      const ruleEndDate = new Date(rule.end_date);
+      const ruleEndOccurrences = Math.ceil((ruleEndDate.getTime() - base.getTime()) / (1000 * 60 * 60 * 24));
+      maxOccurrences = Math.min(maxOccurrences, ruleEndOccurrences);
+    }
+
+    return Math.max(0, maxOccurrences);
+  }
+
+  // Update a recurring appointment (this occurrence only)
+  async updateRecurringAppointmentOccurrence(
+    baseAppointmentId: string,
+    occurrenceNumber: number,
+    updateData: Partial<CreateAppointment>
+  ): Promise<Appointment> {
+    try {
+      const baseAppointment = await this.getAppointment(baseAppointmentId);
+      if (!baseAppointment) {
+        throw new Error('Base appointment not found');
+      }
+
+      if (!baseAppointment.recurring_rule) {
+        throw new Error('Appointment is not a recurring appointment');
+      }
+
+      // Calculate the date for this occurrence
+      const occurrenceDate = getNextOccurrenceDate(
+        new Date(baseAppointment.appointment_date),
+        baseAppointment.recurring_rule!,
+        occurrenceNumber
+      );
+
+      // Create a new appointment for this specific occurrence
+      const occurrenceAppointment: CreateAppointment = {
+        ...baseAppointment,
+        ...updateData,
+        appointment_date: occurrenceDate.toISOString().split('T')[0],
+        recurring_rule: undefined, // This is a one-time occurrence
+        custom_fields: {
+          ...baseAppointment.custom_fields,
+          ...updateData.custom_fields,
+          is_recurring_occurrence: true,
+          base_appointment_id: baseAppointmentId,
+          occurrence_number: occurrenceNumber,
+          original_recurring_rule: baseAppointment.recurring_rule
+        }
+      };
+
+      delete (occurrenceAppointment as any).id;
+      delete (occurrenceAppointment as any).created_at;
+      delete (occurrenceAppointment as any).updated_at;
+
+      const createdAppointment = await this.createAppointment(occurrenceAppointment);
+
+      // Send reschedule notifications for recurring appointment occurrence update
+      await this.sendAppointmentNotifications(createdAppointment, 'updated');
+
+      return createdAppointment;
+    } catch (error) {
+      console.error('Error updating recurring appointment occurrence:', error);
+      throw error;
+    }
+  }
+
+  // Update a recurring appointment (all future occurrences)
+  async updateRecurringAppointmentFuture(
+    baseAppointmentId: string,
+    updateData: Partial<CreateAppointment>
+  ): Promise<Appointment> {
+    try {
+      const baseAppointment = await this.getAppointment(baseAppointmentId);
+      if (!baseAppointment) {
+        throw new Error('Base appointment not found');
+      }
+
+      if (!baseAppointment.recurring_rule) {
+        throw new Error('Appointment is not a recurring appointment');
+      }
+
+      // Update the base recurring appointment
+      const updatedAppointment = await this.updateAppointment(baseAppointmentId, updateData);
+
+      // Delete all future generated occurrences that were created from this base appointment
+      await this.deleteFutureRecurringOccurrences(baseAppointmentId);
+
+      return updatedAppointment;
+    } catch (error) {
+      console.error('Error updating recurring appointment future:', error);
+      throw error;
+    }
+  }
+
+  // Delete future recurring occurrences for a base appointment
+  private async deleteFutureRecurringOccurrences(baseAppointmentId: string): Promise<void> {
+    const { error } = await supabase
+      .from('appointments')
+      .delete()
+      .eq('custom_fields->base_appointment_id', baseAppointmentId)
+      .eq('custom_fields->is_recurring_generated', true);
+
+    if (error) {
+      console.error('Error deleting future recurring occurrences:', error);
+    }
+  }
+
+  // Delete a single recurring appointment occurrence
+  async deleteRecurringAppointmentOccurrence(
+    appointmentId: string,
+    occurrenceNumber: number
+  ): Promise<void> {
+    try {
+      // Check if this is a virtual appointment ID (contains _occurrence_)
+      if (appointmentId.includes('_occurrence_')) {
+        // Extract the base appointment ID from the virtual ID
+        const baseAppointmentId = appointmentId.split('_occurrence_')[0];
+
+        // Get the base appointment to verify it's recurring
+        const baseAppointment = await this.getAppointment(baseAppointmentId);
+        if (!baseAppointment) {
+          throw new Error('Base recurring appointment not found');
+        }
+
+        if (!baseAppointment.recurring_rule) {
+          throw new Error('This is not a recurring appointment');
+        }
+
+        // For virtual appointments, cancel the specific occurrence
+        await this.cancelRecurringOccurrence(baseAppointmentId, occurrenceNumber);
+      } else {
+        // This is a real appointment ID, check if it's a generated occurrence
+        const appointment = await this.getAppointment(appointmentId);
+        if (!appointment) {
+          throw new Error('Appointment not found');
+        }
+
+        const customFields = appointment.custom_fields as any;
+        if (customFields?.is_recurring_generated) {
+          // This is a generated occurrence, delete it directly
+          await this.deleteAppointment(appointmentId);
+        } else if (appointment.recurring_rule) {
+          // This is the base appointment, cancel the specific occurrence
+          await this.cancelRecurringOccurrence(appointmentId, occurrenceNumber);
+        } else {
+          throw new Error('This is not a recurring appointment');
+        }
+      }
+    } catch (error) {
+      console.error('Error deleting recurring appointment occurrence:', error);
+      throw error;
+    }
+  }
+
+  // Cancel a specific occurrence of a recurring appointment
+  private async cancelRecurringOccurrence(
+    baseAppointmentId: string,
+    occurrenceNumber: number
+  ): Promise<void> {
+    try {
+      // Get the base appointment
+      const baseAppointment = await this.getAppointment(baseAppointmentId);
+      if (!baseAppointment) {
+        throw new Error('Base recurring appointment not found');
+      }
+
+      // Get current cancelled occurrences from custom_fields
+      const customFields = baseAppointment.custom_fields as any || {};
+      const cancelledOccurrences = customFields.cancelled_occurrences || [];
+
+      // Add this occurrence to the cancelled list if not already there
+      if (!cancelledOccurrences.includes(occurrenceNumber)) {
+        cancelledOccurrences.push(occurrenceNumber);
+      }
+
+      // Update the base appointment with the new cancelled occurrences list
+      const { error } = await supabase
+        .from('appointments')
+        .update({
+          custom_fields: {
+            ...customFields,
+            cancelled_occurrences: cancelledOccurrences
+          }
+        })
+        .eq('id', baseAppointmentId);
+
+      if (error) {
+        throw new Error(`Failed to cancel recurring occurrence: ${error.message}`);
+      }
+    } catch (error) {
+      console.error('Error cancelling recurring occurrence:', error);
+      throw error;
+    }
+  }
+
+  // Delete all future recurring appointments for a base appointment
+  async deleteAllFutureRecurringAppointments(baseAppointmentId: string): Promise<void> {
+    try {
+      // Get the base appointment to verify it's recurring
+      const baseAppointment = await this.getAppointment(baseAppointmentId);
+      if (!baseAppointment) {
+        throw new Error('Base appointment not found');
+      }
+
+      if (!baseAppointment.recurring_rule) {
+        throw new Error('This is not a recurring appointment');
+      }
+
+      // Delete the base appointment
+      await this.deleteAppointment(baseAppointmentId);
+
+      // Delete all future generated occurrences
+      await this.deleteFutureRecurringOccurrences(baseAppointmentId);
+    } catch (error) {
+      console.error('Error deleting all future recurring appointments:', error);
+      throw error;
+    }
   }
 
   // Get appointment statistics
@@ -512,161 +853,6 @@ export class AppointmentService {
     };
   }
 
-  // Track external edit from Google Calendar or webhook
-  async trackExternalEdit(
-    appointmentId: string,
-    source: EditSource,
-    updatedFields?: Partial<UpdateAppointment>,
-  ): Promise<Appointment> {
-    const appointment = await this.getAppointment(appointmentId);
-    if (!appointment) {
-      throw new Error('Appointment not found');
-    }
-
-    const now = new Date().toISOString();
-    const currentExternalCount = appointment.external_edit_count || 0;
-
-    const updateData: Partial<UpdateAppointment> = {
-      ...updatedFields,
-      last_external_edit: now,
-      last_external_edit_source: source,
-      external_edit_count: currentExternalCount + 1,
-      last_edit_source: source,
-    };
-
-    const { data, error } = await supabase
-      .from('appointments')
-      .update(updateData)
-      .eq('id', appointmentId)
-      .select()
-      .single();
-
-    if (error) {
-      throw new Error(`Failed to track external edit: ${error.message}`);
-    }
-
-    return data;
-  }
-
-  // Track internal edit from the app
-  async trackInternalEdit(
-    appointmentId: string,
-    updatedFields?: Partial<UpdateAppointment>,
-  ): Promise<Appointment> {
-    const updateData: Partial<UpdateAppointment> = {
-      ...updatedFields,
-      last_edit_source: 'app',
-    };
-
-    const { data, error } = await supabase
-      .from('appointments')
-      .update(updateData)
-      .eq('id', appointmentId)
-      .select()
-      .single();
-
-    if (error) {
-      throw new Error(`Failed to track internal edit: ${error.message}`);
-    }
-
-    return data;
-  }
-
-  // Get appointments with external edits
-  async getAppointmentsWithExternalEdits(filters?: AppointmentFilters): Promise<Appointment[]> {
-    let query = supabase
-      .from('appointments')
-      .select('*')
-      .gt('external_edit_count', 0)
-      .order('last_external_edit', { ascending: false });
-
-    // Apply filters
-    if (filters?.patient_id) {
-      query = query.eq('patient_id', filters.patient_id);
-    }
-
-    if (filters?.appointment_type) {
-      query = query.eq('appointment_type', filters.appointment_type);
-    }
-
-    if (filters?.status) {
-      query = query.eq('status', filters.status);
-    }
-
-    if (filters?.date_from) {
-      query = query.gte('appointment_date', filters.date_from);
-    }
-
-    if (filters?.date_to) {
-      query = query.lte('appointment_date', filters.date_to);
-    }
-
-    const { data, error } = await query;
-
-    if (error) {
-      throw new Error(`Failed to fetch appointments with external edits: ${error.message}`);
-    }
-
-    return data || [];
-  }
-
-  // Get external edit statistics
-  async getExternalEditStatistics(dateFrom?: string, dateTo?: string): Promise<{
-    totalExternalEdits: number;
-    bySource: Record<EditSource, number>;
-    recentExternalEdits: number; // Last 24 hours
-  }> {
-    let query = supabase
-      .from('appointments')
-      .select('external_edit_count, last_external_edit_source, last_external_edit');
-
-    if (dateFrom) {
-      query = query.gte('appointment_date', dateFrom);
-    }
-
-    if (dateTo) {
-      query = query.lte('appointment_date', dateTo);
-    }
-
-    const { data, error } = await query;
-
-    if (error) {
-      throw new Error(`Failed to fetch external edit statistics: ${error.message}`);
-    }
-
-    const appointments = data || [];
-    let totalExternalEdits = 0;
-    const bySource: Record<EditSource, number> = {
-      app: 0,
-      google_calendar: 0,
-      webhook: 0,
-      manual: 0,
-    };
-    let recentExternalEdits = 0;
-
-    const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
-
-    appointments.forEach(appointment => {
-      const externalCount = appointment.external_edit_count || 0;
-      totalExternalEdits += externalCount;
-
-      if (appointment.last_external_edit_source) {
-        bySource[appointment.last_external_edit_source] =
-          (bySource[appointment.last_external_edit_source] || 0) + 1;
-      }
-
-      if (appointment.last_external_edit &&
-          new Date(appointment.last_external_edit) > oneDayAgo) {
-        recentExternalEdits++;
-      }
-    });
-
-    return {
-      totalExternalEdits,
-      bySource,
-      recentExternalEdits,
-    };
-  }
 }
 
 // Export singleton instance
