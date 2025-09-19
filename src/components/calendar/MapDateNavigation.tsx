@@ -44,7 +44,7 @@ export function MapDateNavigation({
     const checkMobile = () => {
       setIsMobile(window.innerWidth < 768);
     };
-    
+
     checkMobile();
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
@@ -217,7 +217,7 @@ export function MapDateNavigation({
   // Handle touch gestures for mobile swipe navigation
   const handleTouchStart = useCallback((event: React.TouchEvent) => {
     if (!isMobile || disabled) return;
-    
+
     const touch = event.touches[0];
     setTouchStartX(touch.clientX);
     setTouchStartY(touch.clientY);
@@ -225,11 +225,11 @@ export function MapDateNavigation({
 
   const handleTouchEnd = useCallback((event: React.TouchEvent) => {
     if (!isMobile || disabled) return;
-    
+
     const touch = event.changedTouches[0];
     const deltaX = touch.clientX - touchStartX;
     const deltaY = touch.clientY - touchStartY;
-    
+
     // Only trigger if it's a horizontal swipe (not vertical scroll)
     if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 50) {
       if (deltaX > 0) {
@@ -239,7 +239,7 @@ export function MapDateNavigation({
         // Swipe left - go to next day
         goToNextDay();
       }
-      
+
       // Provide haptic feedback
       if ('vibrate' in navigator) {
         navigator.vibrate(10);

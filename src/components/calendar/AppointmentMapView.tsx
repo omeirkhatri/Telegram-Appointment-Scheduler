@@ -545,11 +545,11 @@ export function AppointmentMapView({
           bounds.extend(position);
         }
       });
-      
+
       // Add mobile-optimized padding
       const padding = isMobile ? 20 : isTablet ? 40 : 60;
       mapInstanceRef.current.fitBounds(bounds, padding);
-      
+
       // Ensure minimum zoom level on mobile for readability
       if (isMobile) {
         const currentZoom = mapInstanceRef.current.getZoom();
@@ -624,8 +624,8 @@ export function AppointmentMapView({
       >
         <div
           ref={mapRef}
-          style={{ 
-            height, 
+          style={{
+            height,
             width: '100%',
             // Mobile-specific touch optimizations
             touchAction: isMobile ? 'pan-x pan-y' : 'auto',
@@ -636,10 +636,10 @@ export function AppointmentMapView({
             ${isMobile ? 'cursor-grab active:cursor-grabbing' : ''}
           `}
         />
-        
+
         {/* Mobile-specific overlay for better touch feedback */}
         {isMobile && (
-          <div 
+          <div
             className="absolute inset-0 pointer-events-none rounded-lg"
             style={{
               background: 'linear-gradient(transparent 0%, transparent 100%)',

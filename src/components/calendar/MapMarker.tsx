@@ -49,7 +49,7 @@ export function MapMarker({
     const checkMobile = () => {
       setIsMobile(window.innerWidth < 768);
     };
-    
+
     checkMobile();
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
@@ -156,7 +156,7 @@ export function MapMarker({
   const handleTouchStart = useCallback((event: React.TouchEvent) => {
     setTouchStartTime(Date.now());
     setTouchMoved(false);
-    
+
     // Provide haptic feedback on supported devices
     if ('vibrate' in navigator) {
       navigator.vibrate(10);
@@ -169,7 +169,7 @@ export function MapMarker({
 
   const handleTouchEnd = useCallback((event: React.TouchEvent) => {
     const touchDuration = Date.now() - touchStartTime;
-    
+
     // Only trigger click if it was a tap (not a drag) and duration was short
     if (!touchMoved && touchDuration < 500) {
       event.preventDefault();

@@ -585,6 +585,18 @@ export function AppointmentCalendar({
 
   return (
     <div className="bg-[--card] rounded-lg shadow-sm border border-[--border] calendar-container">
+      {/* Custom CSS to disable hover effects in list view */}
+      <style jsx>{`
+        .calendar-container :global(.fc-listWeek-view .fc-event:hover) {
+          transform: none !important;
+          background-color: inherit !important;
+          box-shadow: none !important;
+          cursor: default !important;
+        }
+        .calendar-container :global(.fc-listWeek-view .fc-event) {
+          transition: none !important;
+        }
+      `}</style>
       {/* Custom Header Toolbar */}
       <div className="flex items-center justify-between p-4 border-b border-[--border]">
         <div className="flex items-center space-x-2">
@@ -738,8 +750,19 @@ export function AppointmentCalendar({
           minute: '2-digit',
           hour12: false,
         }}
-        dayHeaderFormat={{
-          weekday: 'long'
+        views={{
+          dayGridMonth: {
+            dayHeaderFormat: { weekday: 'long' }
+          },
+          timeGridWeek: {
+            dayHeaderFormat: { weekday: 'long', month: 'short', day: 'numeric' }
+          },
+          timeGridDay: {
+            dayHeaderFormat: { weekday: 'long', month: 'short', day: 'numeric' }
+          },
+          listWeek: {
+            dayHeaderFormat: { weekday: 'long', month: 'short', day: 'numeric' }
+          }
         }}
         fixedWeekCount={false}
         // Event settings
@@ -762,6 +785,13 @@ export function AppointmentCalendar({
             e.preventDefault();
             handleEventRightClick(info, e);
           });
+
+          // Disable hover effects for list view
+          if (currentView === 'listWeek') {
+            eventElement.style.cursor = 'default';
+            eventElement.style.transform = 'none';
+            eventElement.style.transition = 'none';
+          }
         }}
         viewDidMount={handleViewChange}
         viewDidUpdate={handleViewChange}
