@@ -366,7 +366,11 @@ export class TelegramService {
   }
 
   private getAppointmentEndTime(startTime: string, durationMinutes: number): string {
-    const [hours, minutes] = startTime.split(':').map(Number);
+    // Handle both HH:MM:SS and HH:MM formats
+    const timeParts = startTime.split(':');
+    const hours = parseInt(timeParts[0], 10);
+    const minutes = parseInt(timeParts[1], 10);
+
     const start = new Date();
     start.setHours(hours, minutes, 0, 0);
     const end = new Date(start.getTime() + durationMinutes * 60000);

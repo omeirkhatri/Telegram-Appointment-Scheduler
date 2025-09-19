@@ -336,7 +336,9 @@ export function AppointmentCalendar({
   // Convert appointments to calendar events
   const events = appointments.map((appointment) => {
     // Convert start_time from HH:MM:SS to HH:MM format for proper date parsing
-    const timeOnly = appointment.start_time.split(':').slice(0, 2).join(':');
+    const timeOnly = appointment.start_time.includes(':')
+      ? appointment.start_time.split(':').slice(0, 2).join(':')
+      : appointment.start_time;
 
     // Create date in local timezone for calendar display
     // The appointment_date and start_time are stored in Asia/Dubai timezone in the database

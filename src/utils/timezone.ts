@@ -395,6 +395,20 @@ export function formatAppointmentTimeRange(
 }
 
 /**
+ * Format time string to HH:MM format (removes seconds if present)
+ */
+export function formatTimeToHHMM(timeString: string): string {
+  // Handle both HH:MM:SS and HH:MM formats
+  if (timeString.includes(':')) {
+    const parts = timeString.split(':');
+    if (parts.length >= 2) {
+      return `${parts[0]}:${parts[1]}`;
+    }
+  }
+  return timeString;
+}
+
+/**
  * Check if two appointments overlap
  */
 export function appointmentsOverlap(

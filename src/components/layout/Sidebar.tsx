@@ -11,6 +11,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen = false, onClose }) => {
     { name: 'Patients', href: '/patients', icon: '👥' },
     { name: 'Staff', href: '/staff', icon: '👨‍⚕️' },
     { name: 'Appointments', href: '/appointments', icon: '📅' },
+    { name: 'Send Reminders', href: '/send-reminders', icon: '🔔' },
     { name: 'Payments', href: '/payments', icon: '💰' },
   ];
 

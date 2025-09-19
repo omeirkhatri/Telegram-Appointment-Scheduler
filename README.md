@@ -1,12 +1,35 @@
 # MediCare Scheduler
 
-A comprehensive healthcare appointment scheduling system built with Next.js 14, Supabase, and Google Calendar integration.
+A comprehensive healthcare appointment scheduling system built with Next.js 14, Supabase, and advanced Telegram integration for real-time staff notifications.
+
+## Purpose
+
+MediCare Scheduler is designed specifically for **Best DOC**, a single-company healthcare provider, to streamline and optimize their appointment management workflow. The application serves as a centralized platform for:
+
+### 🏥 **Primary Purpose**
+- **Healthcare Appointment Management**: Streamline scheduling for various medical services including doctor visits, lab tests, physiotherapy, caregiver services, and IV therapy
+- **Staff Coordination**: Efficiently manage and coordinate healthcare staff including doctors, nurses, physiotherapists, caregivers, drivers, and lab technicians
+- **Patient Care Optimization**: Ensure timely and organized patient care through structured appointment scheduling and real-time notifications
+- **Operational Efficiency**: Reduce administrative overhead and improve communication between staff members and patients
+
+### 🎯 **Business Objectives**
+- **Single-Company Focus**: Tailored specifically for Best DOC's healthcare operations (no multi-tenant complexity)
+- **Role-Based Access**: Separate interfaces and permissions for administrators and caregivers
+- **Mobile-Friendly**: Optimized for caregivers who need mobile access while maintaining desktop functionality for administrators
+- **Real-Time Communication**: Instant notifications via Telegram to keep staff informed and coordinated
+- **Timezone Compliance**: Full support for Asia/Dubai timezone (GMT+4) to match local operations
+
+### 🔧 **Technical Purpose**
+- **Modern Technology Stack**: Built with Next.js 14, Supabase, and TypeScript for reliability and maintainability
+- **Scalable Architecture**: Designed to handle Best DOC's growing patient and staff base
+- **Integration Ready**: Built with Telegram integration and prepared for other healthcare system integrations
+- **Data Security**: Implemented with healthcare-grade security practices and data protection
 
 ## Features
 
 - 📅 **Appointment Management**: Create, edit, and manage healthcare appointments
 - 👥 **Patient & Staff Management**: Complete patient and staff directory
-- 🔄 **Google Calendar Integration**: Bidirectional sync with Google Calendar
+- 📱 **Telegram Bot Integration**: Real-time appointment notifications and staff communication
 - 📧 **Email Notifications**: Daily agenda emails for staff
 - 🏥 **Healthcare-Specific**: Designed for medical appointments and workflows
 - 🌍 **Timezone Support**: Full support for Asia/Dubai timezone (GMT+4)
@@ -17,7 +40,7 @@ A comprehensive healthcare appointment scheduling system built with Next.js 14, 
 - **Frontend**: Next.js 14 (App Router), React 18, TypeScript, Tailwind CSS
 - **Backend**: Next.js API Routes, Supabase (PostgreSQL)
 - **Authentication**: Supabase Auth
-- **Calendar**: Google Calendar API v3
+- **Notifications**: Telegram Bot API
 - **Email**: SMTP integration
 - **Testing**: Jest, React Testing Library, Playwright
 
@@ -28,7 +51,7 @@ A comprehensive healthcare appointment scheduling system built with Next.js 14, 
 - Node.js 18+
 - npm, yarn, pnpm, or bun
 - Supabase CLI (for local development)
-- Google Cloud Platform account (for calendar integration)
+- Telegram Bot Token (for notification features)
 
 ### 1. Clone and Install
 
@@ -99,7 +122,7 @@ The application requires several environment variables for full functionality. S
 ### Required Services
 
 1. **Supabase**: Database and authentication
-2. **Google Calendar API**: Calendar integration
+2. **Telegram Bot API**: Real-time notifications and staff communication
 3. **SMTP**: Email notifications (optional)
 
 ### Quick Environment Check
@@ -132,29 +155,21 @@ npm run migrate:to-cloud
 npm run migrate:rollback
 ```
 
-## Cron Worker
+## Reminder Workers
 
-For automated daily email sending:
+For automated appointment reminders:
 
-📖 **[Cron Worker Setup Guide](docs/cron-worker-setup.md)**
-
-### Quick Worker Commands
+### Simple Reminder Workers
 
 ```bash
-# Start the worker service
-npm run worker:start
+# Start 30-minute reminder worker
+npm run reminders:30min
 
-# Check worker status
-npm run worker:status
+# Start simple reminder worker (API-based)
+npm run reminders:simple
 
-# View worker logs
-npm run worker:logs
-
-# Stop the worker
-npm run worker:stop
-
-# Restart the worker
-npm run worker:restart
+# Test reminder functionality
+npm run reminders:test
 ```
 
 ## Observability

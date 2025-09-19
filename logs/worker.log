@@ -1,0 +1,135 @@
+[2025-09-19T01:36:07.598Z] [2025-09-19T01:36:07.596Z] INFO: Starting MediCare Scheduler Worker...
+[2025-09-19T01:36:07.601Z] [2025-09-19T01:36:07.598Z] INFO: Configuration {
+  supabaseUrl: 'http://127.0.0.1:54321',
+  timezone: 'Asia/Dubai',
+  logLevel: 'info'
+}
+[2025-09-19T01:36:07.636Z] [2025-09-19T01:36:07.636Z] INFO: Health check passed
+[2025-09-19T01:36:07.651Z] [2025-09-19T01:36:07.651Z] INFO: Worker started successfully
+[2025-09-19T01:36:07.652Z] [2025-09-19T01:36:07.651Z] INFO: Scheduled jobs: {
+  dailyAgenda: '0 6 * * * (6:00 AM Dubai time)',
+  healthCheck: '*/5 * * * * (every 5 minutes)',
+  statusLog: '0 * * * * (every hour)'
+}
+[2025-09-19T01:37:05.172Z] [2025-09-19T01:37:05.171Z] INFO: Received SIGTERM, shutting down gracefully...
+[2025-09-19T01:37:10.297Z] [2025-09-19T01:37:10.296Z] INFO: Starting MediCare Scheduler Worker...
+[2025-09-19T01:37:10.298Z] [2025-09-19T01:37:10.298Z] INFO: Configuration {
+  supabaseUrl: 'http://127.0.0.1:54321',
+  timezone: 'Asia/Dubai',
+  logLevel: 'info'
+}
+[2025-09-19T01:37:10.335Z] [2025-09-19T01:37:10.335Z] INFO: Health check passed
+[2025-09-19T01:37:10.354Z] [2025-09-19T01:37:10.354Z] INFO: Worker started successfully
+[2025-09-19T01:37:10.355Z] [2025-09-19T01:37:10.354Z] INFO: Scheduled jobs: {
+  dailyAgenda: '0 6 * * * (6:00 AM Dubai time)',
+  healthCheck: '*/5 * * * * (every 5 minutes)',
+  statusLog: '0 * * * * (every hour)'
+}
+[2025-09-19T01:37:35.457Z] [2025-09-19T01:37:35.455Z] INFO: Received SIGTERM, shutting down gracefully...
+[2025-09-19T01:37:39.004Z] [dotenv@17.2.2] injecting env (17) from .env -- tip: ⚙️  suppress all logs with { quiet: true }
+[2025-09-19T01:37:39.005Z] 🚀 Starting MediCare Scheduler Cron Worker...
+Environment: production
+Timezone: Asia/Dubai
+Log Level: info
+[2025-09-19T01:37:39.125Z] 📝 Registering default job handlers...
+[2025-09-19T01:37:40.528Z] [2025-09-19T01:37:40.527Z] INFO: Starting MediCare Scheduler Worker...
+[2025-09-19T01:37:40.529Z] [2025-09-19T01:37:40.528Z] INFO: Configuration {
+  supabaseUrl: 'http://127.0.0.1:54321',
+  timezone: 'Asia/Dubai',
+  logLevel: 'info'
+}
+[2025-09-19T01:37:40.565Z] [2025-09-19T01:37:40.565Z] INFO: Health check passed
+[2025-09-19T01:37:40.578Z] [2025-09-19T01:37:40.578Z] INFO: Worker started successfully
+[2025-09-19T01:37:40.579Z] [2025-09-19T01:37:40.578Z] INFO: Scheduled jobs: {
+  dailyAgenda: '0 6 * * * (6:00 AM Dubai time)',
+  healthCheck: '*/5 * * * * (every 5 minutes)',
+  statusLog: '0 * * * * (every hour)'
+}
+[2025-09-19T01:38:03.192Z] [2025-09-19T01:38:03.191Z] INFO: Received SIGTERM, shutting down gracefully...
+[2025-09-19T01:38:06.623Z] 📝 Registering default job handlers...
+[2025-09-19T01:38:08.252Z] [2025-09-19T01:38:08.252Z] INFO: Starting MediCare Scheduler Worker...
+[2025-09-19T01:38:08.253Z] [2025-09-19T01:38:08.252Z] INFO: Configuration {
+  supabaseUrl: 'http://127.0.0.1:54321',
+  timezone: 'Asia/Dubai',
+  logLevel: 'info'
+}
+[2025-09-19T01:38:08.279Z] [2025-09-19T01:38:08.279Z] INFO: Health check passed
+[2025-09-19T01:38:08.293Z] [2025-09-19T01:38:08.293Z] INFO: Worker started successfully
+[2025-09-19T01:38:08.294Z] [2025-09-19T01:38:08.293Z] INFO: Scheduled jobs: {
+  dailyAgenda: '0 6 * * * (6:00 AM Dubai time)',
+  healthCheck: '*/5 * * * * (every 5 minutes)',
+  statusLog: '0 * * * * (every hour)'
+}
+[2025-09-19T01:38:21.673Z] [2025-09-19T01:38:21.672Z] INFO: Received SIGTERM, shutting down gracefully...
+[2025-09-19T01:38:26.763Z] [2025-09-19T01:38:26.762Z] INFO: Starting MediCare Scheduler Worker...
+[2025-09-19T01:38:26.763Z] [2025-09-19T01:38:26.763Z] INFO: Configuration {
+  supabaseUrl: 'http://127.0.0.1:54321',
+  timezone: 'Asia/Dubai',
+  logLevel: 'info'
+}
+[2025-09-19T01:38:26.794Z] [2025-09-19T01:38:26.794Z] INFO: Health check passed
+[2025-09-19T01:38:26.809Z] [2025-09-19T01:38:26.809Z] INFO: Worker started successfully
+[2025-09-19T01:38:26.810Z] [2025-09-19T01:38:26.809Z] INFO: Scheduled jobs: {
+  dailyAgenda: '0 6 * * * (6:00 AM Dubai time)',
+  healthCheck: '*/5 * * * * (every 5 minutes)',
+  statusLog: '0 * * * * (every hour)'
+}
+[2025-09-19T01:39:15.326Z] [2025-09-19T01:39:15.324Z] INFO: Received SIGTERM, shutting down gracefully...
+[2025-09-19T01:39:18.954Z] 📝 Registering default job handlers...
+[2025-09-19T01:39:20.403Z] [2025-09-19T01:39:20.402Z] INFO: Starting MediCare Scheduler Worker...
+[2025-09-19T01:39:20.404Z] [2025-09-19T01:39:20.403Z] INFO: Configuration {
+  supabaseUrl: 'http://127.0.0.1:54321',
+  timezone: 'Asia/Dubai',
+  logLevel: 'info'
+}
+[2025-09-19T01:39:20.447Z] [2025-09-19T01:39:20.446Z] INFO: Health check passed
+[2025-09-19T01:39:20.461Z] [2025-09-19T01:39:20.461Z] INFO: Worker started successfully
+[2025-09-19T01:39:20.461Z] [2025-09-19T01:39:20.461Z] INFO: Scheduled jobs: {
+  dailyAgenda: '0 6 * * * (6:00 AM Dubai time)',
+  healthCheck: '*/5 * * * * (every 5 minutes)',
+  statusLog: '0 * * * * (every hour)'
+}
+[2025-09-19T01:39:30.153Z] [2025-09-19T01:39:30.152Z] INFO: Received SIGTERM, shutting down gracefully...
+[2025-09-19T01:41:00.735Z] [2025-09-19T01:41:00.734Z] INFO: Starting MediCare Scheduler Worker...
+[2025-09-19T01:41:00.737Z] [2025-09-19T01:41:00.735Z] INFO: Configuration {
+  supabaseUrl: 'http://127.0.0.1:54321',
+  timezone: 'Asia/Dubai',
+  logLevel: 'info'
+}
+[2025-09-19T01:41:00.779Z] [2025-09-19T01:41:00.779Z] INFO: Health check passed
+[2025-09-19T01:41:00.794Z] [2025-09-19T01:41:00.794Z] INFO: Worker started successfully
+[2025-09-19T01:41:00.794Z] INFO: Scheduled jobs: {
+  dailyAgenda: '0 6 * * * (6:00 AM Dubai time)',
+  healthCheck: '*/5 * * * * (every 5 minutes)',
+  statusLog: '0 * * * * (every hour)'
+}
+[2025-09-19T01:41:10.656Z] [2025-09-19T01:41:10.654Z] INFO: Received SIGTERM, shutting down gracefully...
+[2025-09-19T01:41:45.481Z] [2025-09-19T01:41:45.480Z] INFO: Starting MediCare Scheduler Worker...
+[2025-09-19T01:41:45.483Z] [2025-09-19T01:41:45.481Z] INFO: Configuration {
+  supabaseUrl: 'http://127.0.0.1:54321',
+  timezone: 'Asia/Dubai',
+  logLevel: 'info'
+}
+[2025-09-19T01:41:45.503Z] [2025-09-19T01:41:45.503Z] INFO: Health check passed
+[2025-09-19T01:41:45.518Z] [2025-09-19T01:41:45.518Z] INFO: Worker started successfully
+[2025-09-19T01:41:45.518Z] [2025-09-19T01:41:45.518Z] INFO: Scheduled jobs: {
+  dailyAgenda: '0 6 * * * (6:00 AM Dubai time)',
+  healthCheck: '*/5 * * * * (every 5 minutes)',
+  statusLog: '0 * * * * (every hour)'
+}
+[2025-09-19T01:42:08.333Z] [2025-09-19T01:42:08.332Z] INFO: Received SIGTERM, shutting down gracefully...
+[2025-09-19T01:42:44.669Z] [2025-09-19T01:42:44.668Z] INFO: Starting MediCare Scheduler Worker...
+[2025-09-19T01:42:44.670Z] [2025-09-19T01:42:44.668Z] INFO: Configuration {
+  supabaseUrl: 'http://127.0.0.1:54321',
+  timezone: 'Asia/Dubai',
+  logLevel: 'info'
+}
+[2025-09-19T01:42:44.714Z] [2025-09-19T01:42:44.713Z] INFO: Health check passed
+[2025-09-19T01:42:44.732Z] [2025-09-19T01:42:44.731Z] INFO: Worker started successfully
+[2025-09-19T01:42:44.733Z] [2025-09-19T01:42:44.732Z] INFO: Scheduled jobs: {
+  dailyAgenda: '0 6 * * * (6:00 AM Dubai time)',
+  healthCheck: '*/5 * * * * (every 5 minutes)',
+  statusLog: '0 * * * * (every hour)'
+}
+[2025-09-19T01:45:00.030Z] [2025-09-19T01:45:00.030Z] INFO: Health check passed
+[2025-09-19T01:46:00.317Z] [2025-09-19T01:46:00.308Z] INFO: Received SIGTERM, shutting down gracefully...

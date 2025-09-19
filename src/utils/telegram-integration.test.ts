@@ -4,8 +4,6 @@
  */
 
 import { appointmentService } from '@/services/appointmentService';
-import { cronWorkerService } from '@/services/cronWorkerService';
-import { jobSchedulerService } from '@/services/jobSchedulerService';
 import { staffService } from '@/services/staffService';
 import { telegramCommandService } from '@/services/telegramCommandService';
 import { telegramNotificationService } from '@/services/telegramNotificationService';
@@ -18,8 +16,6 @@ jest.mock('@/services/staffService');
 jest.mock('@/services/telegramCommandService');
 jest.mock('@/services/appointmentService');
 jest.mock('@/services/telegramNotificationService');
-jest.mock('@/services/cronWorkerService');
-jest.mock('@/services/jobSchedulerService');
 jest.mock('./telegramValidation', () => ({
   TelegramValidationService: {
     validateWebhookUpdate: jest.fn(),

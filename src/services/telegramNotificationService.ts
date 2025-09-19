@@ -185,8 +185,7 @@ export class TelegramNotificationService {
         const result = await this.sendOneHourReminderNotificationWithRetry(
           staff.telegram_user_id,
           appointment,
-          staff,
-          assignment.staff_id
+          staff
         );
 
         results.push({
@@ -363,8 +362,8 @@ export class TelegramNotificationService {
 
     try {
       // Get all staff members with Telegram user IDs
-      const staffMembers = await staffService.getAllStaff();
-      const staffWithTelegram = staffMembers.filter(staff => staff.telegram_user_id && staff.telegram_verified);
+      const staffMembers = await staffService.getStaff();
+      const staffWithTelegram = staffMembers.filter((staff: any) => staff.telegram_user_id && staff.telegram_verified);
 
       console.log(`📱 Sending daily agenda to ${staffWithTelegram.length} staff members with Telegram`);
 
@@ -428,7 +427,6 @@ export class TelegramNotificationService {
     telegramUserId: string,
     appointment: any,
     staff: any,
-    staffId: string,
     maxRetries: number = 3,
     retryDelay: number = 5000
   ): Promise<{ success: boolean; error?: string; retryable?: boolean }> {

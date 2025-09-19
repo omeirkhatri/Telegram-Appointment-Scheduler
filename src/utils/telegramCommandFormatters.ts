@@ -405,7 +405,7 @@ export class TelegramCommandFormatters {
     if (patient.building_street) parts.push(patient.building_street);
     if (patient.area) parts.push(patient.area);
     if (patient.city) parts.push(patient.city);
-    return parts.join(', ');
+    return parts.length > 0 ? parts.join(', ') : 'Address not provided';
   }
 }
 

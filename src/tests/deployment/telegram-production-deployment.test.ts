@@ -3,16 +3,12 @@
  * Tests production readiness and monitoring setup
  */
 
-import { cronWorkerService } from '@/services/cronWorkerService';
-import { jobSchedulerService } from '@/services/jobSchedulerService';
 import { staffService } from '@/services/staffService';
 import { telegramCommandService } from '@/services/telegramCommandService';
 import { telegramNotificationService } from '@/services/telegramNotificationService';
 import { telegramValidationService } from '@/utils/telegramValidation';
 
 // Mock external dependencies
-jest.mock('@/services/cronWorkerService');
-jest.mock('@/services/jobSchedulerService');
 jest.mock('@/services/telegramNotificationService');
 jest.mock('@/services/telegramCommandService');
 jest.mock('@/services/staffService');

@@ -173,7 +173,7 @@ export class TelegramMessageFormatter {
     // Driver-specific info
     message += `👤 <b>Patient:</b> ${patient.name}\n`;
     message += `📍 <b>Address:</b> ${patient.address || 'TBD'}\n`;
-    message += `⏰ <b>Time:</b> ${appointment.start_time} - ${this.getAppointmentEndTime(appointment.start_time, appointment.duration_minutes)}\n`;
+    message += `⏰ <b>Time:</b> ${this.formatTime(appointment.start_time)} - ${this.getAppointmentEndTime(appointment.start_time, appointment.duration_minutes)}\n`;
     message += `📅 <b>Date:</b> ${this.formatDate(appointment.appointment_date)}\n`;
     message += `👨‍⚕️ <b>Driver:</b> ${staff.first_name} ${staff.last_name}\n`;
 
@@ -212,7 +212,7 @@ export class TelegramMessageFormatter {
     // Driver-specific info
     message += `👤 <b>Patient:</b> ${patient.name}\n`;
     message += `📍 <b>Address:</b> ${patient.address || 'TBD'}\n`;
-    message += `⏰ <b>Time:</b> ${appointment.start_time} - ${this.getAppointmentEndTime(appointment.start_time, appointment.duration_minutes)}\n`;
+    message += `⏰ <b>Time:</b> ${this.formatTime(appointment.start_time)} - ${this.getAppointmentEndTime(appointment.start_time, appointment.duration_minutes)}\n`;
 
     // Medical staff info
     const medicalStaff = this.getMedicalStaff(appointment);
@@ -353,16 +353,17 @@ export class TelegramMessageFormatter {
 
   private formatBasicAppointmentInfo(appointment: AppointmentWithDetails, patient: Patient): string {
     const appointmentDate = this.formatDate(appointment.appointment_date);
-    const startTime = appointment.start_time;
-    const endTime = this.getAppointmentEndTime(startTime, appointment.duration_minutes);
+    const startTime = this.formatTime(appointment.start_time);
+    const endTime = this.getAppointmentEndTime(appointment.start_time, appointment.duration_minutes);
     const appointmentType = this.formatAppointmentType(appointment.appointment_type);
+    const address = this.formatPatientAddress(patient);
 
     return `📅 <b>Date:</b> ${appointmentDate}\n` +
            `⏰ <b>Time:</b> ${startTime} - ${endTime}\n` +
            `🏥 <b>Type:</b> ${appointmentType}\n` +
            `👤 <b>Patient:</b> ${patient.name}\n` +
            `📞 <b>Phone:</b> ${patient.phone}\n` +
-           `📍 <b>Address:</b> ${patient.address || 'TBD'}\n`;
+           `📍 <b>Address:</b> ${address}\n`;
   }
 
   private formatStaffAssignmentInfo(appointment: AppointmentWithDetails, currentStaff: Staff): string {
@@ -534,6 +535,34 @@ export class TelegramMessageFormatter {
       month: 'short',
       year: 'numeric'
     });
+  }
+
+  private formatTime(timeString: string): string {
+    // Convert "06:30:00" to "06:30" or keep "06:30" as is
+    return timeString.includes(':') ? timeString.slice(0, 5) : timeString;
+  }
+
+  private formatPatientAddress(patient: Patient): string {
+    const parts = [];
+
+    if (patient.flat_villa_no) {
+      parts.push(patient.flat_villa_no);
+    }
+
+    if (patient.building_street) {
+      parts.push(patient.building_street);
+    }
+
+    if (patient.area) {
+      parts.push(patient.area);
+    }
+
+    if (patient.city) {
+      parts.push(patient.city);
+    }
+
+    // Return the formatted address or a more descriptive message
+    return parts.length > 0 ? parts.join(', ') : 'Address not provided';
   }
 
   private getAppointmentEndTime(startTime: string, durationMinutes: number): string {

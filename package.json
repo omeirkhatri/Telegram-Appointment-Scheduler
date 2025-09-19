@@ -56,11 +56,9 @@
     "migrate:restore": "./scripts/restore-data.sh",
     "migrate:to-cloud": "./scripts/migrate-to-cloud.sh",
     "migrate:rollback": "./scripts/rollback-migration.sh",
-    "worker:start": "node scripts/start-worker.js start",
-    "worker:stop": "node scripts/start-worker.js stop",
-    "worker:restart": "node scripts/start-worker.js restart",
-    "worker:status": "node scripts/start-worker.js status",
-    "worker:logs": "node scripts/start-worker.js logs"
+    "reminders:30min": "node scripts/simple-30min-reminder-worker.js",
+    "reminders:simple": "node scripts/simple-reminder-worker.js",
+    "reminders:test": "curl http://localhost:3000/api/test-30min-reminders"
   },
   "dependencies": {
     "@fullcalendar/core": "^6.1.19",

@@ -1,0 +1,7 @@
+tunnel: c0adf066-4e11-4450-9da1-55841e231287
+credentials-file: /Users/user/.cloudflared/c0adf066-4e11-4450-9da1-55841e231287.json
+
+ingress:
+  - hostname: scheduler.n8nbdoc.com
+    service: http://localhost:3000
+  - service: http_status:404
