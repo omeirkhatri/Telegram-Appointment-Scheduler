@@ -19,6 +19,7 @@ import {
     Plus,
 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { getCurrentDubaiTime } from '@/utils/timezone';
 
 export default function AppointmentsPage() {
   const [viewMode, setViewMode] = useState<'calendar' | 'table'>('calendar');
@@ -64,7 +65,7 @@ export default function AppointmentsPage() {
   useEffect(() => {
     // Only calculate dates on client side
     if (typeof window !== 'undefined') {
-      const now = new Date();
+      const now = getCurrentDubaiTime();
       setDateRange({
         start: new Date(now.getFullYear(), now.getMonth() - 1, now.getDate()),
         end: new Date(now.getFullYear(), now.getMonth() + 2, now.getDate())
@@ -73,8 +74,14 @@ export default function AppointmentsPage() {
   }, []);
 
   // Create stable default dates to prevent infinite loops
-  const defaultStartDate = useMemo(() => new Date(2024, 0, 1), []);
-  const defaultEndDate = useMemo(() => new Date(2024, 11, 31), []);
+  const defaultStartDate = useMemo(() => {
+    const now = getCurrentDubaiTime();
+    return new Date(now.getFullYear(), 0, 1);
+  }, []);
+  const defaultEndDate = useMemo(() => {
+    const now = getCurrentDubaiTime();
+    return new Date(now.getFullYear(), 11, 31);
+  }, []);
 
   // Fetch real appointment data for the calendar - only when dateRange is available
   const {

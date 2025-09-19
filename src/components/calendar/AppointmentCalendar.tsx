@@ -3,6 +3,7 @@
 import type { Appointment } from '@/types';
 import { getAppointmentTypeDisplayName } from '@/types/appointment';
 import { getAppointmentTypeColor } from '@/utils/appointmentTypes';
+import { getCurrentDubaiTime } from '@/utils/timezone';
 import type { DateSelectArg, EventClickArg, EventDropArg, EventResizeArg } from '@fullcalendar/core';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import interactionPlugin from '@fullcalendar/interaction';
@@ -161,12 +162,35 @@ export function AppointmentCalendar({
 }: AppointmentCalendarProps) {
   const calendarRef = useRef<FullCalendar>(null);
   const [currentView, setCurrentView] = useState(initialView);
-  const [currentDate, setCurrentDate] = useState(new Date());
+  // Initialize currentDate with a proper Date object for today in Dubai timezone
+  const [currentDate, setCurrentDate] = useState(() => {
+    // Only run on client side
+    if (typeof window !== 'undefined') {
+      return getCurrentDubaiTime();
+    }
+    return new Date(); // Fallback for SSR
+  });
+  const isUserChangingDate = useRef(false);
+
 
   // Update currentView when initialView changes
   useEffect(() => {
     setCurrentView(initialView);
   }, [initialView]);
+
+  // Ensure currentDate is properly initialized on client side
+  useEffect(() => {
+    // Only run on client side to avoid hydration mismatch
+    if (typeof window !== 'undefined') {
+      const now = getCurrentDubaiTime();
+      // Only update if the current date is invalid or significantly different
+      if (!currentDate || isNaN(currentDate.getTime()) || currentDate.getFullYear() < 2020) {
+        setCurrentDate(now);
+      }
+    }
+  }, []);
+
+
 
   // Force calendar refresh when appointments change
   useEffect(() => {
@@ -307,11 +331,14 @@ export function AppointmentCalendar({
     const calendar = calendarRef.current;
     if (calendar) {
       try {
-        // Ensure the calendar is in a valid state
-        if (!calendar.view) {
-          console.log('Calendar view not ready, initializing...');
-          calendar.render();
-        }
+        // Force the calendar to use the current date on mount
+        const api = calendar.getApi();
+        const now = getCurrentDubaiTime();
+
+        // Always force to current Dubai time on initialization
+        api.gotoDate(now);
+        setCurrentDate(now);
+
       } catch (error) {
         console.error('Error initializing calendar:', error);
       }
@@ -461,7 +488,15 @@ export function AppointmentCalendar({
       if (calendar) {
         const api = calendar.getApi();
         setCurrentView(api.view.type);
-        setCurrentDate(api.view.activeStart);
+
+        // Validate the activeStart date before using it
+        const activeStart = api.view.activeStart;
+        if (activeStart && !isNaN(activeStart.getTime()) && activeStart.getFullYear() >= 2020) {
+          setCurrentDate(activeStart);
+        } else {
+          console.warn('Invalid activeStart in view change, keeping current date');
+          // Don't update currentDate if activeStart is invalid
+        }
       }
     } catch (error) {
       console.error('Error in view change handler:', error);
@@ -470,10 +505,42 @@ export function AppointmentCalendar({
 
   const handleDatesSet = useCallback(() => {
     try {
+      // Don't update if user is currently changing the date
+      if (isUserChangingDate.current) {
+        return;
+      }
+
       const calendar = calendarRef.current;
       if (calendar) {
         const api = calendar.getApi();
-        setCurrentDate(api.view.activeStart);
+        const activeStart = api.view.activeStart;
+        const viewType = api.view.type;
+
+        // Only update currentDate if we have a valid activeStart
+        if (activeStart && !isNaN(activeStart.getTime())) {
+          // Check if the year is reasonable (not 1970 or other invalid years)
+          if (activeStart.getFullYear() >= 2020 && activeStart.getFullYear() <= 2030) {
+            let dateToSet = activeStart;
+
+            // For month view, activeStart is the first day of the calendar grid
+            // which might be from the previous month. We need to get the actual month being displayed.
+            if (viewType === 'dayGridMonth') {
+              // Get the current date that the calendar is showing
+              const currentCalendarDate = api.getDate();
+              dateToSet = currentCalendarDate;
+            }
+
+            setCurrentDate(dateToSet);
+          } else {
+            console.warn('Invalid year in activeStart:', activeStart.getFullYear(), 'forcing correct date');
+            // Force the calendar to use the correct current date
+            const correctDate = getCurrentDubaiTime();
+            api.gotoDate(correctDate);
+            setCurrentDate(correctDate);
+          }
+        } else {
+          console.warn('handleDatesSet - activeStart is invalid:', activeStart);
+        }
       }
     } catch (error) {
       console.error('Error in dates set handler:', error);
@@ -484,8 +551,18 @@ export function AppointmentCalendar({
     const calendar = calendarRef.current;
     if (calendar) {
       const api = calendar.getApi();
+
+      // Set flag to prevent handleDatesSet from overriding this change
+      isUserChangingDate.current = true;
+
+      // Use the date directly - FullCalendar will handle timezone conversion
       api.gotoDate(date);
       setCurrentDate(date);
+
+      // Reset flag after a short delay
+      setTimeout(() => {
+        isUserChangingDate.current = false;
+      }, 100);
     }
   }, []);
 
@@ -636,6 +713,7 @@ export function AppointmentCalendar({
         initialDate={currentDate}
         height={height}
         headerToolbar={false}
+        timeZone="Asia/Dubai"
         buttonText={{
           today: 'Today',
           month: 'Month',
@@ -661,11 +739,9 @@ export function AppointmentCalendar({
           hour12: false,
         }}
         dayHeaderFormat={{
-          weekday: 'long',
-          day: 'numeric',
-          month: 'long',
-          year: 'numeric'
+          weekday: 'long'
         }}
+        fixedWeekCount={false}
         // Event settings
         events={events}
         editable={!!onEventDrop}

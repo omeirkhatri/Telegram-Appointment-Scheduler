@@ -67,6 +67,8 @@
     "@fullcalendar/list": "^6.1.19",
     "@fullcalendar/react": "^6.1.19",
     "@fullcalendar/timegrid": "^6.1.19",
+    "@googlemaps/js-api-loader": "^1.16.10",
+    "@googlemaps/markerclusterer": "^2.6.2",
     "@hapi/boom": "^10.0.1",
     "@hookform/resolvers": "^5.2.1",
     "@supabase/supabase-js": "^2.56.1",

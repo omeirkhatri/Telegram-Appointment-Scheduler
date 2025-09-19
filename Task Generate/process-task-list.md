@@ -49,3 +49,5 @@ When working with task lists, the AI must:
 4. Keep "Relevant Files" accurate and up to date.
 5. Before starting work, check which sub‑task is next.
 6. After implementing a sub‑task, update the file and then pause for user approval.
+7. After implimenting each sub task, Add a note in the attached PRD  file talking about what tests you did, what didnt work, what is completed. For context for future chats. Link any files created along with their purpose. and mention if they are to be deleted later after completing a particultar task.
+8. Summarise old task Progress Notes so the ai does not consume all of Progress Notes but only for the stuff thats done and not have any stuff to be done later.

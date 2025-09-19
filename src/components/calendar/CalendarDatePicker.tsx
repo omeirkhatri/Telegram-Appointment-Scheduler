@@ -1,5 +1,6 @@
 'use client';
 
+import { getCurrentDubaiTime } from '@/utils/timezone';
 import { Calendar, ChevronDown } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
@@ -20,6 +21,7 @@ export function CalendarDatePicker({
   const [selectedDate, setSelectedDate] = useState(currentDate);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
+
   // Close dropdown when clicking outside
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -34,7 +36,13 @@ export function CalendarDatePicker({
 
   // Update selected date when currentDate changes
   useEffect(() => {
-    setSelectedDate(currentDate);
+    // Ensure currentDate is a valid Date object
+    if (currentDate && !isNaN(currentDate.getTime())) {
+      setSelectedDate(currentDate);
+    } else {
+      console.warn('Invalid currentDate, using current Dubai date');
+      setSelectedDate(getCurrentDubaiTime());
+    }
   }, [currentDate]);
 
   const handleDateSelect = (date: Date) => {
@@ -44,21 +52,26 @@ export function CalendarDatePicker({
   };
 
   const goToToday = () => {
-    const today = new Date();
+    const today = getCurrentDubaiTime();
     handleDateSelect(today);
   };
 
   const getButtonText = () => {
+    // Ensure we have a valid date for display
+    const dateToShow = selectedDate && !isNaN(selectedDate.getTime()) ? selectedDate : getCurrentDubaiTime();
+
     if (currentView === 'dayGridMonth') {
-      return selectedDate.toLocaleDateString('en', {
+      return dateToShow.toLocaleDateString('en', {
         month: 'long',
-        year: 'numeric'
+        year: 'numeric',
+        timeZone: 'Asia/Dubai'
       });
     } else {
-      return selectedDate.toLocaleDateString('en', {
+      return dateToShow.toLocaleDateString('en', {
         month: 'short',
         day: 'numeric',
-        year: 'numeric'
+        year: 'numeric',
+        timeZone: 'Asia/Dubai'
       });
     }
   };
@@ -76,7 +89,7 @@ export function CalendarDatePicker({
   };
 
   const isToday = (date: Date) => {
-    const today = new Date();
+    const today = getCurrentDubaiTime();
     return date.toDateString() === today.toDateString();
   };
 
@@ -85,11 +98,14 @@ export function CalendarDatePicker({
   };
 
   const renderCalendar = () => {
-    const currentMonth = selectedDate.getMonth();
-    const currentYear = selectedDate.getFullYear();
-    const daysInMonth = getDaysInMonth(selectedDate);
-    const firstDay = getFirstDayOfMonth(selectedDate);
-    const daysInPrevMonth = getDaysInPreviousMonth(selectedDate);
+    // Ensure we have a valid date for rendering
+    const dateToUse = selectedDate && !isNaN(selectedDate.getTime()) ? selectedDate : getCurrentDubaiTime();
+
+    const currentMonth = dateToUse.getMonth();
+    const currentYear = dateToUse.getFullYear();
+    const daysInMonth = getDaysInMonth(dateToUse);
+    const firstDay = getFirstDayOfMonth(dateToUse);
+    const daysInPrevMonth = getDaysInPreviousMonth(dateToUse);
 
     const days = [];
 
@@ -151,7 +167,7 @@ export function CalendarDatePicker({
         <div className="flex items-center justify-between mb-4">
           <button
             onClick={() => {
-              const newDate = new Date(selectedDate);
+              const newDate = new Date(dateToUse);
               newDate.setMonth(newDate.getMonth() - 1);
               setSelectedDate(newDate);
             }}
@@ -160,11 +176,11 @@ export function CalendarDatePicker({
             ←
           </button>
           <div className="text-lg font-semibold">
-            {selectedDate.toLocaleDateString('en', { month: 'long', year: 'numeric' })}
+            {dateToUse.toLocaleDateString('en', { month: 'long', year: 'numeric', timeZone: 'Asia/Dubai' })}
           </div>
           <button
             onClick={() => {
-              const newDate = new Date(selectedDate);
+              const newDate = new Date(dateToUse);
               newDate.setMonth(newDate.getMonth() + 1);
               setSelectedDate(newDate);
             }}
