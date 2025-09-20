@@ -203,6 +203,23 @@ export interface MapError {
   };
 }
 
+// Geocoding error types
+export interface GeocodingError {
+  code: 'ZERO_RESULTS' | 'OVER_QUERY_LIMIT' | 'REQUEST_DENIED' | 'INVALID_REQUEST' | 'UNKNOWN_ERROR' | 'GEOCODING_ERROR' | 'NETWORK_ERROR' | 'TIMEOUT_ERROR' | 'RATE_LIMIT_ERROR' | 'SERVICE_UNAVAILABLE' | 'AUTHENTICATION_ERROR' | 'QUOTA_EXCEEDED' | 'API_KEY_INVALID' | 'BATCH_GEOCODING_FAILED' | 'ALL_FALLBACKS_FAILED';
+  message: string;
+  details?: {
+    address?: string;
+    coordinates?: Coordinates;
+    originalError?: unknown;
+    status?: string;
+    retryAfter?: number;
+    [key: string]: unknown;
+  };
+  timestamp: number;
+  retryable?: boolean;
+  severity?: 'low' | 'medium' | 'high' | 'critical';
+}
+
 // Map state management
 export interface MapState {
   is_loading: boolean;

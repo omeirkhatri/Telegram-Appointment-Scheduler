@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/supabase';
-import type { Patient, CreatePatient, UpdatePatient, PatientFilters } from '@/types';
+import type { CreatePatient, Patient, PatientFilters, UpdatePatient } from '@/types';
 
 export class PatientService {
   // Get all patients with optional filtering
@@ -31,6 +31,14 @@ export class PatientService {
         query = query.not('id_document_url', 'is', null);
       } else {
         query = query.is('id_document_url', null);
+      }
+    }
+
+    if (filters?.has_coordinates !== undefined) {
+      if (filters.has_coordinates) {
+        query = query.not('latitude', 'is', null).not('longitude', 'is', null);
+      } else {
+        query = query.or('latitude.is.null,longitude.is.null');
       }
     }
 

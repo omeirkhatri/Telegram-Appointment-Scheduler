@@ -1,5 +1,6 @@
 'use client';
 
+import { useMapNavigation } from '@/hooks/useMapNavigation';
 import type { Appointment } from '@/types';
 import { getAppointmentTypeDisplayName } from '@/types/appointment';
 import { getAppointmentTypeColor } from '@/utils/appointmentTypes';
@@ -11,7 +12,9 @@ import listPlugin from '@fullcalendar/list';
 import FullCalendar from '@fullcalendar/react';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { AppointmentMapView } from './AppointmentMapView';
 import { CalendarDatePicker } from './CalendarDatePicker';
+
 
 // Global cache for staff information to avoid repeated API calls
 const staffCache = new Map<string, { primaryStaff?: string; driver?: string; timestamp: number }>();
@@ -125,8 +128,10 @@ function AppointmentStaffInfo({ appointment }: { appointment: Appointment }) {
   );
 }
 
+type CalendarViewType = 'dayGridMonth' | 'timeGridWeek' | 'timeGridDay' | 'listWeek' | 'listDay' | 'map';
+
 interface AppointmentCalendarProps {
-  initialView?: 'dayGridMonth' | 'timeGridWeek' | 'timeGridDay' | 'listWeek';
+  initialView?: CalendarViewType;
   height?: string | number;
   appointments?: Appointment[];
   isLoading?: boolean;
@@ -161,7 +166,7 @@ export function AppointmentCalendar({
   filters = {},
 }: AppointmentCalendarProps) {
   const calendarRef = useRef<FullCalendar>(null);
-  const [currentView, setCurrentView] = useState(initialView);
+  const [currentView, setCurrentView] = useState<CalendarViewType>(initialView);
   // Initialize currentDate with a proper Date object for today in Dubai timezone
   const [currentDate, setCurrentDate] = useState(() => {
     // Only run on client side
@@ -171,6 +176,23 @@ export function AppointmentCalendar({
     return new Date(); // Fallback for SSR
   });
   const isUserChangingDate = useRef(false);
+
+  // Map navigation hook for map view
+  const mapNavigation = useMapNavigation({
+    initialDate: currentDate,
+    initialView: 'day',
+    enableDateRange: true,
+    enableTimeRange: true,
+    enableFilters: true,
+    autoUpdateMarkers: true,
+    onDateChange: (date) => {
+      setCurrentDate(date);
+    },
+    onViewChange: (view) => {
+      // Map view doesn't use the same view types as calendar
+      // This is handled by the map component itself
+    }
+  });
 
 
   // Update currentView when initialView changes
@@ -187,6 +209,9 @@ export function AppointmentCalendar({
       if (!currentDate || isNaN(currentDate.getTime()) || currentDate.getFullYear() < 2020) {
         setCurrentDate(now);
       }
+
+      // Debug timezone information on mount
+      debugTimezoneInfo();
     }
   }, []);
 
@@ -323,6 +348,7 @@ export function AppointmentCalendar({
     return cleanup;
   }, [currentView]);
 
+
   // Ensure calendar is properly initialized
   useEffect(() => {
     // Only run on client side
@@ -360,6 +386,20 @@ export function AppointmentCalendar({
     };
   }, []);
 
+  // Debug timezone information
+  const debugTimezoneInfo = () => {
+    const now = new Date();
+    const dubaiTime = getCurrentDubaiTime();
+
+    console.log('Timezone Debug Info:', {
+      localTime: now,
+      dubaiTime: dubaiTime,
+      localTimezoneOffset: now.getTimezoneOffset(),
+      dubaiTimezoneOffset: dubaiTime.getTimezoneOffset(),
+      timezoneDifference: (dubaiTime.getTime() - now.getTime()) / (1000 * 60 * 60)
+    });
+  };
+
   // Convert appointments to calendar events
   const events = appointments.map((appointment) => {
     // Convert start_time from HH:MM:SS to HH:MM format for proper date parsing
@@ -367,11 +407,22 @@ export function AppointmentCalendar({
       ? appointment.start_time.split(':').slice(0, 2).join(':')
       : appointment.start_time;
 
-    // Create date in local timezone for calendar display
-    // The appointment_date and start_time are stored in Asia/Dubai timezone in the database
-    // We need to convert them to local timezone for the calendar
-    const startDateTime = new Date(`${appointment.appointment_date}T${timeOnly}:00`);
+    // Create date and add 4 hours to convert to Dubai time (UTC+4)
+    // The appointment_date and start_time are stored in Dubai timezone
+    const utcDateTime = new Date(`${appointment.appointment_date}T${timeOnly}:00`);
+    const startDateTime = new Date(utcDateTime.getTime() + (4 * 60 * 60 * 1000)); // Add 4 hours
     const endDateTime = new Date(startDateTime.getTime() + appointment.duration_minutes * 60000);
+
+    console.log('Event created:', {
+      appointment_date: appointment.appointment_date,
+      start_time: appointment.start_time,
+      utcDateTime: utcDateTime,
+      startDateTime: startDateTime,
+      endDateTime: endDateTime,
+      startDateTimeUTC: startDateTime.toISOString(),
+      startDateTimeLocal: startDateTime.toLocaleString(),
+      currentDubaiTime: getCurrentDubaiTime()
+    });
 
     // Create title with patient name and appointment type
     const patientName = appointment.patient?.name || 'Unknown Patient';
@@ -412,6 +463,7 @@ export function AppointmentCalendar({
       },
     };
   });
+
 
   const handleDateSelect = useCallback((selectInfo: DateSelectArg) => {
     if (onDateSelect) {
@@ -487,21 +539,35 @@ export function AppointmentCalendar({
       const calendar = calendarRef.current;
       if (calendar) {
         const api = calendar.getApi();
-        setCurrentView(api.view.type);
+        const newViewType = api.view.type;
 
-        // Validate the activeStart date before using it
-        const activeStart = api.view.activeStart;
-        if (activeStart && !isNaN(activeStart.getTime()) && activeStart.getFullYear() >= 2020) {
-          setCurrentDate(activeStart);
-        } else {
-          console.warn('Invalid activeStart in view change, keeping current date');
-          // Don't update currentDate if activeStart is invalid
+        // Update view state - only for calendar views, not map view
+        if (newViewType !== 'map') {
+          setCurrentView(newViewType as CalendarViewType);
+        }
+
+        // Only update date if user is not currently changing it
+        if (!isUserChangingDate.current) {
+          const currentCalendarDate = api.getDate();
+          if (currentCalendarDate && !isNaN(currentCalendarDate.getTime())) {
+            // Only update if the date is actually different
+            const currentDateValue = currentDate.getTime();
+            const newDateValue = currentCalendarDate.getTime();
+
+            if (Math.abs(currentDateValue - newDateValue) > 1000) { // More than 1 second difference
+              setCurrentDate(currentCalendarDate);
+            }
+          } else {
+            // Fallback to today's date if calendar date is invalid
+            const today = getCurrentDubaiTime();
+            setCurrentDate(today);
+          }
         }
       }
     } catch (error) {
       console.error('Error in view change handler:', error);
     }
-  }, []);
+  }, [currentDate]);
 
   const handleDatesSet = useCallback(() => {
     try {
@@ -515,6 +581,16 @@ export function AppointmentCalendar({
         const api = calendar.getApi();
         const activeStart = api.view.activeStart;
         const viewType = api.view.type;
+
+        console.log('handleDatesSet called:', {
+          viewType,
+          activeStart,
+          activeStartDateString: activeStart ? activeStart.toISOString().split('T')[0] : 'null',
+          currentDate: currentDate,
+          currentDateString: currentDate.toISOString().split('T')[0],
+          isUserChangingDate: isUserChangingDate.current,
+          dubaiTime: getCurrentDubaiTime().toISOString().split('T')[0]
+        });
 
         // Only update currentDate if we have a valid activeStart
         if (activeStart && !isNaN(activeStart.getTime())) {
@@ -530,7 +606,14 @@ export function AppointmentCalendar({
               dateToSet = currentCalendarDate;
             }
 
-            setCurrentDate(dateToSet);
+            // Only update if the date is actually different to avoid unnecessary re-renders
+            const currentDateValue = currentDate.getTime();
+            const newDateValue = dateToSet.getTime();
+
+            if (Math.abs(currentDateValue - newDateValue) > 1000) { // More than 1 second difference
+              console.log('Updating currentDate from', currentDate, 'to', dateToSet);
+              setCurrentDate(dateToSet);
+            }
           } else {
             console.warn('Invalid year in activeStart:', activeStart.getFullYear(), 'forcing correct date');
             // Force the calendar to use the correct current date
@@ -540,12 +623,17 @@ export function AppointmentCalendar({
           }
         } else {
           console.warn('handleDatesSet - activeStart is invalid:', activeStart);
+          // If activeStart is invalid, try to get the current date from the calendar
+          const currentCalendarDate = api.getDate();
+          if (currentCalendarDate && !isNaN(currentCalendarDate.getTime())) {
+            setCurrentDate(currentCalendarDate);
+          }
         }
       }
     } catch (error) {
       console.error('Error in dates set handler:', error);
     }
-  }, []);
+  }, [currentDate]);
 
   const handleDateChange = useCallback((date: Date) => {
     const calendar = calendarRef.current;
@@ -556,6 +644,11 @@ export function AppointmentCalendar({
       isUserChangingDate.current = true;
 
       // Use the date directly - FullCalendar will handle timezone conversion
+      console.log('Date change:', {
+        originalDate: date,
+        dateString: date.toISOString().split('T')[0]
+      });
+
       api.gotoDate(date);
       setCurrentDate(date);
 
@@ -565,6 +658,42 @@ export function AppointmentCalendar({
       }, 100);
     }
   }, []);
+
+  // Handle switching from map view back to calendar views
+  const handleCalendarViewSwitch = useCallback((viewType: CalendarViewType) => {
+    if (viewType === 'map') {
+      setCurrentView('map');
+      mapNavigation.goToDate(currentDate);
+      return;
+    }
+
+    // Switch to calendar view
+    setCurrentView(viewType);
+
+    const calendar = calendarRef.current;
+    if (calendar) {
+      const api = calendar.getApi();
+      const today = getCurrentDubaiTime();
+
+      // Set flag to prevent handleDatesSet from overriding this change
+      isUserChangingDate.current = true;
+
+      // Convert view type to FullCalendar view
+      const fullCalendarView = viewType === 'dayGridMonth' ? 'dayGridMonth' :
+                              viewType === 'timeGridWeek' ? 'timeGridWeek' :
+                              viewType === 'timeGridDay' ? 'timeGridDay' :
+                              viewType === 'listWeek' ? 'listWeek' : 'listDay';
+
+      api.changeView(fullCalendarView, currentDate);
+      setCurrentDate(currentDate);
+
+      // Force view change handler to update the view state
+      setTimeout(() => {
+        handleViewChange();
+        isUserChangingDate.current = false;
+      }, 50);
+    }
+  }, [currentDate, mapNavigation, handleViewChange]);
 
   if (error) {
     return (
@@ -585,18 +714,6 @@ export function AppointmentCalendar({
 
   return (
     <div className="bg-[--card] rounded-lg shadow-sm border border-[--border] calendar-container">
-      {/* Custom CSS to disable hover effects in list view */}
-      <style jsx>{`
-        .calendar-container :global(.fc-listWeek-view .fc-event:hover) {
-          transform: none !important;
-          background-color: inherit !important;
-          box-shadow: none !important;
-          cursor: default !important;
-        }
-        .calendar-container :global(.fc-listWeek-view .fc-event) {
-          transition: none !important;
-        }
-      `}</style>
       {/* Custom Header Toolbar */}
       <div className="flex items-center justify-between p-4 border-b border-[--border]">
         <div className="flex items-center space-x-2">
@@ -633,7 +750,40 @@ export function AppointmentCalendar({
               const calendar = calendarRef.current;
               if (calendar) {
                 const api = calendar.getApi();
-                api.today();
+                const today = getCurrentDubaiTime();
+
+                console.log('Today button clicked:', {
+                  currentDubaiTime: today,
+                  currentCalendarDate: api.getDate(),
+                  currentView: api.view.type,
+                  dubaiDateString: today.toISOString().split('T')[0]
+                });
+
+                // Set flag to prevent handleDatesSet from overriding this change
+                isUserChangingDate.current = true;
+
+                // Go to today's date - FullCalendar will handle timezone conversion
+                console.log('Today button clicked:', {
+                  dubaiTime: today,
+                  dubaiDateString: today.toISOString().split('T')[0]
+                });
+
+                api.gotoDate(today);
+                setCurrentDate(today);
+
+                // Force a render to ensure the calendar updates
+                api.render();
+
+                // Force view change handler to update the view state
+                setTimeout(() => {
+                  handleViewChange();
+                  isUserChangingDate.current = false;
+                  console.log('Today button - after change:', {
+                    calendarDate: api.getDate(),
+                    currentDate: currentDate,
+                    viewType: api.view.type
+                  });
+                }, 100);
               }
             }}
             className="px-3 py-2 text-sm font-medium text-[--foreground] bg-[--card] border border-[--border] rounded-lg hover:bg-[--accent] focus:outline-none focus:ring-2 focus:ring-[--ring] focus:border-transparent transition-colors"
@@ -652,13 +802,7 @@ export function AppointmentCalendar({
 
         <div className="flex items-center space-x-1">
           <button
-            onClick={() => {
-              const calendar = calendarRef.current;
-              if (calendar) {
-                const api = calendar.getApi();
-                api.changeView('dayGridMonth');
-              }
-            }}
+            onClick={() => handleCalendarViewSwitch('dayGridMonth')}
             className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
               currentView === 'dayGridMonth'
                 ? 'bg-[--primary] text-[--primary-foreground]'
@@ -668,13 +812,7 @@ export function AppointmentCalendar({
             Month
           </button>
           <button
-            onClick={() => {
-              const calendar = calendarRef.current;
-              if (calendar) {
-                const api = calendar.getApi();
-                api.changeView('timeGridWeek');
-              }
-            }}
+            onClick={() => handleCalendarViewSwitch('timeGridWeek')}
             className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
               currentView === 'timeGridWeek'
                 ? 'bg-[--primary] text-[--primary-foreground]'
@@ -684,13 +822,7 @@ export function AppointmentCalendar({
             Week
           </button>
           <button
-            onClick={() => {
-              const calendar = calendarRef.current;
-              if (calendar) {
-                const api = calendar.getApi();
-                api.changeView('timeGridDay');
-              }
-            }}
+            onClick={() => handleCalendarViewSwitch('timeGridDay')}
             className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
               currentView === 'timeGridDay'
                 ? 'bg-[--primary] text-[--primary-foreground]'
@@ -700,25 +832,57 @@ export function AppointmentCalendar({
             Day
           </button>
           <button
-            onClick={() => {
-              const calendar = calendarRef.current;
-              if (calendar) {
-                const api = calendar.getApi();
-                api.changeView('listWeek');
-              }
-            }}
+            onClick={() => handleCalendarViewSwitch('listDay')}
             className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
-              currentView === 'listWeek'
+              currentView === 'listDay' || currentView === 'listWeek'
                 ? 'bg-[--primary] text-[--primary-foreground]'
                 : 'text-[--foreground] hover:bg-[--accent]'
             }`}
           >
             List
           </button>
+          <button
+            onClick={() => handleCalendarViewSwitch('map')}
+            className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
+              currentView === 'map'
+                ? 'bg-[--primary] text-[--primary-foreground]'
+                : 'text-[--foreground] hover:bg-[--accent]'
+            }`}
+          >
+            Map
+          </button>
         </div>
       </div>
 
-      <FullCalendar
+      {/* Custom day header for List view - always show */}
+      {currentView === 'listDay' && (
+        <div className="fc-list-day-cushion bg-white border-b border-gray-200 px-4 py-2 text-sm font-medium text-gray-700">
+          {currentDate.toLocaleDateString('en', {
+            weekday: 'long',
+            month: 'short',
+            day: 'numeric',
+            timeZone: 'Asia/Dubai'
+          })}
+        </div>
+      )}
+
+      {/* Map View */}
+      {currentView === 'map' ? (
+        <AppointmentMapView
+          appointments={appointments}
+          isLoading={isLoading}
+          error={error}
+          refetch={refetch}
+          onAppointmentClick={onEventClick}
+          onAppointmentRightClick={onEventRightClick}
+          height={height}
+          searchFilters={mapNavigation.state.searchFilters}
+          showClusters={true}
+          enableClustering={true}
+          className="rounded-lg"
+        />
+      ) : (
+        <FullCalendar
         ref={calendarRef}
         plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin, listPlugin]}
         initialView={initialView}
@@ -726,12 +890,17 @@ export function AppointmentCalendar({
         height={height}
         headerToolbar={false}
         timeZone="Asia/Dubai"
+        timeZoneParam="Asia/Dubai"
+        // Force timezone handling
+        nowIndicator={true}
+        nowIndicatorClassNames="custom-now-indicator"
         buttonText={{
           today: 'Today',
           month: 'Month',
           week: 'Week',
           day: 'Day',
           list: 'List',
+          listDay: 'List',
         }}
         // Time and date settings
         slotDuration="00:15:00" // 15-minute slots
@@ -761,7 +930,12 @@ export function AppointmentCalendar({
             dayHeaderFormat: { weekday: 'long', month: 'short', day: 'numeric' }
           },
           listWeek: {
-            dayHeaderFormat: { weekday: 'long', month: 'short', day: 'numeric' }
+            dayHeaderFormat: { weekday: 'long', month: 'short', day: 'numeric' },
+            listDayFormat: { weekday: 'long', month: 'short', day: 'numeric' }
+          },
+          listDay: {
+            dayHeaderFormat: { weekday: 'long', month: 'short', day: 'numeric' },
+            listDayFormat: { weekday: 'long', month: 'short', day: 'numeric' }
           }
         }}
         fixedWeekCount={false}
@@ -823,7 +997,19 @@ export function AppointmentCalendar({
             </div>
           );
         }}
+        // Custom no events content for List view
+        noEventsContent={(info) => {
+          if (currentView === 'listDay') {
+            return (
+              <div className="text-center py-8 text-gray-500">
+                <div className="text-sm">No appointments scheduled for this day</div>
+              </div>
+            );
+          }
+          return 'No events to display';
+        }}
       />
+      )}
     </div>
   );
 }

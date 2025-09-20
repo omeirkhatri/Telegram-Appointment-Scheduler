@@ -6,7 +6,7 @@ import { useEffect, useRef, useState } from 'react';
 
 interface CalendarDatePickerProps {
   currentDate: Date;
-  currentView: 'dayGridMonth' | 'timeGridWeek' | 'timeGridDay' | 'listWeek';
+  currentView: 'dayGridMonth' | 'timeGridWeek' | 'timeGridDay' | 'listWeek' | 'listDay';
   onDateChange: (date: Date) => void;
   className?: string;
 }

@@ -105,13 +105,31 @@ export class GoogleMapsService {
       return false;
     }
 
-    // Basic validation - Google Maps API keys are typically 39 characters
+    // Check for placeholder values
+    const placeholderValues = [
+      'your-google-maps-api-key-here',
+      'your-actual-api-key-here',
+      'your-api-key-here',
+      'AIzaSy...', // Common placeholder pattern
+      'REPLACE_WITH_YOUR_API_KEY',
+      'INSERT_YOUR_API_KEY_HERE'
+    ];
+
+    if (placeholderValues.some(placeholder =>
+      apiKey.toLowerCase().includes(placeholder.toLowerCase())
+    )) {
+      return false;
+    }
+
+    // Basic validation - Google Maps API keys are typically 35-45 characters
     // and contain alphanumeric characters and some special characters
     const apiKeyPattern = /^[A-Za-z0-9_-]{35,45}$/;
+
     // Additional check to ensure it's not just numbers
     if (/^\d+$/.test(apiKey)) {
       return false;
     }
+
     return apiKeyPattern.test(apiKey);
   }
 
@@ -137,7 +155,8 @@ export class GoogleMapsService {
 
     // Validate API key
     if (!GoogleMapsService.validateApiKey(this.config.apiKey)) {
-      throw new Error('Invalid Google Maps API key format');
+      const errorMessage = this._getApiKeyErrorMessage(this.config.apiKey);
+      throw new Error(errorMessage);
     }
 
     try {
@@ -155,6 +174,31 @@ export class GoogleMapsService {
       const mapsError = this._handleInitializationError(error);
       throw mapsError;
     }
+  }
+
+  /**
+   * Get descriptive error message for API key issues
+   */
+  private _getApiKeyErrorMessage(apiKey: string): string {
+    if (!apiKey) {
+      return 'Google Maps API key is not set. Please add NEXT_PUBLIC_GOOGLE_MAPS_API_KEY to your .env.local file.';
+    }
+
+    if (apiKey === 'your-google-maps-api-key-here' ||
+        apiKey === 'your-actual-api-key-here' ||
+        apiKey === 'your-api-key-here') {
+      return 'Google Maps API key is set to placeholder value. Please replace with your actual API key from Google Cloud Console.';
+    }
+
+    if (apiKey.length < 35) {
+      return 'Google Maps API key appears to be too short. Please check your API key from Google Cloud Console.';
+    }
+
+    if (apiKey.length > 45) {
+      return 'Google Maps API key appears to be too long. Please check your API key from Google Cloud Console.';
+    }
+
+    return 'Invalid Google Maps API key format. Please check your API key from Google Cloud Console.';
   }
 
   /**

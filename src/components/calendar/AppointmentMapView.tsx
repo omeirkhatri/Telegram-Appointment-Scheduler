@@ -95,7 +95,7 @@ export function AppointmentMapView({
   zoomControl = true,
   mapTypeControl = true,
   scaleControl = true,
-  streetViewControl = true,
+  streetViewControl = false,
   rotateControl = true,
   fullscreenControl = true,
   gestureHandling = 'auto'
@@ -123,6 +123,17 @@ export function AppointmentMapView({
   const infoWindowRef = useRef<GoogleInfoWindow | null>(null);
   const googleMapsServiceRef = useRef<GoogleMapsService | null>(null);
 
+  // Callback ref to detect when the map container is attached
+  const mapContainerRef = useCallback((node: HTMLDivElement | null) => {
+    if (node) {
+      mapRef.current = node;
+      setIsContainerReady(true);
+    } else {
+      // Reset container ready state if node is removed
+      setIsContainerReady(false);
+    }
+  }, []);
+
   const [mapState, setMapState] = useState<MapState>({
     isInitialized: false,
     isLoading: true,
@@ -144,11 +155,34 @@ export function AppointmentMapView({
     }
   });
 
+  const [isContainerReady, setIsContainerReady] = useState(false);
+
+  // Fallback: Set container ready after a timeout if callback ref doesn't work
+  useEffect(() => {
+    const fallbackTimeout = setTimeout(() => {
+      if (!isContainerReady && mapRef.current) {
+        setIsContainerReady(true);
+      }
+    }, 1000);
+
+    return () => clearTimeout(fallbackTimeout);
+  }, [isContainerReady]);
+
+
   // Initialize Google Maps
   useEffect(() => {
+    if (!isContainerReady) {
+      return;
+    }
+
     const initializeMap = async () => {
       try {
         setMapState(prev => ({ ...prev, isLoading: true, error: null }));
+
+        // Map container should be ready at this point due to isContainerReady check
+        if (!mapRef.current) {
+          throw new Error('Map container not found');
+        }
 
         // Get Google Maps service instance
         const googleMapsService = GoogleMapsService.getInstance();
@@ -156,6 +190,11 @@ export function AppointmentMapView({
 
         // Get configuration
         const config = getGoogleMapsConfig();
+
+        // Check if API key is valid before attempting initialization
+        if (!GoogleMapsService.validateApiKey(config.apiKey)) {
+          throw new Error('Google Maps API key is not properly configured. Please check your environment variables.');
+        }
 
         // Initialize Google Maps API
         if (!googleMapsService.isApiInitialized()) {
@@ -174,10 +213,6 @@ export function AppointmentMapView({
         // Load Google Maps API
         const { Map } = await loader.importLibrary('maps');
         const { AdvancedMarkerElement } = await loader.importLibrary('marker');
-
-        if (!mapRef.current) {
-          throw new Error('Map container not found');
-        }
 
         // Create map instance with mobile-optimized settings
         const mobileOptimizedConfig = {
@@ -254,7 +289,7 @@ export function AppointmentMapView({
       markersRef.current = [];
       mapInstanceRef.current = null;
     };
-  }, []);
+  }, [isContainerReady, initialCenter, initialZoom, mapTypeId, disableDefaultUI, zoomControl, mapTypeControl, scaleControl, streetViewControl, rotateControl, fullscreenControl, gestureHandling, isMobile]);
 
   // Set up map event listeners
   const setupMapEventListeners = useCallback((map: GoogleMap) => {
@@ -316,16 +351,26 @@ export function AppointmentMapView({
   // Convert appointments to map markers
   const convertAppointmentsToMarkers = useCallback((appointments: Appointment[]): MapMarker[] => {
     return appointments.map((appointment) => {
-      // For now, we'll use a default location since we don't have geocoding yet
-      // This will be replaced with actual geocoding in future tasks
-      const defaultLocation: Coordinates = {
-        lat: MAP_CONSTANTS.DEFAULT_CENTER.lat + (Math.random() - 0.5) * 0.1,
-        lng: MAP_CONSTANTS.DEFAULT_CENTER.lng + (Math.random() - 0.5) * 0.1
-      };
+      // Use stored coordinates if available, otherwise fall back to default location
+      let position: Coordinates;
+
+      if (appointment.patient?.latitude && appointment.patient?.longitude) {
+        // Use stored coordinates - no geocoding needed!
+        position = {
+          lat: appointment.patient.latitude,
+          lng: appointment.patient.longitude
+        };
+      } else {
+        // Fallback to default location with random offset for patients without coordinates
+        position = {
+          lat: MAP_CONSTANTS.DEFAULT_CENTER.lat + (Math.random() - 0.5) * 0.1,
+          lng: MAP_CONSTANTS.DEFAULT_CENTER.lng + (Math.random() - 0.5) * 0.1
+        };
+      }
 
       return {
         id: appointment.id,
-        position: defaultLocation,
+        position,
         title: `${appointment.patient?.name || 'Unknown Patient'} - ${getAppointmentTypeDisplayName(appointment.appointment_type)}`,
         description: appointment.notes || '',
         appointment_id: appointment.id,
@@ -581,28 +626,56 @@ export function AppointmentMapView({
   }
 
   // Handle loading state
-  if (mapState.isLoading || !mapState.isInitialized) {
-    return (
-      <div className="flex items-center justify-center h-64 bg-gray-50 border border-gray-200 rounded-lg">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600 font-medium">Loading map...</p>
-        </div>
-      </div>
-    );
-  }
+  const showLoadingOverlay = mapState.isLoading || !mapState.isInitialized || !isContainerReady;
 
   // Handle map error
   if (mapState.error) {
+    const isApiKeyError = mapState.error.message.includes('API key') ||
+                         mapState.error.message.includes('placeholder') ||
+                         mapState.error.message.includes('not set');
+
     return (
-      <div className="flex items-center justify-center h-64 bg-red-50 border border-red-200 rounded-lg">
-        <div className="text-center">
-          <p className="text-red-600 font-medium">Map Error</p>
-          <p className="text-red-500 text-sm mt-1">{mapState.error.message}</p>
+      <div className={`flex items-center justify-center h-64 border rounded-lg ${
+        isApiKeyError
+          ? 'bg-yellow-50 border-yellow-200'
+          : 'bg-red-50 border-red-200'
+      }`}>
+        <div className="text-center max-w-md mx-4">
+          <div className="mb-4">
+            {isApiKeyError ? (
+              <div className="text-yellow-600 text-4xl mb-2">🗝️</div>
+            ) : (
+              <div className="text-red-600 text-4xl mb-2">⚠️</div>
+            )}
+          </div>
+          <p className={`font-medium ${
+            isApiKeyError ? 'text-yellow-800' : 'text-red-600'
+          }`}>
+            {isApiKeyError ? 'Google Maps API Key Required' : 'Map Error'}
+          </p>
+          <p className={`text-sm mt-2 ${
+            isApiKeyError ? 'text-yellow-700' : 'text-red-500'
+          }`}>
+            {mapState.error.message}
+          </p>
+          {isApiKeyError && (
+            <div className="mt-4 p-3 bg-yellow-100 rounded-md text-left text-sm text-yellow-800">
+              <p className="font-medium mb-2">To fix this:</p>
+              <ol className="list-decimal list-inside space-y-1">
+                <li>Get your API key from <a href="https://console.cloud.google.com/google/maps-apis" target="_blank" rel="noopener noreferrer" className="underline">Google Cloud Console</a></li>
+                <li>Add it to your <code className="bg-yellow-200 px-1 rounded">.env.local</code> file</li>
+                <li>Restart your development server</li>
+              </ol>
+            </div>
+          )}
           {refetch && (
             <button
               onClick={refetch}
-              className="mt-2 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
+              className={`mt-4 px-4 py-2 text-white rounded-md transition-colors ${
+                isApiKeyError
+                  ? 'bg-yellow-600 hover:bg-yellow-700'
+                  : 'bg-red-600 hover:bg-red-700'
+              }`}
             >
               Retry
             </button>
@@ -623,7 +696,7 @@ export function AppointmentMapView({
         style={style}
       >
         <div
-          ref={mapRef}
+          ref={mapContainerRef}
           style={{
             height,
             width: '100%',
@@ -637,8 +710,23 @@ export function AppointmentMapView({
           `}
         />
 
+        {/* Loading overlay */}
+        {showLoadingOverlay && (
+          <div className="absolute inset-0 flex items-center justify-center bg-gray-50 border border-gray-200 rounded-lg">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+              <p className="text-gray-600 font-medium">
+                {!isContainerReady ? 'Preparing map container...' : 'Loading map...'}
+              </p>
+              <p className="text-gray-500 text-sm mt-1">
+                {!isContainerReady ? 'Setting up map interface' : 'Please wait while we initialize the map'}
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Mobile-specific overlay for better touch feedback */}
-        {isMobile && (
+        {isMobile && !showLoadingOverlay && (
           <div
             className="absolute inset-0 pointer-events-none rounded-lg"
             style={{

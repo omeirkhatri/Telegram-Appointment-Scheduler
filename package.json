@@ -28,6 +28,7 @@
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:headed": "playwright test --headed",
     "test:e2e:debug": "playwright test --debug",
+    "setup:google-maps": "node scripts/setup-google-maps.js",
     "test:e2e:install": "playwright install",
     "test:e2e:forms": "playwright test tests/e2e/forms/",
     "test:e2e:api": "playwright test tests/e2e/api/",

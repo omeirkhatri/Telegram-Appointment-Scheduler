@@ -19,3 +19,20 @@ export {
     createAppointmentShortcuts, createGlobalShortcuts, createPatientShortcuts,
     createStaffShortcuts, useKeyboardShortcuts
 } from './useKeyboardShortcuts';
+
+// Map and geocoding hooks
+export {
+    useGeocoding, useGeocodingWithConfig, useGeocodingWithDefaults
+} from './useGeocoding';
+export {
+    useGoogleMaps, useGoogleMapsWithConfig, useGoogleMapsWithDefaults
+} from './useGoogleMaps';
+export {
+    useMapClustering, useMapClusteringWithAlgorithm, useMapClusteringWithDefaults
+} from './useMapClustering';
+export {
+    useMapMarkers, useMapMarkersWithDefaults
+} from './useMapMarkers';
+export {
+    useMapNavigation, useMapNavigationWithDate, useMapNavigationWithDefaults
+} from './useMapNavigation';

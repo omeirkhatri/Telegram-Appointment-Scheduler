@@ -39,6 +39,20 @@ export const patientFormSchema = z.object({
     .optional()
     .or(z.literal('')),
 
+  coordinates: z
+    .string()
+    .optional()
+    .or(z.literal(''))
+    .refine((val) => {
+      if (!val || val.trim() === '') return true;
+      // Basic validation for "lat, lng" format
+      const parts = val.trim().split(',').map(part => part.trim());
+      if (parts.length !== 2) return false;
+      const lat = parseFloat(parts[0]);
+      const lng = parseFloat(parts[1]);
+      return !isNaN(lat) && !isNaN(lng) && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180;
+    }, 'Invalid coordinates format. Use: latitude, longitude (e.g., 25.157134, 55.409436)'),
+
   medical_notes: z
     .string()
     .max(1000, 'Medical notes must be less than 1000 characters')
@@ -74,6 +88,7 @@ export const patientSearchFormSchema = z.object({
   area: z.string().optional(),
   city: z.string().optional(),
   has_id_document: z.boolean().optional(),
+  has_coordinates: z.boolean().optional(),
 });
 
 // Patient filter form schema
@@ -83,6 +98,7 @@ export const patientFilterFormSchema = z.object({
   area: z.string().optional(),
   city: z.string().optional(),
   has_id_document: z.boolean().optional(),
+  has_coordinates: z.boolean().optional(),
 });
 
 // Type exports

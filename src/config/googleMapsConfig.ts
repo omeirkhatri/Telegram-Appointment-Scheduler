@@ -147,7 +147,22 @@ export function getEnvironmentConfig(environment: Environment): GoogleMapsEnviro
  */
 function validateConfig(config: GoogleMapsEnvironmentConfig, environment: Environment): void {
   if (!config.apiKey) {
-    throw new Error(`Google Maps API key is required for ${environment} environment`);
+    throw new Error(`Google Maps API key is required for ${environment} environment. Please set NEXT_PUBLIC_GOOGLE_MAPS_API_KEY in your .env.local file.`);
+  }
+
+  // Check for placeholder values
+  const placeholderValues = [
+    'your-google-maps-api-key-here',
+    'your-actual-api-key-here',
+    'your-api-key-here',
+    'REPLACE_WITH_YOUR_API_KEY',
+    'INSERT_YOUR_API_KEY_HERE'
+  ];
+
+  if (placeholderValues.some(placeholder =>
+    config.apiKey.toLowerCase().includes(placeholder.toLowerCase())
+  )) {
+    throw new Error(`Google Maps API key is set to placeholder value for ${environment} environment. Please replace with your actual API key from Google Cloud Console.`);
   }
 
   if (config.libraries.length === 0) {

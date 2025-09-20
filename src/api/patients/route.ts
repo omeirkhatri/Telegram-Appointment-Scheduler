@@ -1,6 +1,7 @@
 import { patientService } from '@/services/patientService';
 import { storageService } from '@/services/storage';
 import type { CreatePatient, PatientFilters } from '@/types';
+import { validatePatientData } from '@/types/patient';
 import { NextRequest, NextResponse } from 'next/server';
 
 // GET /api/patients - Get all patients with optional filtering
@@ -29,6 +30,10 @@ export async function GET(request: NextRequest) {
 
     if (searchParams.has('has_id_document')) {
       filters.has_id_document = searchParams.get('has_id_document') === 'true';
+    }
+
+    if (searchParams.has('has_coordinates')) {
+      filters.has_coordinates = searchParams.get('has_coordinates') === 'true';
     }
 
     const patients = await patientService.getPatients(filters);
@@ -63,6 +68,8 @@ export async function POST(request: NextRequest) {
       area: formData.get('area') as string,
       city: formData.get('city') as string,
       google_maps_link: formData.get('google_maps_link') as string || undefined,
+      latitude: formData.get('latitude') ? parseFloat(formData.get('latitude') as string) : undefined,
+      longitude: formData.get('longitude') ? parseFloat(formData.get('longitude') as string) : undefined,
       medical_notes: formData.get('medical_notes') as string || undefined,
       emergency_contact: formData.get('emergency_contact') as string || undefined,
       preferred_transport: formData.get('preferred_transport') as string || undefined,
@@ -135,35 +142,4 @@ export async function POST(request: NextRequest) {
       { status: 500 },
     );
   }
-}
-
-// Helper function to validate patient data
-function validatePatientData(data: CreatePatient): string[] {
-  const errors: string[] = [];
-
-  if (!data.name?.trim()) {
-    errors.push('Name is required');
-  }
-
-  if (!data.phone?.trim()) {
-    errors.push('Phone number is required');
-  }
-
-  if (!data.flat_villa_no?.trim()) {
-    errors.push('Flat/Villa number is required');
-  }
-
-  if (!data.building_street?.trim()) {
-    errors.push('Building/Street is required');
-  }
-
-  if (!data.area?.trim()) {
-    errors.push('Area is required');
-  }
-
-  if (!data.city?.trim()) {
-    errors.push('City is required');
-  }
-
-  return errors;
 }

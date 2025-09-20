@@ -2,6 +2,7 @@
 
 import { patientFormSchema, type PatientFormData } from '@/lib/validations/patient';
 import type { Patient } from '@/types';
+import { extractCoordinatesFromGoogleMapsUrl, parseCoordinates } from '@/types/patient';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 
@@ -39,6 +40,9 @@ export function PatientForm({ patient, onSubmit, onCancel, isLoading = false }: 
       area: patient?.area || '',
       city: patient?.city || '',
       google_maps_link: patient?.google_maps_link || '',
+      coordinates: patient?.latitude && patient?.longitude
+        ? `${patient.latitude}, ${patient.longitude}`
+        : '',
       medical_notes: patient?.medical_notes || '',
       emergency_contact: patient?.emergency_contact || '',
       preferred_transport: patient?.preferred_transport || '',
@@ -49,7 +53,28 @@ export function PatientForm({ patient, onSubmit, onCancel, isLoading = false }: 
 
   const handleFormSubmit = async (data: PatientFormData) => {
     try {
-      await onSubmit(data);
+      // Parse coordinates if provided
+      let latitude: number | undefined;
+      let longitude: number | undefined;
+
+      if (data.coordinates?.trim()) {
+        const parsed = parseCoordinates(data.coordinates);
+        if (parsed) {
+          latitude = parsed.latitude;
+          longitude = parsed.longitude;
+        }
+      }
+
+      // Convert form data to include parsed coordinates
+      const formDataWithCoords = {
+        ...data,
+        latitude,
+        longitude,
+        // Remove the coordinates field as it's not part of the API
+        coordinates: undefined,
+      };
+
+      await onSubmit(formDataWithCoords);
       reset();
     } catch (error) {
       console.error('Form submission error:', error);
@@ -183,17 +208,113 @@ export function PatientForm({ patient, onSubmit, onCancel, isLoading = false }: 
           <label htmlFor="google_maps_link" className="block text-sm font-medium text-gray-700 mb-1">
             Google Maps Link
           </label>
-          <input
-            {...register('google_maps_link')}
-            type="url"
-            id="google_maps_link"
-            className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-              errors.google_maps_link ? 'border-red-500' : 'border-gray-300'
-            }`}
-            placeholder="https://maps.google.com/..."
-          />
+          <div className="flex gap-2">
+            <input
+              {...register('google_maps_link')}
+              type="url"
+              id="google_maps_link"
+              className={`flex-1 px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                errors.google_maps_link ? 'border-red-500' : 'border-gray-300'
+              }`}
+              placeholder="https://maps.google.com/..."
+            />
+            <button
+              type="button"
+              onClick={() => {
+                const mapsUrl = watch('google_maps_link');
+                if (mapsUrl) {
+                  const coords = extractCoordinatesFromGoogleMapsUrl(mapsUrl);
+                  if (coords) {
+                    setValue('coordinates', `${coords.latitude}, ${coords.longitude}`);
+                  } else {
+                    alert('Could not extract coordinates from this Google Maps URL. Please enter coordinates manually.');
+                  }
+                } else {
+                  alert('Please enter a Google Maps URL first.');
+                }
+              }}
+              className="px-3 py-2 text-sm font-medium text-green-600 bg-green-50 border border-green-200 rounded-md hover:bg-green-100 focus:outline-none focus:ring-2 focus:ring-green-500"
+              title="Extract coordinates from Google Maps URL"
+            >
+              📍
+            </button>
+          </div>
+          <p className="mt-1 text-sm text-gray-500">
+            Paste a Google Maps URL and click the location icon to auto-fill coordinates
+          </p>
           {errors.google_maps_link && (
             <p className="mt-1 text-sm text-red-600">{errors.google_maps_link.message}</p>
+          )}
+        </div>
+
+        <div className="mt-4">
+          <label htmlFor="coordinates" className="block text-sm font-medium text-gray-700 mb-1">
+            Coordinates (Latitude, Longitude) *
+          </label>
+          <div className="flex gap-2">
+            <input
+              {...register('coordinates')}
+              type="text"
+              id="coordinates"
+              className={`flex-1 px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                errors.coordinates ? 'border-red-500' : 'border-gray-300'
+              }`}
+              placeholder="25.157134, 55.409436"
+              onChange={(e) => {
+                // Real-time validation feedback
+                const value = e.target.value.trim();
+                if (value) {
+                  const parsed = parseCoordinates(value);
+                  if (parsed) {
+                    e.target.classList.remove('border-red-500');
+                    e.target.classList.add('border-green-500');
+                  } else {
+                    e.target.classList.remove('border-green-500');
+                    e.target.classList.add('border-red-500');
+                  }
+                } else {
+                  e.target.classList.remove('border-red-500', 'border-green-500');
+                  e.target.classList.add('border-gray-300');
+                }
+              }}
+            />
+            <button
+              type="button"
+              onClick={async () => {
+                if (navigator.geolocation) {
+                  try {
+                    const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+                      navigator.geolocation.getCurrentPosition(resolve, reject, {
+                        enableHighAccuracy: true,
+                        timeout: 10000,
+                        maximumAge: 60000
+                      });
+                    });
+
+                    const { latitude, longitude } = position.coords;
+                    setValue('coordinates', `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`);
+                  } catch (error) {
+                    console.error('Error getting location:', error);
+                    alert('Unable to get your current location. Please enter coordinates manually.');
+                  }
+                } else {
+                  alert('Geolocation is not supported by this browser. Please enter coordinates manually.');
+                }
+              }}
+              className="px-3 py-2 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-md hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              title="Get current location"
+            >
+              📍
+            </button>
+          </div>
+          <p className="mt-1 text-sm text-gray-500">
+            Copy and paste coordinates from Google Maps in the format: latitude, longitude
+          </p>
+          <p className="mt-1 text-xs text-gray-400">
+            Supported formats: "25.157134, 55.409436" or "25.157134,55.409436"
+          </p>
+          {errors.coordinates && (
+            <p className="mt-1 text-sm text-red-600">{errors.coordinates.message}</p>
           )}
         </div>
       </div>

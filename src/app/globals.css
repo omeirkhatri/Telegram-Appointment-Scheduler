@@ -122,3 +122,47 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: var(--foreground);
 }
+
+/* Custom hover effects for FullCalendar list view */
+.fc-listWeek-view tr:hover,
+.fc-listWeek-view tr:hover td,
+.fc-listWeek-view tbody tr:hover,
+.fc-listWeek-view tbody tr:hover td,
+.fc-listWeek-view .fc-list-table tr:hover,
+.fc-listWeek-view .fc-list-table tr:hover td,
+.fc-listWeek-view .fc-list-table tbody tr:hover,
+.fc-listWeek-view .fc-list-table tbody tr:hover td,
+.fc-listDay-view tr:hover,
+.fc-listDay-view tr:hover td,
+.fc-listDay-view tbody tr:hover,
+.fc-listDay-view tbody tr:hover td,
+.fc-listDay-view .fc-list-table tr:hover,
+.fc-listDay-view .fc-list-table tr:hover td,
+.fc-listDay-view .fc-list-table tbody tr:hover,
+.fc-listDay-view .fc-list-table tbody tr:hover td {
+  background-color: #1e40af !important; /* Darker blue */
+  background: #1e40af !important;
+  cursor: pointer !important;
+  transition: background-color 0.2s ease !important;
+}
+
+.fc-listWeek-view .fc-event:hover,
+.fc-listWeek-view .fc-event.fc-event-start.fc-event-end.fc-list-event.fc-event-past.fc-list-event.fc-event-pointer:hover,
+.fc-listDay-view .fc-event:hover,
+.fc-listDay-view .fc-event.fc-event-start.fc-event-end.fc-list-event.fc-event-past.fc-list-event.fc-event-pointer:hover {
+  background-color: #1e40af !important; /* Darker blue */
+  background: #1e40af !important;
+  cursor: pointer !important;
+  transition: background-color 0.2s ease !important;
+}
+
+.fc-listWeek-view .fc-list-event:hover,
+.fc-listDay-view .fc-list-event:hover {
+  background-color: #1e40af !important; /* Darker blue */
+  background: #1e40af !important;
+}
+
+/* Hide FullCalendar's native day header in List view to avoid duplicates */
+.fc-listDay-view .fc-list-day-cushion {
+  display: none !important;
+}
