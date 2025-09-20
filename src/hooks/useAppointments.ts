@@ -1,6 +1,8 @@
 import type { Appointment, CalendarEvent } from '@/types';
 import { getAppointmentTypeDisplayName } from '@/types/appointment';
 import { getAppointmentTypeColor, getDurationConstraints, validateDurationForType } from '@/utils/appointmentTypes';
+import { toDubaiTime } from '@/utils/timezone';
+import { format } from 'date-fns';
 import { useCallback, useEffect, useState } from 'react';
 
 // Helper function to snap duration to nearest allowed value
@@ -67,7 +69,15 @@ export function useAppointments(options: UseAppointmentsOptions = {}): UseAppoin
 
       // Add cache-busting parameter to ensure fresh data
       params.append('_t', Date.now().toString());
-      const response = await fetch(`/api/appointments?${params.toString()}`);
+      params.append('_cache', 'no-cache');
+      const response = await fetch(`/api/appointments?${params.toString()}`, {
+        cache: 'no-cache',
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0'
+        }
+      });
 
       if (!response.ok) {
         throw new Error(`Failed to fetch appointments: ${response.statusText}`);
@@ -80,6 +90,17 @@ export function useAppointments(options: UseAppointmentsOptions = {}): UseAppoin
       }
 
       const fetchedAppointments: Appointment[] = data.data || [];
+
+      // Debug logging for appointments data
+      console.log('Fetched appointments:', fetchedAppointments.map(apt => ({
+        id: apt.id,
+        patient_name: apt.patient?.name,
+        appointment_date: apt.appointment_date,
+        start_time: apt.start_time,
+        has_coordinates: !!(apt.patient?.latitude && apt.patient?.longitude),
+        coordinates: apt.patient?.latitude ? `${apt.patient.latitude}, ${apt.patient.longitude}` : 'None'
+      })));
+
       setAppointments(fetchedAppointments);
 
       // Transform appointments to calendar events
@@ -106,14 +127,14 @@ export function useAppointments(options: UseAppointmentsOptions = {}): UseAppoin
     } finally {
       setIsLoading(false);
     }
-  }, [options.dateFrom, options.dateTo, options.staffId, options.appointmentType, options.status]);
+  }, []);
 
   useEffect(() => {
     // Only fetch on client-side to prevent hydration mismatches
     if (typeof window !== 'undefined') {
       fetchAppointments();
     }
-  }, [fetchAppointments]);
+  }, [options.dateFrom, options.dateTo, options.staffId, options.appointmentType, options.status]);
 
   return {
     events,
@@ -200,8 +221,9 @@ export function useUpdateAppointment() {
 
     try {
       // Format the new date and time
-      const appointmentDate = newStart.toISOString().split('T')[0];
-      const startTime = newStart.toTimeString().slice(0, 5); // HH:MM format
+      const startInDubai = toDubaiTime(newStart);
+      const appointmentDate = format(startInDubai, 'yyyy-MM-dd');
+      const startTime = format(startInDubai, 'HH:mm');
 
       // Use original duration if provided, otherwise calculate from drag distance
       let durationMinutes = originalDuration || Math.round((newEnd.getTime() - newStart.getTime()) / (1000 * 60));
