@@ -1,0 +1,7 @@
+tunnel: schedule-tunnel
+credentials-file: /Volumes/BestDOC/REAL SCHEDULER/Telegram-Appointment-Scheduler/.cloudflared/credentials.json
+
+ingress:
+  - hostname: schedule.n8nbdoc.com
+    service: http://localhost:3000
+  - service: http_status:404

@@ -4,9 +4,7 @@
 CREATE TABLE IF NOT EXISTS organization_settings (
   id TEXT PRIMARY KEY DEFAULT 'primary',
   display_name TEXT,
-  default_timezone TEXT NOT NULL CHECK (
-    default_timezone = ANY (SELECT name FROM pg_timezone_names)
-  ),
+  default_timezone TEXT NOT NULL,
   metadata JSONB DEFAULT '{}'::jsonb,
   updated_by UUID,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -18,9 +16,7 @@ CREATE TABLE IF NOT EXISTS locations (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   slug TEXT NOT NULL UNIQUE,
   display_name TEXT NOT NULL,
-  timezone TEXT NOT NULL CHECK (
-    timezone = ANY (SELECT name FROM pg_timezone_names)
-  ),
+  timezone TEXT NOT NULL,
   timezone_source TEXT NOT NULL DEFAULT 'override' CHECK (
     timezone_source IN ('override', 'inherited')
   ),
@@ -44,9 +40,7 @@ CREATE TABLE IF NOT EXISTS timezone_change_audit (
   entity_type TEXT NOT NULL CHECK (entity_type IN ('organization', 'location')),
   entity_id TEXT NOT NULL,
   previous_timezone TEXT,
-  new_timezone TEXT NOT NULL CHECK (
-    new_timezone = ANY (SELECT name FROM pg_timezone_names)
-  ),
+  new_timezone TEXT NOT NULL,
   changed_by UUID,
   changed_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   change_reason TEXT,
