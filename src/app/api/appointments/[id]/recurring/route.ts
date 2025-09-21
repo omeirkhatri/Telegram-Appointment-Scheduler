@@ -132,18 +132,23 @@ export async function DELETE(
     }
 
     if (deleteType === 'this_occurrence') {
+      // In multi-row system, we can delete appointments directly without occurrence numbers
       if (occurrenceNumber === undefined) {
-        return NextResponse.json(
-          { success: false, error: 'Occurrence number is required for this_occurrence deletion' },
-          { status: 400 }
-        );
+        console.log('this_occurrence deletion without occurrence number - using multi-row system approach');
+        // We'll handle this in the service layer
       }
 
       try {
-        await appointmentService.deleteRecurringAppointmentOccurrence(
-          id,
-          occurrenceNumber
-        );
+        if (occurrenceNumber === undefined) {
+          // For multi-row system, just delete the appointment directly
+          await appointmentService.deleteAppointment(id);
+        } else {
+          // For old system with occurrence numbers
+          await appointmentService.deleteRecurringAppointmentOccurrence(
+            id,
+            occurrenceNumber
+          );
+        }
       } catch (error) {
         if (error instanceof Error && error.message.includes('not found')) {
           return NextResponse.json(

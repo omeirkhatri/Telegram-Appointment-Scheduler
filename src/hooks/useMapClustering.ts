@@ -1,5 +1,6 @@
 'use client';
 
+import { MarkerClusteringService } from '@/services/markerClusteringService';
 import type {
     Coordinates,
     MapBounds,
@@ -103,6 +104,7 @@ export function useMapClustering(options: UseMapClusteringOptions = {}): UseMapC
   });
 
   const clustersRef = useRef<MapCluster[]>([]);
+  const clusteringServiceRef = useRef<MarkerClusteringService | null>(null);
   const clusteringOptionsRef = useRef<UseMapClusteringOptions>({
     enableClustering: true,
     maxZoom: 15,
@@ -115,6 +117,13 @@ export function useMapClustering(options: UseMapClusteringOptions = {}): UseMapC
     ...options
   });
   const isMountedRef = useRef(true);
+
+  // Initialize clustering service
+  useEffect(() => {
+    if (!clusteringServiceRef.current) {
+      clusteringServiceRef.current = MarkerClusteringService.getInstance();
+    }
+  }, []);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -135,23 +144,41 @@ export function useMapClustering(options: UseMapClusteringOptions = {}): UseMapC
    * Cluster markers using the configured algorithm
    */
   const clusterMarkers = useCallback((markers: MapMarker[]): MapCluster[] => {
-    if (!isMountedRef.current || !clusteringOptionsRef.current.enableClustering) {
+    if (!isMountedRef.current || !clusteringOptionsRef.current.enableClustering || !clusteringServiceRef.current) {
       return [];
     }
 
     try {
-      const algorithm = clusteringOptionsRef.current.algorithm || 'grid';
+      // Convert MapMarker[] to MarkerData[] for the clustering service
+      const markerData = markers.map(marker => ({
+        id: marker.id,
+        lat: marker.position.lat,
+        lng: marker.position.lng,
+        data: marker
+      }));
 
-      switch (algorithm) {
-        case 'grid':
-          return performGridClustering(markers);
-        case 'kmeans':
-          return performKMeansClustering(markers);
-        case 'hierarchical':
-          return performHierarchicalClustering(markers);
-        default:
-          return performGridClustering(markers);
-      }
+      // Use the clustering service
+      const result = clusteringServiceRef.current.clusterMarkers(markerData, {
+        maxZoom: clusteringOptionsRef.current.maxZoom,
+        gridSize: clusteringOptionsRef.current.gridSize,
+        algorithm: clusteringOptionsRef.current.algorithm,
+        maxMarkersPerCluster: clusteringOptionsRef.current.maxMarkersPerCluster,
+        enablePerformanceMode: markers.length > 1000
+      });
+
+      // Convert ClusterData[] back to MapCluster[]
+      const mapClusters: MapCluster[] = result.clusters.map(cluster => ({
+        id: cluster.id,
+        position: cluster.center,
+        count: cluster.count,
+        markers: cluster.markers.map(markerId => {
+          const marker = markers.find(m => m.id === markerId);
+          return marker || { id: markerId, position: { lat: 0, lng: 0 }, title: '', description: '' } as MapMarker;
+        }),
+        bounds: cluster.bounds
+      }));
+
+      return mapClusters;
     } catch (error) {
       const mapError: MapError = {
         code: 'CLUSTERING_ERROR',
@@ -435,241 +462,6 @@ export function useMapClustering(options: UseMapClusteringOptions = {}): UseMapC
     clustersRef.current = [];
   }, []);
 
-  /**
-   * Perform grid-based clustering
-   */
-  const performGridClustering = (markers: MapMarker[]): MapCluster[] => {
-    if (markers.length === 0) return [];
-
-    const gridSize = clusteringOptionsRef.current.gridSize || 60;
-    const maxMarkersPerCluster = clusteringOptionsRef.current.maxMarkersPerCluster || 50;
-    const clusters: MapCluster[] = [];
-    const processedMarkers = new Set<string>();
-
-    markers.forEach(marker => {
-      if (processedMarkers.has(marker.id)) return;
-
-      const clusterMarkers = [marker];
-      processedMarkers.add(marker.id);
-
-      // Find nearby markers within grid size
-      markers.forEach(otherMarker => {
-        if (processedMarkers.has(otherMarker.id)) return;
-        if (clusterMarkers.length >= maxMarkersPerCluster) return;
-
-        const distance = calculateDistance(marker.position, otherMarker.position);
-        if (distance <= gridSize) {
-          clusterMarkers.push(otherMarker);
-          processedMarkers.add(otherMarker.id);
-        }
-      });
-
-      if (clusterMarkers.length > 1) {
-        // Create cluster
-        const clusterId = `cluster_${marker.id}`;
-        const clusterPosition = calculateClusterCenter(clusterMarkers);
-        const clusterBounds = calculateClusterBounds(clusterMarkers);
-
-        clusters.push({
-          id: clusterId,
-          position: clusterPosition,
-          count: clusterMarkers.length,
-          markers: clusterMarkers,
-          bounds: clusterBounds
-        });
-      }
-    });
-
-    return clusters;
-  };
-
-  /**
-   * Perform K-means clustering
-   */
-  const performKMeansClustering = (markers: MapMarker[]): MapCluster[] => {
-    if (markers.length === 0) return [];
-
-    const k = Math.min(Math.ceil(markers.length / 10), 20); // Max 20 clusters
-    const maxIterations = 100;
-    const tolerance = 0.001;
-
-    // Initialize centroids randomly
-    const centroids: Coordinates[] = [];
-    for (let i = 0; i < k; i++) {
-      const randomMarker = markers[Math.floor(Math.random() * markers.length)];
-      centroids.push({ ...randomMarker.position });
-    }
-
-    let clusters: MapCluster[] = [];
-    let iterations = 0;
-    let converged = false;
-
-    while (!converged && iterations < maxIterations) {
-      // Assign markers to nearest centroid
-      const assignments: MapMarker[][] = Array(k).fill(null).map(() => []);
-
-      markers.forEach(marker => {
-        let minDistance = Infinity;
-        let nearestCentroid = 0;
-
-        centroids.forEach((centroid, index) => {
-          const distance = calculateDistance(marker.position, centroid);
-          if (distance < minDistance) {
-            minDistance = distance;
-            nearestCentroid = index;
-          }
-        });
-
-        assignments[nearestCentroid].push(marker);
-      });
-
-      // Update centroids
-      const newCentroids: Coordinates[] = [];
-      let maxMovement = 0;
-
-      assignments.forEach((clusterMarkers, index) => {
-        if (clusterMarkers.length > 0) {
-          const newCentroid = calculateClusterCenter(clusterMarkers);
-          const movement = calculateDistance(centroids[index], newCentroid);
-          maxMovement = Math.max(maxMovement, movement);
-          newCentroids.push(newCentroid);
-        } else {
-          newCentroids.push(centroids[index]);
-        }
-      });
-
-      // Check convergence
-      converged = maxMovement < tolerance;
-      centroids.splice(0, centroids.length, ...newCentroids);
-      iterations++;
-    }
-
-    // Create clusters from final assignments
-    assignments.forEach((clusterMarkers, index) => {
-      if (clusterMarkers.length > 1) {
-        const clusterId = `kmeans_cluster_${index}`;
-        const clusterPosition = centroids[index];
-        const clusterBounds = calculateClusterBounds(clusterMarkers);
-
-        clusters.push({
-          id: clusterId,
-          position: clusterPosition,
-          count: clusterMarkers.length,
-          markers: clusterMarkers,
-          bounds: clusterBounds
-        });
-      }
-    });
-
-    return clusters;
-  };
-
-  /**
-   * Perform hierarchical clustering
-   */
-  const performHierarchicalClustering = (markers: MapMarker[]): MapCluster[] => {
-    if (markers.length === 0) return [];
-
-    const maxDistance = clusteringOptionsRef.current.gridSize || 60;
-    const clusters: MapCluster[] = [];
-    const markerClusters: MapMarker[][] = markers.map(marker => [marker]);
-
-    // Build distance matrix
-    const distances: number[][] = [];
-    for (let i = 0; i < markers.length; i++) {
-      distances[i] = [];
-      for (let j = 0; j < markers.length; j++) {
-        if (i === j) {
-          distances[i][j] = 0;
-        } else {
-          distances[i][j] = calculateDistance(markers[i].position, markers[j].position);
-        }
-      }
-    }
-
-    // Merge clusters until no more can be merged
-    let merged = true;
-    while (merged) {
-      merged = false;
-      let minDistance = Infinity;
-      let mergeI = -1;
-      let mergeJ = -1;
-
-      // Find closest clusters
-      for (let i = 0; i < markerClusters.length; i++) {
-        for (let j = i + 1; j < markerClusters.length; j++) {
-          const distance = calculateClusterDistance(markerClusters[i], markerClusters[j], distances);
-          if (distance < minDistance) {
-            minDistance = distance;
-            mergeI = i;
-            mergeJ = j;
-          }
-        }
-      }
-
-      // Merge if distance is within threshold
-      if (minDistance <= maxDistance && mergeI !== -1 && mergeJ !== -1) {
-        markerClusters[mergeI] = [...markerClusters[mergeI], ...markerClusters[mergeJ]];
-        markerClusters.splice(mergeJ, 1);
-        merged = true;
-      }
-    }
-
-    // Create final clusters
-    markerClusters.forEach((clusterMarkers, index) => {
-      if (clusterMarkers.length > 1) {
-        const clusterId = `hierarchical_cluster_${index}`;
-        const clusterPosition = calculateClusterCenter(clusterMarkers);
-        const clusterBounds = calculateClusterBounds(clusterMarkers);
-
-        clusters.push({
-          id: clusterId,
-          position: clusterPosition,
-          count: clusterMarkers.length,
-          markers: clusterMarkers,
-          bounds: clusterBounds
-        });
-      }
-    });
-
-    return clusters;
-  };
-
-  /**
-   * Calculate distance between two coordinates
-   */
-  const calculateDistance = (coord1: Coordinates, coord2: Coordinates): number => {
-    const R = 6371e3; // Earth's radius in meters
-    const φ1 = coord1.lat * Math.PI / 180;
-    const φ2 = coord2.lat * Math.PI / 180;
-    const Δφ = (coord2.lat - coord1.lat) * Math.PI / 180;
-    const Δλ = (coord2.lng - coord1.lng) * Math.PI / 180;
-
-    const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
-              Math.cos(φ1) * Math.cos(φ2) *
-              Math.sin(Δλ/2) * Math.sin(Δλ/2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-
-    return R * c; // Distance in meters
-  };
-
-  /**
-   * Calculate distance between two clusters
-   */
-  const calculateClusterDistance = (cluster1: MapMarker[], cluster2: MapMarker[], distances: number[][]): number => {
-    let minDistance = Infinity;
-
-    cluster1.forEach(marker1 => {
-      cluster2.forEach(marker2 => {
-        const marker1Index = markers.indexOf(marker1);
-        const marker2Index = markers.indexOf(marker2);
-        const distance = distances[marker1Index][marker2Index];
-        minDistance = Math.min(minDistance, distance);
-      });
-    });
-
-    return minDistance;
-  };
 
   /**
    * Calculate clustering statistics

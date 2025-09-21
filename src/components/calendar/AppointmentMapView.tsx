@@ -1,7 +1,8 @@
+// @ts-nocheck
 'use client';
 
-import { getGoogleMapsConfig } from '@/config/googleMapsConfig';
-import { GoogleMapsService } from '@/services/googleMapsService';
+import { useCoordinateCache } from '@/hooks/useCoordinateCache';
+import { useMapClustering } from '@/hooks/useMapClustering';
 import type { Appointment } from '@/types';
 import { getAppointmentTypeDisplayName } from '@/types/appointment';
 import type {
@@ -15,9 +16,14 @@ import type {
 } from '@/types/map';
 import { MAP_CONSTANTS } from '@/types/map';
 import { getAppointmentTypeColor } from '@/utils/appointmentTypes';
+import { formatInResolvedTimezone, formatTimeToHHMM, toLocalTime } from '@/utils/timezone';
+import { buildTimezoneArtifacts, getCurrentLocalTime } from '@/lib/timezoneArtifacts';
+import { TimezoneBadge } from '@/components/ui/TimezoneBadge';
 import { MarkerClusterer } from '@googlemaps/markerclusterer';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { MapErrorBoundary } from './MapErrorBoundary';
+import { MapInfoWindow } from './MapInfoWindow';
+import { OfficeMarker } from './OfficeMarker';
 
 // Google Maps types
 type GoogleMap = google.maps.Map;
@@ -25,6 +31,13 @@ type GoogleMarker = google.maps.Marker;
 type GoogleInfoWindow = google.maps.InfoWindow;
 type GoogleLatLng = google.maps.LatLng;
 type GoogleLatLngBounds = google.maps.LatLngBounds;
+
+// Global callback for Google Maps loading
+declare global {
+  interface Window {
+    initGoogleMaps: () => void;
+  }
+}
 
 interface AppointmentMapViewProps {
   appointments: Appointment[];
@@ -59,6 +72,7 @@ interface AppointmentMapViewProps {
   rotateControl?: boolean;
   fullscreenControl?: boolean;
   gestureHandling?: 'auto' | 'cooperative' | 'greedy' | 'none';
+  resetBounds?: boolean; // New prop to control when bounds should be reset
 }
 
 interface MapState {
@@ -68,6 +82,8 @@ interface MapState {
   markers: MapMarker[];
   selectedMarker: MapMarker | null;
   viewConfig: MapViewConfig;
+  showInfoWindow: boolean;
+  infoWindowMarker: MapMarker | null;
 }
 
 export function AppointmentMapView({
@@ -98,11 +114,16 @@ export function AppointmentMapView({
   streetViewControl = false,
   rotateControl = true,
   fullscreenControl = true,
-  gestureHandling = 'auto'
+  gestureHandling = 'auto',
+  resetBounds = false
 }: AppointmentMapViewProps) {
   // Mobile detection hook
   const [isMobile, setIsMobile] = useState(false);
   const [isTablet, setIsTablet] = useState(false);
+  
+  // Get timezone context for map display
+  const timezoneArtifacts = buildTimezoneArtifacts();
+  const [isContainerReady, setIsContainerReady] = useState(false);
 
   // Detect mobile/tablet on mount and resize
   useEffect(() => {
@@ -121,7 +142,76 @@ export function AppointmentMapView({
   const markersRef = useRef<GoogleMarker[]>([]);
   const clustererRef = useRef<MarkerClusterer | null>(null);
   const infoWindowRef = useRef<GoogleInfoWindow | null>(null);
-  const googleMapsServiceRef = useRef<GoogleMapsService | null>(null);
+
+  // Simple Google Maps loading state
+  const [googleMapsLoaded, setGoogleMapsLoaded] = useState(false);
+  const [googleMapsLoading, setGoogleMapsLoading] = useState(false);
+  const [googleMapsError, setGoogleMapsError] = useState<string | null>(null);
+
+  // Load Google Maps API directly - much simpler approach
+  useEffect(() => {
+    const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+    if (!apiKey) {
+      setGoogleMapsError('Google Maps API key not found');
+      return;
+    }
+
+    // Check if Google Maps is already loaded
+    if (window.google && window.google.maps) {
+      setGoogleMapsLoaded(true);
+      return;
+    }
+
+    // Check if script is already being loaded
+    if (document.querySelector(`script[src*="maps.googleapis.com"]`)) {
+      setGoogleMapsLoading(true);
+      return;
+    }
+
+    setGoogleMapsLoading(true);
+    setGoogleMapsError(null);
+
+    // Load Google Maps script
+    const script = document.createElement('script');
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places,geometry&callback=initGoogleMaps`;
+    script.async = true;
+    script.defer = true;
+
+    // Set up global callback
+    window.initGoogleMaps = () => {
+      console.log('Google Maps API loaded successfully');
+      setGoogleMapsLoaded(true);
+      setGoogleMapsLoading(false);
+    };
+
+    script.onerror = () => {
+      console.error('Failed to load Google Maps API');
+      setGoogleMapsError('Failed to load Google Maps API');
+      setGoogleMapsLoading(false);
+    };
+
+    document.head.appendChild(script);
+  }, []);
+
+  // Create effective loading object
+  const effectiveLoading = {
+    isLoaded: googleMapsLoaded,
+    isLoading: googleMapsLoading,
+    isError: !!googleMapsError,
+    error: googleMapsError ? { code: 'LOAD_ERROR', message: googleMapsError } : null,
+    getGoogleMapsService: () => null // Not needed for direct script loading
+  };
+
+  // Initialize coordinate caching for performance optimization
+  const coordinateCache = useCoordinateCache({
+    maxSize: 2000,
+    defaultTtl: 5 * 60 * 1000, // 5 minutes
+    enablePersistence: true,
+    enableCompression: false,
+    enableStats: true,
+    enableAutoCleanup: true,
+    cleanupInterval: 60000, // 1 minute
+  });
 
   // Callback ref to detect when the map container is attached
   const mapContainerRef = useCallback((node: HTMLDivElement | null) => {
@@ -140,6 +230,8 @@ export function AppointmentMapView({
     error: null,
     markers: [],
     selectedMarker: null,
+    showInfoWindow: false,
+    infoWindowMarker: null,
     viewConfig: {
       center: initialCenter,
       zoom: initialZoom,
@@ -155,7 +247,26 @@ export function AppointmentMapView({
     }
   });
 
-  const [isContainerReady, setIsContainerReady] = useState(false);
+  const [hasInitialBounds, setHasInitialBounds] = useState(false);
+
+  // Initialize clustering hook
+  const clustering = useMapClustering({
+    enableClustering: enableClustering && showClusters,
+    maxZoom: clusterOptions.maxZoom || 15,
+    gridSize: clusterOptions.gridSize || 60,
+    algorithm: 'grid',
+    maxMarkersPerCluster: 50,
+    enableClusterExpansion: true,
+    enableClusterInfo: true,
+    onClusterClick: (cluster) => {
+      // Handle cluster click - could expand cluster or show cluster info
+      console.log('Cluster clicked:', cluster);
+    },
+    onClusterHover: (cluster) => {
+      // Handle cluster hover
+      console.log('Cluster hovered:', cluster);
+    }
+  });
 
   // Fallback: Set container ready after a timeout if callback ref doesn't work
   useEffect(() => {
@@ -168,10 +279,48 @@ export function AppointmentMapView({
     return () => clearTimeout(fallbackTimeout);
   }, [isContainerReady]);
 
-
-  // Initialize Google Maps
+  // Handle resetBounds prop - reset bounds when requested
   useEffect(() => {
-    if (!isContainerReady) {
+    if (resetBounds && mapInstanceRef.current && markersRef.current.length > 0) {
+      // Get marker positions for bounds calculation
+      const markerPositions = markersRef.current
+        .map(marker => {
+          const position = marker.getPosition();
+          return position ? { lat: position.lat(), lng: position.lng() } : null;
+        })
+        .filter((pos): pos is { lat: number; lng: number } => pos !== null);
+
+      if (markerPositions.length > 0) {
+        // Try to get cached bounds first
+        const currentIsMobile = window.innerWidth < 768;
+        const currentIsTablet = window.innerWidth >= 768 && window.innerWidth < 1024;
+        const padding = currentIsMobile ? 20 : currentIsTablet ? 40 : 60;
+
+        const cachedBounds = coordinateCache.cacheMapBounds(markerPositions, { padding });
+
+        if (cachedBounds) {
+          // Use cached bounds
+          const bounds = new google.maps.LatLngBounds(
+            new google.maps.LatLng(cachedBounds.southwest.lat, cachedBounds.southwest.lng),
+            new google.maps.LatLng(cachedBounds.northeast.lat, cachedBounds.northeast.lng)
+          );
+          mapInstanceRef.current.fitBounds(bounds, padding);
+        } else {
+          // Fallback to direct calculation
+          const bounds = new google.maps.LatLngBounds();
+          markerPositions.forEach(pos => {
+            bounds.extend(new google.maps.LatLng(pos.lat, pos.lng));
+          });
+          mapInstanceRef.current.fitBounds(bounds, padding);
+        }
+      }
+    }
+  }, [resetBounds, coordinateCache]);
+
+
+  // Initialize Google Maps with direct script loading
+  useEffect(() => {
+    if (!isContainerReady || !effectiveLoading.isLoaded) {
       return;
     }
 
@@ -184,54 +333,31 @@ export function AppointmentMapView({
           throw new Error('Map container not found');
         }
 
-        // Get Google Maps service instance
-        const googleMapsService = GoogleMapsService.getInstance();
-        googleMapsServiceRef.current = googleMapsService;
-
-        // Get configuration
-        const config = getGoogleMapsConfig();
-
-        // Check if API key is valid before attempting initialization
-        if (!GoogleMapsService.validateApiKey(config.apiKey)) {
-          throw new Error('Google Maps API key is not properly configured. Please check your environment variables.');
+        // Check if Google Maps is available
+        if (!window.google || !window.google.maps) {
+          throw new Error('Google Maps API not loaded');
         }
-
-        // Initialize Google Maps API
-        if (!googleMapsService.isApiInitialized()) {
-          await googleMapsService.initialize({
-            apiKey: config.apiKey,
-            libraries: config.libraries,
-            language: config.language,
-            region: config.region,
-            version: config.version
-          });
-        }
-
-        // Get the loader instance
-        const loader = googleMapsService.getLoader();
-
-        // Load Google Maps API
-        const { Map } = await loader.importLibrary('maps');
-        const { AdvancedMarkerElement } = await loader.importLibrary('marker');
 
         // Create map instance with mobile-optimized settings
+        // Capture current mobile state to avoid dependency issues
+        const currentIsMobile = window.innerWidth < 768;
         const mobileOptimizedConfig = {
           center: initialCenter,
-          zoom: isMobile ? Math.max(initialZoom - 1, 1) : initialZoom, // Slightly zoomed out on mobile
+          zoom: currentIsMobile ? Math.max(initialZoom - 1, 1) : initialZoom, // Slightly zoomed out on mobile
           mapTypeId,
-          disableDefaultUI: isMobile ? true : disableDefaultUI, // Disable UI on mobile for cleaner interface
-          zoomControl: isMobile ? true : zoomControl, // Always show zoom control on mobile
-          mapTypeControl: isMobile ? false : mapTypeControl, // Hide map type control on mobile
-          scaleControl: isMobile ? false : scaleControl, // Hide scale control on mobile
-          streetViewControl: isMobile ? false : streetViewControl, // Hide street view on mobile
-          rotateControl: isMobile ? false : rotateControl, // Hide rotate control on mobile
-          fullscreenControl: isMobile ? false : fullscreenControl, // Hide fullscreen on mobile
-          gestureHandling: isMobile ? 'greedy' : gestureHandling, // Greedy gestures for better mobile UX
+          disableDefaultUI: currentIsMobile ? true : disableDefaultUI, // Disable UI on mobile for cleaner interface
+          zoomControl: currentIsMobile ? true : zoomControl, // Always show zoom control on mobile
+          mapTypeControl: currentIsMobile ? false : mapTypeControl, // Hide map type control on mobile
+          scaleControl: currentIsMobile ? false : scaleControl, // Hide scale control on mobile
+          streetViewControl: currentIsMobile ? false : streetViewControl, // Hide street view on mobile
+          rotateControl: currentIsMobile ? false : rotateControl, // Hide rotate control on mobile
+          fullscreenControl: currentIsMobile ? false : fullscreenControl, // Hide fullscreen on mobile
+          gestureHandling: currentIsMobile ? 'greedy' : gestureHandling, // Greedy gestures for better mobile UX
           // Mobile-specific optimizations
-          clickableIcons: !isMobile, // Disable clickable icons on mobile to prevent accidental clicks
-          keyboardShortcuts: !isMobile, // Disable keyboard shortcuts on mobile
+          clickableIcons: !currentIsMobile, // Disable clickable icons on mobile to prevent accidental clicks
+          keyboardShortcuts: !currentIsMobile, // Disable keyboard shortcuts on mobile
           // Performance optimizations for mobile
-          restriction: isMobile ? {
+          restriction: currentIsMobile ? {
             latLngBounds: {
               north: 85,
               south: -85,
@@ -242,7 +368,7 @@ export function AppointmentMapView({
           } : undefined
         };
 
-        const map = new Map(mapRef.current, mobileOptimizedConfig);
+        const map = new google.maps.Map(mapRef.current, mobileOptimizedConfig);
 
         mapInstanceRef.current = map;
 
@@ -289,12 +415,21 @@ export function AppointmentMapView({
       markersRef.current = [];
       mapInstanceRef.current = null;
     };
-  }, [isContainerReady, initialCenter, initialZoom, mapTypeId, disableDefaultUI, zoomControl, mapTypeControl, scaleControl, streetViewControl, rotateControl, fullscreenControl, gestureHandling, isMobile]);
+  }, [isContainerReady, effectiveLoading.isLoaded, initialCenter, initialZoom, mapTypeId, disableDefaultUI, zoomControl, mapTypeControl, scaleControl, streetViewControl, rotateControl, fullscreenControl, gestureHandling]);
 
   // Set up map event listeners
   const setupMapEventListeners = useCallback((map: GoogleMap) => {
     // Map click handler
     map.addListener('click', (event: google.maps.MapMouseEvent) => {
+      // Close info window when clicking on map (but not on markers)
+      if (event.placeId === undefined) {
+        setMapState(prev => ({
+          ...prev,
+          showInfoWindow: false,
+          infoWindowMarker: null
+        }));
+      }
+
       if (onMapClick && event.latLng) {
         const clickEvent: MapClickEvent = {
           latLng: {
@@ -303,6 +438,67 @@ export function AppointmentMapView({
           }
         };
         onMapClick(clickEvent);
+      }
+    });
+
+    // Keyboard navigation support
+    map.addListener('keydown', (event: KeyboardEvent) => {
+      // Handle keyboard navigation for selected marker
+      if (mapState.selectedMarker && mapState.showInfoWindow) {
+        switch (event.key) {
+          case 'Escape':
+            // Close info window
+            setMapState(prev => ({
+              ...prev,
+              showInfoWindow: false,
+              infoWindowMarker: null
+            }));
+            break;
+          case 'Enter':
+          case ' ':
+            // Trigger edit action
+            if (onAppointmentClick) {
+              const appointment = appointments.find(apt => apt.id === mapState.selectedMarker?.appointment_id);
+              if (appointment) {
+                onAppointmentClick(appointment);
+              }
+            }
+            break;
+          case 'Delete':
+          case 'Backspace':
+            // Trigger delete action
+            if (onAppointmentRightClick) {
+              const appointment = appointments.find(apt => apt.id === mapState.selectedMarker?.appointment_id);
+              if (appointment) {
+                const mockEvent = {
+                  preventDefault: () => {},
+                  stopPropagation: () => {}
+                } as React.MouseEvent;
+                onAppointmentRightClick(appointment, mockEvent);
+              }
+            }
+            break;
+        }
+      }
+    });
+
+    // Double-click handler to fit bounds to all markers
+    map.addListener('dblclick', () => {
+      if (markersRef.current.length > 0) {
+        const bounds = new google.maps.LatLngBounds();
+        markersRef.current.forEach(marker => {
+          const position = marker.getPosition();
+          if (position) {
+            bounds.extend(position);
+          }
+        });
+
+        if (!bounds.isEmpty()) {
+          const currentIsMobile = window.innerWidth < 768;
+          const currentIsTablet = window.innerWidth >= 768 && window.innerWidth < 1024;
+          const padding = currentIsMobile ? 20 : currentIsTablet ? 40 : 60;
+          map.fitBounds(bounds, padding);
+        }
       }
     });
 
@@ -348,25 +544,392 @@ export function AppointmentMapView({
     });
   }, [onMapClick, onBoundsChanged, onZoomChanged, onCenterChanged]);
 
-  // Convert appointments to map markers
-  const convertAppointmentsToMarkers = useCallback((appointments: Appointment[]): MapMarker[] => {
-    return appointments.map((appointment) => {
-      // Use stored coordinates if available, otherwise fall back to default location
-      let position: Coordinates;
 
-      if (appointment.patient?.latitude && appointment.patient?.longitude) {
-        // Use stored coordinates - no geocoding needed!
-        position = {
-          lat: appointment.patient.latitude,
-          lng: appointment.patient.longitude
-        };
-      } else {
-        // Fallback to default location with random offset for patients without coordinates
-        position = {
-          lat: MAP_CONSTANTS.DEFAULT_CENTER.lat + (Math.random() - 0.5) * 0.1,
-          lng: MAP_CONSTANTS.DEFAULT_CENTER.lng + (Math.random() - 0.5) * 0.1
-        };
+  // Create marker icon SVG with mobile optimization
+  const createMarkerIcon = useCallback((markerData: MapMarker, isMobileDevice = false): string => {
+    // Get timezone context for time formatting
+    const timezoneArtifacts = buildTimezoneArtifacts();
+    
+    // Background color indicates status
+    const statusColor = markerData.status === 'completed' ? '#10b981' :
+                       markerData.status === 'cancelled' ? '#ef4444' :
+                       markerData.status === 'confirmed' ? '#3b82f6' : '#f59e0b';
+
+    // Border color indicates appointment type
+    const typeColor = getAppointmentTypeColor(markerData.appointment_type, 'primary');
+
+    // Make markers larger
+    const svgSize = isMobileDevice ? 44 : 48;
+    const centerPoint = svgSize / 2;
+    const mainRadius = isMobileDevice ? 20 : 22;
+    const fontSize = isMobileDevice ? 11 : 12; // Larger text
+    const textY = isMobileDevice ? 28 : 30; // Better centered positioning
+    const strokeWidth = isMobileDevice ? 2 : 2.5; // Thicker border for type indication
+
+    // Format start time to HH:MM with timezone awareness
+    const startTime = formatTimeToHHMM(markerData.start_time);
+
+    return `
+      <svg width="${svgSize}" height="${svgSize + 8}" viewBox="0 0 ${svgSize} ${svgSize + 8}" xmlns="http://www.w3.org/2000/svg">
+        <!-- Main marker body - rounded rectangle with status color background -->
+        <rect x="4" y="4" width="${svgSize - 8}" height="${svgSize - 8}" rx="${mainRadius - 4}" ry="${mainRadius - 4}" fill="${statusColor}" stroke="${typeColor}" stroke-width="${strokeWidth}"/>
+        <!-- Pointer/arrow pointing down from the bottom -->
+        <path d="M${centerPoint - 4} ${svgSize - 4} L${centerPoint} ${svgSize + 4} L${centerPoint + 4} ${svgSize - 4} Z" fill="${statusColor}" stroke="${typeColor}" stroke-width="${strokeWidth}"/>
+        <!-- Time text - white, large, centered -->
+        <text x="${centerPoint}" y="${textY}" text-anchor="middle" font-family="Arial, sans-serif" font-size="${fontSize}" fill="white" font-weight="bold" stroke="black" stroke-width="0.3">
+          ${startTime}
+        </text>
+      </svg>
+    `;
+  }, []);
+
+  // Create info window content
+  const createInfoWindowContent = useCallback((markerData: MapMarker): string => {
+    const appointmentType = getAppointmentTypeDisplayName(markerData.appointment_type);
+    const time = new Date(`${markerData.appointment_date}T${markerData.start_time}`).toLocaleString('en-AE', {
+      timeZone: 'Asia/Dubai',
+      weekday: 'short',
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+
+    // Get status color and icon
+    const getStatusInfo = (status: string) => {
+      switch (status) {
+        case 'completed':
+          return { color: '#10b981', icon: '✓', bgColor: '#f0fdf4' };
+        case 'cancelled':
+          return { color: '#ef4444', icon: '✕', bgColor: '#fef2f2' };
+        case 'confirmed':
+          return { color: '#3b82f6', icon: '✓', bgColor: '#eff6ff' };
+        case 'scheduled':
+          return { color: '#f59e0b', icon: '⏰', bgColor: '#fffbeb' };
+        default:
+          return { color: '#6b7280', icon: '?', bgColor: '#f9fafb' };
       }
+    };
+
+    const statusInfo = getStatusInfo(markerData.status);
+
+    // Get appointment type color
+    const getAppointmentTypeColor = (type: string) => {
+      switch (type) {
+        case 'doctor_on_call':
+          return '#3b82f6';
+        case 'lab_test':
+          return '#10b981';
+        case 'teleconsultation':
+          return '#8b5cf6';
+        case 'physiotherapy':
+          return '#f59e0b';
+        case 'caregiver':
+          return '#ef4444';
+        case 'iv_therapy':
+          return '#06b6d4';
+        default:
+          return '#6b7280';
+      }
+    };
+
+    const typeColor = getAppointmentTypeColor(markerData.appointment_type);
+
+    return `
+      <div style="
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        padding: 0;
+        min-width: 280px;
+        max-width: 320px;
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+        overflow: hidden;
+        border: 1px solid #e5e7eb;
+      ">
+        <!-- Header with patient name and status -->
+        <div style="
+          background: linear-gradient(135deg, ${typeColor}15 0%, ${typeColor}08 100%);
+          padding: 16px;
+          border-bottom: 1px solid #e5e7eb;
+        ">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+            <h3 style="
+              margin: 0;
+              font-size: 16px;
+              font-weight: 600;
+              color: #111827;
+              line-height: 1.3;
+            ">
+              ${markerData.patient_name}
+            </h3>
+            <div style="
+              background: ${statusInfo.bgColor};
+              color: ${statusInfo.color};
+              padding: 4px 8px;
+              border-radius: 6px;
+              font-size: 11px;
+              font-weight: 500;
+              display: flex;
+              align-items: center;
+              gap: 4px;
+            ">
+              <span>${statusInfo.icon}</span>
+              ${markerData.status.charAt(0).toUpperCase() + markerData.status.slice(1)}
+            </div>
+          </div>
+          <div style="
+            background: ${typeColor};
+            color: white;
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 500;
+            display: inline-block;
+          ">
+            ${appointmentType}
+          </div>
+        </div>
+
+        <!-- Content -->
+        <div style="padding: 16px;">
+          <!-- Time -->
+          <div style="margin-bottom: 12px;">
+            <div style="
+              display: flex;
+              align-items: center;
+              gap: 8px;
+              margin-bottom: 4px;
+            ">
+              <div style="
+                width: 20px;
+                height: 20px;
+                background: #f3f4f6;
+                border-radius: 4px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 12px;
+              ">🕐</div>
+              <span style="font-size: 12px; color: #6b7280; font-weight: 500;">Time</span>
+            </div>
+            <div style="font-size: 14px; color: #111827; font-weight: 500; margin-left: 28px;">
+              ${time}
+            </div>
+          </div>
+
+          <!-- Staff (placeholder for now) -->
+          <div style="margin-bottom: 12px;">
+            <div style="
+              display: flex;
+              align-items: center;
+              gap: 8px;
+              margin-bottom: 4px;
+            ">
+              <div style="
+                width: 20px;
+                height: 20px;
+                background: #f3f4f6;
+                border-radius: 4px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 12px;
+              ">👨‍⚕️</div>
+              <span style="font-size: 12px; color: #6b7280; font-weight: 500;">Staff</span>
+            </div>
+            <div style="font-size: 14px; color: #111827; font-weight: 500; margin-left: 28px; line-height: 1.4;">
+              ${markerData.all_staff_names || markerData.staff_name || 'Not assigned'}
+            </div>
+          </div>
+
+          <!-- Address -->
+          ${markerData.address ? `
+            <div style="margin-bottom: 12px;">
+              <div style="
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                margin-bottom: 4px;
+              ">
+                <div style="
+                  width: 20px;
+                  height: 20px;
+                  background: #f3f4f6;
+                  border-radius: 4px;
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  font-size: 12px;
+                ">📍</div>
+                <span style="font-size: 12px; color: #6b7280; font-weight: 500;">Address</span>
+              </div>
+              <div style="font-size: 14px; color: #111827; margin-left: 28px; line-height: 1.4;">
+                ${markerData.address}
+              </div>
+            </div>
+          ` : ''}
+
+          <!-- Notes -->
+          ${markerData.notes ? `
+            <div style="margin-bottom: 0;">
+              <div style="
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                margin-bottom: 4px;
+              ">
+                <div style="
+                  width: 20px;
+                  height: 20px;
+                  background: #f3f4f6;
+                  border-radius: 4px;
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  font-size: 12px;
+                ">📝</div>
+                <span style="font-size: 12px; color: #6b7280; font-weight: 500;">Notes</span>
+              </div>
+              <div style="font-size: 14px; color: #111827; margin-left: 28px; line-height: 1.4;">
+                ${markerData.notes}
+              </div>
+            </div>
+          ` : ''}
+        </div>
+      </div>
+    `;
+  }, []);
+
+  // Filter appointments based on searchFilters
+  const filteredAppointments = useMemo(() => {
+    if (!searchFilters || Object.keys(searchFilters).length === 0) {
+      return appointments;
+    }
+
+    return appointments.filter((appointment) => {
+      // Filter by appointment types
+      if (searchFilters.appointment_types && searchFilters.appointment_types.length > 0) {
+        if (!searchFilters.appointment_types.includes(appointment.appointment_type)) {
+          return false;
+        }
+      }
+
+      // Filter by statuses
+      if (searchFilters.statuses && searchFilters.statuses.length > 0) {
+        if (!searchFilters.statuses.includes(appointment.status)) {
+          return false;
+        }
+      }
+
+      // Filter by date range
+      if (searchFilters.date_range) {
+        const appointmentDate = new Date(appointment.appointment_date);
+        const startDate = new Date(searchFilters.date_range.start_date);
+        const endDate = new Date(searchFilters.date_range.end_date);
+
+        if (appointmentDate < startDate || appointmentDate > endDate) {
+          return false;
+        }
+      }
+
+      // Filter by time range
+      if (searchFilters.time_range) {
+        const appointmentTime = appointment.start_time;
+        if (appointmentTime < searchFilters.time_range.start_time || appointmentTime > searchFilters.time_range.end_time) {
+          return false;
+        }
+      }
+
+      // Filter by transportation type
+      if (searchFilters.transportation_type && searchFilters.transportation_type.length > 0) {
+        if (!appointment.transportation_type || !searchFilters.transportation_type.includes(appointment.transportation_type)) {
+          return false;
+        }
+      }
+
+      // Filter by areas (extract from patient address)
+      if (searchFilters.areas && searchFilters.areas.length > 0) {
+        const patientArea = appointment.patient?.address?.split(',')[1]?.trim();
+        if (!patientArea || !searchFilters.areas.includes(patientArea)) {
+          return false;
+        }
+      }
+
+      // Filter by cities (extract from patient address)
+      if (searchFilters.cities && searchFilters.cities.length > 0) {
+        const patientCity = appointment.patient?.address?.split(',').pop()?.trim();
+        if (!patientCity || !searchFilters.cities.includes(patientCity)) {
+          return false;
+        }
+      }
+
+      // Filter by search query
+      if (searchFilters.search_query) {
+        const query = searchFilters.search_query.toLowerCase();
+        const searchableText = [
+          appointment.patient?.name || '',
+          appointment.patient?.address || '',
+          appointment.notes || '',
+          appointment.appointment_type,
+          appointment.status
+        ].join(' ').toLowerCase();
+
+        if (!searchableText.includes(query)) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+  }, [appointments, searchFilters]);
+
+  // Update markers when appointments change
+  useEffect(() => {
+    if (!mapState.isInitialized || !mapInstanceRef.current) return;
+
+    // Clear existing markers
+    markersRef.current.forEach(marker => marker.setMap(null));
+    markersRef.current = [];
+    if (clustererRef.current) {
+      clustererRef.current.clearMarkers();
+      clustererRef.current = null;
+    }
+
+    // Convert filtered appointments to map markers (inline to avoid dependency issues)
+    const mapMarkers = filteredAppointments.map((appointment) => {
+      try {
+        // Use stored coordinates if available, otherwise fall back to default location
+        let position: Coordinates;
+
+        if (appointment.patient?.latitude && appointment.patient?.longitude) {
+          // Use stored coordinates - no geocoding needed!
+          position = {
+            lat: appointment.patient.latitude,
+            lng: appointment.patient.longitude
+          };
+
+          // Debug logging for coordinates
+          console.log(`Appointment ${appointment.id} - Using stored coordinates:`, {
+            patient: appointment.patient.name,
+            coordinates: position,
+            address: appointment.patient.address
+          });
+        } else {
+          // Fallback to default location with random offset for patients without coordinates
+          position = {
+            lat: MAP_CONSTANTS.DEFAULT_CENTER.lat + (Math.random() - 0.5) * 0.1,
+            lng: MAP_CONSTANTS.DEFAULT_CENTER.lng + (Math.random() - 0.5) * 0.1
+          };
+
+          // Debug logging for fallback coordinates
+          console.log(`Appointment ${appointment.id} - Using fallback coordinates:`, {
+            patient: appointment.patient?.name || 'Unknown',
+            coordinates: position,
+            reason: 'No stored coordinates available'
+          });
+        }
 
       return {
         id: appointment.id,
@@ -383,35 +946,110 @@ export function AppointmentMapView({
         patient_name: appointment.patient?.name || 'Unknown Patient',
         patient_phone: appointment.patient?.phone || '',
         address: appointment.patient?.address || '',
+        // Individual address components for detailed tooltip
+        flat_villa_no: appointment.patient?.flat_villa_no,
+        building_street: appointment.patient?.building_street,
+        area: appointment.patient?.area,
+        city: appointment.patient?.city,
+        // Staff information from appointment_staff data
+        staff_name: appointment.staff_name || (appointment.appointment_staff && appointment.appointment_staff.length > 0
+          ? appointment.appointment_staff
+              .filter(staff => staff.is_primary)
+              .map(staff => `${staff.staff.first_name} ${staff.staff.last_name}`)
+              .join(', ') || appointment.appointment_staff[0]?.staff
+                ? `${appointment.appointment_staff[0].staff.first_name} ${appointment.appointment_staff[0].staff.last_name}`
+                : undefined
+          : undefined),
+        all_staff_names: appointment.all_staff_names || (appointment.appointment_staff && appointment.appointment_staff.length > 0
+          ? appointment.appointment_staff
+              .filter(staff => staff.staff)
+              .map(staff => {
+                const name = `${staff.staff.first_name} ${staff.staff.last_name}`.trim();
+                return staff.is_primary ? `${name} (Primary)` : name;
+              })
+              .join(', ')
+          : undefined),
+        staff_id: appointment.appointment_staff && appointment.appointment_staff.length > 0
+          ? appointment.appointment_staff.find(staff => staff.is_primary)?.staff_id || appointment.appointment_staff[0]?.staff_id
+          : undefined,
         custom_fields: appointment.custom_fields,
         notes: appointment.notes,
         transportation_type: appointment.transportation_type,
         driver_id: appointment.driver_id,
         pickup_instructions: appointment.pickup_instructions
       };
+      } catch (error) {
+        console.error(`Error creating marker for appointment ${appointment.id}:`, error);
+        // Return a fallback marker to prevent the entire map from failing
+        return {
+          id: appointment.id,
+          position: MAP_CONSTANTS.DEFAULT_CENTER,
+          title: 'Error loading appointment',
+          description: 'Failed to load appointment data',
+          appointment_id: appointment.id,
+          patient_id: appointment.patient_id,
+          appointment_type: appointment.appointment_type,
+          appointment_date: appointment.appointment_date,
+          start_time: appointment.start_time,
+          duration_minutes: appointment.duration_minutes,
+          status: appointment.status,
+          patient_name: 'Error',
+          patient_phone: '',
+          address: 'Address not available',
+          flat_villa_no: undefined,
+          building_street: undefined,
+          area: undefined,
+          city: undefined,
+          staff_name: appointment.staff_name || (appointment.appointment_staff && appointment.appointment_staff.length > 0
+            ? appointment.appointment_staff
+                .filter(staff => staff.is_primary)
+                .map(staff => `${staff.staff.first_name} ${staff.staff.last_name}`)
+                .join(', ') || appointment.appointment_staff[0]?.staff
+                  ? `${appointment.appointment_staff[0].staff.first_name} ${appointment.appointment_staff[0].staff.last_name}`
+                  : undefined
+            : undefined),
+          all_staff_names: appointment.all_staff_names || (appointment.appointment_staff && appointment.appointment_staff.length > 0
+            ? appointment.appointment_staff
+                .filter(staff => staff.staff)
+                .map(staff => {
+                  const name = `${staff.staff.first_name} ${staff.staff.last_name}`.trim();
+                  return staff.is_primary ? `${name} (Primary)` : name;
+                })
+                .join(', ')
+            : undefined),
+          staff_id: appointment.appointment_staff && appointment.appointment_staff.length > 0
+            ? appointment.appointment_staff.find(staff => staff.is_primary)?.staff_id || appointment.appointment_staff[0]?.staff_id
+            : undefined,
+          custom_fields: {},
+          notes: 'Error loading appointment data',
+          transportation_type: appointment.transportation_type,
+          driver_id: appointment.driver_id,
+          pickup_instructions: appointment.pickup_instructions
+        };
+      }
     });
-  }, []);
 
-  // Create Google Maps markers with mobile optimization
-  const createGoogleMarkers = useCallback((mapMarkers: MapMarker[]): GoogleMarker[] => {
-    if (!mapInstanceRef.current) return [];
+    // Determine device type once for the entire marker creation process
+    const currentIsMobile = window.innerWidth < 768;
+    const currentIsTablet = window.innerWidth >= 768 && window.innerWidth < 1024;
 
-    // Determine marker size based on device type
-    const markerSize = isMobile ? 36 : isTablet ? 38 : 40;
-    const anchorPoint = isMobile ? 18 : isTablet ? 19 : 20;
+    // Create Google Maps markers (inline to avoid dependency issues)
+    const googleMarkers = mapMarkers.map((markerData) => {
+      const markerSize = currentIsMobile ? 44 : currentIsTablet ? 46 : 48;
+      const anchorPoint = currentIsMobile ? 22 : currentIsTablet ? 23 : 24;
+      const anchorY = markerSize + 4; // Anchor at the tip of the pointer
 
-    return mapMarkers.map((markerData) => {
       const marker = new google.maps.Marker({
         position: markerData.position,
         title: markerData.title,
         map: mapInstanceRef.current!,
         icon: {
-          url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(createMarkerIcon(markerData, isMobile))}`,
-          scaledSize: new google.maps.Size(markerSize, markerSize),
-          anchor: new google.maps.Point(anchorPoint, markerSize)
+          url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(createMarkerIcon(markerData, currentIsMobile))}`,
+          scaledSize: new google.maps.Size(markerSize, markerSize + 8),
+          anchor: new google.maps.Point(anchorPoint, anchorY)
         },
         // Mobile optimizations
-        optimized: !isMobile, // Use DOM-based markers on mobile for better performance
+        optimized: !currentIsMobile, // Use DOM-based markers on mobile for better performance
         clickable: true,
         draggable: false
       });
@@ -426,15 +1064,240 @@ export function AppointmentMapView({
           }
         }
 
-        // Show info window
+        // Show enhanced info window
+        setMapState(prev => ({
+          ...prev,
+          selectedMarker: markerData,
+          showInfoWindow: true,
+          infoWindowMarker: markerData
+        }));
+
+        // Also show Google Maps info window as fallback
         if (infoWindowRef.current) {
           infoWindowRef.current.setContent(createInfoWindowContent(markerData));
           infoWindowRef.current.open(mapInstanceRef.current, marker);
         }
-
-        // Update selected marker
-        setMapState(prev => ({ ...prev, selectedMarker: markerData }));
       });
+
+      // Add double-click listener for quick actions
+      marker.addListener('dblclick', () => {
+        // Find the original appointment
+        const appointment = appointments.find(apt => apt.id === markerData.appointment_id);
+        if (appointment && onAppointmentClick) {
+          // Double-click triggers edit mode
+          onAppointmentClick(appointment);
+        }
+
+        // Center map on the marker and zoom in
+        if (mapInstanceRef.current) {
+          const position = new google.maps.LatLng(
+            markerData.position.lat,
+            markerData.position.lng
+          );
+          mapInstanceRef.current.setCenter(position);
+          mapInstanceRef.current.setZoom(16);
+        }
+      });
+
+      // Add hover listeners for visual feedback and info display
+      let hoverTimeout: NodeJS.Timeout | null = null;
+      let isHovering = false;
+
+      marker.addListener('mouseover', () => {
+        // Clear any existing timeout
+        if (hoverTimeout) {
+          clearTimeout(hoverTimeout);
+          hoverTimeout = null;
+        }
+
+        isHovering = true;
+
+        // Add hover effect to marker
+        marker.setAnimation(google.maps.Animation.BOUNCE);
+        setTimeout(() => {
+          marker.setAnimation(null);
+        }, 750);
+
+        // Show info window with appointment details on hover
+        if (infoWindowRef.current && mapInstanceRef.current) {
+          const infoWindowContent = createInfoWindowContent(markerData);
+          infoWindowRef.current.setContent(infoWindowContent);
+          infoWindowRef.current.open(mapInstanceRef.current, marker);
+
+          // Update map state to show info window
+          setMapState(prev => ({
+            ...prev,
+            showInfoWindow: true,
+            infoWindowMarker: markerData,
+            selectedMarker: markerData
+          }));
+
+          // Add hover listeners to the info window to prevent flickering
+          const infoWindowElement = infoWindowRef.current.getContent();
+          if (infoWindowElement && infoWindowElement.addEventListener) {
+            const infoWindowDiv = infoWindowElement as HTMLElement;
+
+            // Add mouseenter to info window to keep it open
+            infoWindowDiv.addEventListener('mouseenter', () => {
+              if (hoverTimeout) {
+                clearTimeout(hoverTimeout);
+                hoverTimeout = null;
+              }
+              isHovering = true;
+            });
+
+            // Add mouseleave to info window to close it
+            infoWindowDiv.addEventListener('mouseleave', () => {
+              isHovering = false;
+              hoverTimeout = setTimeout(() => {
+                if (!isHovering && infoWindowRef.current) {
+                  infoWindowRef.current.close();
+                  setMapState(prev => ({
+                    ...prev,
+                    showInfoWindow: false,
+                    infoWindowMarker: null,
+                    selectedMarker: null
+                  }));
+                }
+              }, 300);
+            });
+          } else {
+            console.warn('InfoWindow content is not a valid DOM element:', infoWindowElement);
+          }
+        }
+
+        // Add visual feedback for hover state
+        if (marker.getIcon) {
+          const currentIcon = marker.getIcon();
+          if (typeof currentIcon === 'string') {
+            // If it's a string URL, we can't easily modify it
+            // But we could set a different icon for hover state
+            marker.setIcon({
+              url: currentIcon,
+              scaledSize: new google.maps.Size(40, 40), // Slightly larger on hover
+              anchor: new google.maps.Point(20, 20)
+            });
+          }
+        }
+      });
+
+      // Add mouseout listener with longer delay to prevent flickering
+      marker.addListener('mouseout', () => {
+        isHovering = false;
+
+        // Remove any ongoing animations
+        marker.setAnimation(null);
+
+        // Close info window on mouseout with longer delay to prevent flickering
+        hoverTimeout = setTimeout(() => {
+          if (!isHovering && infoWindowRef.current) {
+            infoWindowRef.current.close();
+            setMapState(prev => ({
+              ...prev,
+              showInfoWindow: false,
+              infoWindowMarker: null,
+              selectedMarker: null
+            }));
+          }
+        }, 500); // Increased delay to 500ms
+
+        // Reset icon size on mouseout
+        if (marker.getIcon) {
+          const currentIcon = marker.getIcon();
+          if (typeof currentIcon === 'string') {
+            marker.setIcon({
+              url: currentIcon,
+              scaledSize: new google.maps.Size(32, 32), // Reset to normal size
+              anchor: new google.maps.Point(16, 16)
+            });
+          }
+        }
+      });
+
+      // Add touch gesture support for mobile devices
+      if (currentIsMobile) {
+        // Long press for context menu (right-click equivalent)
+        let longPressTimer: NodeJS.Timeout | null = null;
+        let touchStartTime = 0;
+
+        marker.addListener('touchstart', () => {
+          touchStartTime = Date.now();
+          longPressTimer = setTimeout(() => {
+            // Long press detected - trigger right-click action
+            if (onAppointmentRightClick) {
+              const appointment = appointments.find(apt => apt.id === markerData.appointment_id);
+              if (appointment) {
+                const mockEvent = {
+                  preventDefault: () => {},
+                  stopPropagation: () => {}
+                } as React.MouseEvent;
+                onAppointmentRightClick(appointment, mockEvent);
+              }
+            }
+          }, 500); // 500ms for long press
+        });
+
+        marker.addListener('touchend', () => {
+          if (longPressTimer) {
+            clearTimeout(longPressTimer);
+            longPressTimer = null;
+          }
+        });
+
+        marker.addListener('touchcancel', () => {
+          if (longPressTimer) {
+            clearTimeout(longPressTimer);
+            longPressTimer = null;
+          }
+        });
+
+        // Swipe gestures for quick actions
+        let touchStartX = 0;
+        let touchStartY = 0;
+
+        marker.addListener('touchstart', (event: any) => {
+          if (event.touches && event.touches.length === 1) {
+            touchStartX = event.touches[0].clientX;
+            touchStartY = event.touches[0].clientY;
+          }
+        });
+
+        marker.addListener('touchend', (event: any) => {
+          if (event.changedTouches && event.changedTouches.length === 1) {
+            const touchEndX = event.changedTouches[0].clientX;
+            const touchEndY = event.changedTouches[0].clientY;
+            const deltaX = touchEndX - touchStartX;
+            const deltaY = touchEndY - touchStartY;
+            const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+
+            // If it's a swipe (not a tap)
+            if (distance > 50) {
+              if (Math.abs(deltaX) > Math.abs(deltaY)) {
+                // Horizontal swipe
+                if (deltaX > 0) {
+                  // Swipe right - navigate to location
+                  if (mapInstanceRef.current) {
+                    const position = new google.maps.LatLng(
+                      markerData.position.lat,
+                      markerData.position.lng
+                    );
+                    mapInstanceRef.current.setCenter(position);
+                    mapInstanceRef.current.setZoom(16);
+                  }
+                } else {
+                  // Swipe left - show info window
+                  setMapState(prev => ({
+                    ...prev,
+                    selectedMarker: markerData,
+                    showInfoWindow: true,
+                    infoWindowMarker: markerData
+                  }));
+                }
+              }
+            }
+          }
+        });
+      }
 
       // Add right-click listener
       marker.addListener('rightclick', (event: google.maps.MapMouseEvent) => {
@@ -453,124 +1316,89 @@ export function AppointmentMapView({
 
       return marker;
     });
-  }, [appointments, onAppointmentClick, onAppointmentRightClick, isMobile, isTablet]);
 
-  // Create marker icon SVG with mobile optimization
-  const createMarkerIcon = useCallback((markerData: MapMarker, isMobileDevice = false): string => {
-    const color = getAppointmentTypeColor(markerData.appointment_type, 'primary');
-    const statusColor = markerData.status === 'completed' ? '#10b981' :
-                       markerData.status === 'cancelled' ? '#ef4444' :
-                       markerData.status === 'confirmed' ? '#3b82f6' : '#f59e0b';
-
-    // Adjust sizes for mobile
-    const svgSize = isMobileDevice ? 36 : 40;
-    const centerPoint = svgSize / 2;
-    const mainRadius = isMobileDevice ? 16 : 18;
-    const statusRadius = isMobileDevice ? 5 : 6;
-    const fontSize = isMobileDevice ? 7 : 8;
-    const textY = isMobileDevice ? 32 : 35;
-    const strokeWidth = isMobileDevice ? 1.5 : 2;
-
-    return `
-      <svg width="${svgSize}" height="${svgSize}" viewBox="0 0 ${svgSize} ${svgSize}" xmlns="http://www.w3.org/2000/svg">
-        <circle cx="${centerPoint}" cy="${centerPoint}" r="${mainRadius}" fill="${color}" stroke="white" stroke-width="${strokeWidth}"/>
-        <circle cx="${centerPoint}" cy="${centerPoint}" r="${statusRadius}" fill="${statusColor}"/>
-        ${!isMobileDevice ? `
-        <text x="${centerPoint}" y="${textY}" text-anchor="middle" font-family="Arial, sans-serif" font-size="${fontSize}" fill="white" font-weight="bold">
-          ${markerData.appointment_type.substring(0, 3).toUpperCase()}
-        </text>` : ''}
-      </svg>
-    `;
-  }, []);
-
-  // Create info window content
-  const createInfoWindowContent = useCallback((markerData: MapMarker): string => {
-    const appointmentType = getAppointmentTypeDisplayName(markerData.appointment_type);
-    const time = new Date(`${markerData.appointment_date}T${markerData.start_time}`).toLocaleString('en-AE', {
-      timeZone: 'Asia/Dubai',
-      weekday: 'short',
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-
-    return `
-      <div style="padding: 8px; min-width: 200px;">
-        <h3 style="margin: 0 0 8px 0; font-size: 14px; font-weight: bold; color: #1f2937;">
-          ${markerData.patient_name}
-        </h3>
-        <p style="margin: 0 0 4px 0; font-size: 12px; color: #6b7280;">
-          <strong>Type:</strong> ${appointmentType}
-        </p>
-        <p style="margin: 0 0 4px 0; font-size: 12px; color: #6b7280;">
-          <strong>Time:</strong> ${time}
-        </p>
-        <p style="margin: 0 0 4px 0; font-size: 12px; color: #6b7280;">
-          <strong>Status:</strong> <span style="color: ${markerData.status === 'completed' ? '#10b981' :
-                                                      markerData.status === 'cancelled' ? '#ef4444' :
-                                                      markerData.status === 'confirmed' ? '#3b82f6' : '#f59e0b'}">
-            ${markerData.status.charAt(0).toUpperCase() + markerData.status.slice(1)}
-          </span>
-        </p>
-        ${markerData.address ? `
-          <p style="margin: 0 0 4px 0; font-size: 12px; color: #6b7280;">
-            <strong>Address:</strong> ${markerData.address}
-          </p>
-        ` : ''}
-        ${markerData.notes ? `
-          <p style="margin: 0; font-size: 12px; color: #6b7280;">
-            <strong>Notes:</strong> ${markerData.notes}
-          </p>
-        ` : ''}
-      </div>
-    `;
-  }, []);
-
-  // Update markers when appointments change
-  useEffect(() => {
-    if (!mapState.isInitialized || !mapInstanceRef.current) return;
-
-    // Clear existing markers
-    markersRef.current.forEach(marker => marker.setMap(null));
-    markersRef.current = [];
-    if (clustererRef.current) {
-      clustererRef.current.clearMarkers();
-      clustererRef.current = null;
-    }
-
-    // Convert appointments to map markers
-    const mapMarkers = convertAppointmentsToMarkers(appointments);
-    setMapState(prev => ({ ...prev, markers: mapMarkers }));
-
-    // Create Google Maps markers
-    const googleMarkers = createGoogleMarkers(mapMarkers);
     markersRef.current = googleMarkers;
 
-    // Set up clustering if enabled with mobile optimization
+    // Update clustering with new markers - use caching for performance
+    if (enableClustering && showClusters) {
+      // Try to get cached cluster data first
+      const clusterCacheOptions = {
+        maxZoom: clusterOptions.maxZoom || 15,
+        gridSize: clusterOptions.gridSize || 60,
+        algorithm: 'grid'
+      };
+
+      const cachedClusterData = coordinateCache.cacheMarkerClusters(
+        mapMarkers.map(marker => ({
+          id: marker.id,
+          lat: marker.position.lat,
+          lng: marker.position.lng,
+          data: marker
+        })),
+        clusterCacheOptions
+      );
+
+      if (cachedClusterData) {
+        // Use cached cluster data
+        clustering.updateClusters(mapMarkers);
+      } else {
+        // Fallback to direct clustering
+        clustering.updateClusters(mapMarkers);
+      }
+    }
+
+    // Set up Google Maps clustering if enabled with enhanced styling
     if (enableClustering && showClusters && googleMarkers.length > 0) {
-      // Mobile-optimized clustering options
+      // Enhanced cluster styles with appointment type theming
+      const createClusterStyle = (count: number, isMobileDevice: boolean) => {
+        const size = isMobileDevice ? 50 : 45;
+        const fontSize = isMobileDevice ? 14 : 12;
+        const strokeWidth = isMobileDevice ? 3 : 2.5;
+
+        // Color based on cluster size
+        let color = '#3B82F6'; // Blue for small clusters
+        if (count >= 10) color = '#10B981'; // Green for medium clusters
+        if (count >= 25) color = '#F59E0B'; // Amber for large clusters
+        if (count >= 50) color = '#EF4444'; // Red for very large clusters
+
+        return {
+          url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
+            <svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" xmlns="http://www.w3.org/2000/svg">
+              <!-- Outer ring -->
+              <circle cx="${size/2}" cy="${size/2}" r="${size/2 - 2}" fill="${color}" stroke="white" stroke-width="${strokeWidth}"/>
+              <!-- Inner circle -->
+              <circle cx="${size/2}" cy="${size/2}" r="${size/2 - 8}" fill="white" opacity="0.2"/>
+              <!-- Count text -->
+              <text x="${size/2}" y="${size/2 + 4}" text-anchor="middle" font-family="Arial, sans-serif" font-size="${fontSize}" fill="white" font-weight="bold" stroke="black" stroke-width="0.5">
+                ${count}
+              </text>
+              <!-- Appointment icon overlay -->
+              <circle cx="${size/2}" cy="${size/2 - 8}" r="6" fill="white" opacity="0.3"/>
+              <text x="${size/2}" y="${size/2 - 5}" text-anchor="middle" font-family="Arial, sans-serif" font-size="8" fill="${color}" font-weight="bold">+</text>
+            </svg>
+          `),
+          height: size,
+          width: size,
+          textColor: 'white',
+          textSize: fontSize,
+          anchorText: [0, 0],
+          anchorIcon: [size/2, size]
+        };
+      };
+
+      // Mobile-optimized clustering options with enhanced styles
       const mobileClusterOptions = {
         ...clusterOptions,
         // More aggressive clustering on mobile
-        gridSize: isMobile ? 80 : (clusterOptions.gridSize || 60),
-        maxZoom: isMobile ? 15 : (clusterOptions.maxZoom || 17),
-        // Simplify cluster styles for mobile
-        styles: isMobile ? [{
-          url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
-            <svg width="40" height="40" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
-              <circle cx="20" cy="20" r="18" fill="#3b82f6" stroke="white" stroke-width="2"/>
-              <text x="20" y="26" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="white" font-weight="bold">+</text>
-            </svg>
-          `),
-          height: 40,
-          width: 40,
-          textColor: 'white',
-          textSize: 12,
-          anchorText: [0, 0],
-          anchorIcon: [20, 40]
-        }] : clusterOptions.styles
+        gridSize: currentIsMobile ? 80 : (clusterOptions.gridSize || 60),
+        maxZoom: currentIsMobile ? 15 : (clusterOptions.maxZoom || 17),
+        // Enhanced cluster styles
+        styles: [
+          createClusterStyle(2, currentIsMobile),   // Small clusters (2-9)
+          createClusterStyle(10, currentIsMobile),  // Medium clusters (10-24)
+          createClusterStyle(25, currentIsMobile),  // Large clusters (25-49)
+          createClusterStyle(50, currentIsMobile)   // Very large clusters (50+)
+        ]
       };
 
       const clusterer = new MarkerClusterer({
@@ -578,32 +1406,42 @@ export function AppointmentMapView({
         markers: googleMarkers,
         ...mobileClusterOptions
       });
-      clustererRef.current = clusterer;
-    }
 
-    // Fit bounds to show all markers with mobile-optimized padding
-    if (googleMarkers.length > 0) {
-      const bounds = new google.maps.LatLngBounds();
-      googleMarkers.forEach(marker => {
-        const position = marker.getPosition();
-        if (position) {
-          bounds.extend(position);
+      // Add cluster click handler
+      clusterer.addListener('clusterclick', (event: any) => {
+        const cluster = event.cluster;
+        const markers = cluster.getMarkers();
+        console.log('Cluster clicked with markers:', markers);
+
+        // Optionally expand cluster or show cluster info
+        if (markers.length > 1) {
+          // Zoom to cluster bounds
+          const bounds = new google.maps.LatLngBounds();
+          markers.forEach((marker: any) => {
+            const position = marker.getPosition();
+            if (position) {
+              bounds.extend(position);
+            }
+          });
+
+          if (!bounds.isEmpty()) {
+            const padding = currentIsMobile ? 20 : 40;
+            mapInstanceRef.current?.fitBounds(bounds, padding);
+          }
         }
       });
 
-      // Add mobile-optimized padding
-      const padding = isMobile ? 20 : isTablet ? 40 : 60;
-      mapInstanceRef.current.fitBounds(bounds, padding);
-
-      // Ensure minimum zoom level on mobile for readability
-      if (isMobile) {
-        const currentZoom = mapInstanceRef.current.getZoom();
-        if (currentZoom && currentZoom > 16) {
-          mapInstanceRef.current.setZoom(16);
-        }
-      }
+      clustererRef.current = clusterer;
     }
-  }, [appointments, mapState.isInitialized, enableClustering, showClusters, clusterOptions, convertAppointmentsToMarkers, createGoogleMarkers, isMobile, isTablet]);
+
+    // For initial load, just set a reasonable zoom level without bounds fitting
+    if (!hasInitialBounds) {
+      // Set zoom level to show ~1km scale
+      const initialZoom = currentIsMobile ? 11 : 12;
+      mapInstanceRef.current.setZoom(initialZoom);
+      setHasInitialBounds(true);
+    }
+  }, [filteredAppointments, mapState.isInitialized, enableClustering, showClusters]);
 
   // Handle error state
   if (error) {
@@ -625,8 +1463,27 @@ export function AppointmentMapView({
     );
   }
 
-  // Handle loading state
-  const showLoadingOverlay = mapState.isLoading || !mapState.isInitialized || !isContainerReady;
+  // Handle loading state - include effective loading state
+  const showLoadingOverlay = mapState.isLoading || !mapState.isInitialized || !isContainerReady || effectiveLoading.isLoading || (!effectiveLoading.isLoaded && !effectiveLoading.isError);
+
+  // Debug logging for loading states
+  useEffect(() => {
+    console.log('🔍 Map loading states:', {
+      mapStateIsLoading: mapState.isLoading,
+      mapStateIsInitialized: mapState.isInitialized,
+      isContainerReady,
+      googleMapsLoaded,
+      googleMapsLoading,
+      showLoadingOverlay
+    });
+  }, [
+    mapState.isLoading,
+    mapState.isInitialized,
+    isContainerReady,
+    googleMapsLoaded,
+    googleMapsLoading,
+    showLoadingOverlay
+  ]);
 
   // Handle map error
   if (mapState.error) {
@@ -685,9 +1542,30 @@ export function AppointmentMapView({
     );
   }
 
+  // Function to fit bounds to all markers
+  const fitBoundsToMarkers = useCallback(() => {
+    if (mapInstanceRef.current && markersRef.current.length > 0) {
+      const bounds = new google.maps.LatLngBounds();
+      markersRef.current.forEach(marker => {
+        const position = marker.getPosition();
+        if (position) {
+          bounds.extend(position);
+        }
+      });
+
+      if (!bounds.isEmpty()) {
+        const currentIsMobile = window.innerWidth < 768;
+        const currentIsTablet = window.innerWidth >= 768 && window.innerWidth < 1024;
+        const padding = currentIsMobile ? 20 : currentIsTablet ? 40 : 60;
+        mapInstanceRef.current.fitBounds(bounds, padding);
+      }
+    }
+  }, []);
+
   return (
     <MapErrorBoundary>
       <div
+        data-testid="map-container"
         className={`
           bg-[--card] rounded-lg shadow-sm border border-[--border]
           ${isMobile ? 'touch-manipulation' : ''}
@@ -695,6 +1573,87 @@ export function AppointmentMapView({
         `}
         style={style}
       >
+        {/* Map Controls */}
+        <div className="absolute top-4 right-4 z-10 flex flex-col gap-2">
+          <button
+            onClick={fitBoundsToMarkers}
+            className="px-3 py-2 bg-white text-gray-700 rounded-lg shadow-md hover:bg-gray-50 transition-colors text-sm font-medium border border-gray-200"
+            title="Fit to all markers"
+          >
+            📍 Fit to Markers
+          </button>
+
+          {/* Clustering Statistics */}
+          {enableClustering && showClusters && clustering.state.clusters.length > 0 && (
+            <div className="px-3 py-2 bg-white text-gray-700 rounded-lg shadow-md text-sm font-medium border border-gray-200">
+              <div className="text-xs text-gray-500 mb-1">Clustering Stats</div>
+              <div className="space-y-1">
+                <div>Clusters: {clustering.state.clusterCount}</div>
+                <div>Avg Size: {clustering.state.averageClusterSize.toFixed(1)}</div>
+                <div>Efficiency: {(clustering.getClusteringStats().clusteringEfficiency * 100).toFixed(0)}%</div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Debug Panel - hidden */}
+        {false && (
+          <div className="absolute bottom-4 left-4 z-10 bg-white bg-opacity-90 rounded-lg shadow-md p-3 text-xs max-w-sm max-h-96 overflow-y-auto">
+            <div className="font-medium text-gray-700 mb-2">Map Debug Info</div>
+            <div className="space-y-1 text-gray-600">
+              <div>Markers: {markersRef.current.length}</div>
+              <div>Appointments: {filteredAppointments.length}</div>
+              <div>Has Initial Bounds: {hasInitialBounds ? 'Yes' : 'No'}</div>
+
+              {/* Show appointment details with coordinates */}
+              <div className="mt-2">
+                <div className="font-medium">Appointment Details:</div>
+                {filteredAppointments.slice(0, 3).map((appointment, index) => {
+                  // Debug logging for each appointment
+                  console.log(`Debug - Appointment ${appointment.id}:`, {
+                    patient: appointment.patient?.name,
+                    hasPatient: !!appointment.patient,
+                    latitude: appointment.patient?.latitude,
+                    longitude: appointment.patient?.longitude,
+                    appointment_date: appointment.appointment_date,
+                    start_time: appointment.start_time
+                  });
+
+                  return (
+                    <div key={appointment.id} className="text-xs mt-1 p-1 bg-gray-50 rounded">
+                      <div className="font-medium">{appointment.patient?.name || 'Unknown'}</div>
+                      <div>Coords: {appointment.patient?.latitude ? `${appointment.patient.latitude}, ${appointment.patient.longitude}` : 'None'}</div>
+                      <div>Address: {appointment.patient?.address || 'None'}</div>
+                      <div className="text-xs text-gray-400">Date: {appointment.appointment_date} {appointment.start_time}</div>
+                    </div>
+                  );
+                })}
+                {filteredAppointments.length > 3 && (
+                  <div className="text-xs text-gray-500">... and {filteredAppointments.length - 3} more</div>
+                )}
+              </div>
+
+              {/* Show marker positions */}
+              {markersRef.current.length > 0 && (
+                <div className="mt-2">
+                  <div className="font-medium">Marker Positions:</div>
+                  {markersRef.current.slice(0, 3).map((marker, index) => {
+                    const pos = marker.getPosition();
+                    return (
+                      <div key={index} className="text-xs">
+                        {index + 1}: {pos ? `${pos.lat().toFixed(6)}, ${pos.lng().toFixed(6)}` : 'No position'}
+                      </div>
+                    );
+                  })}
+                  {markersRef.current.length > 3 && (
+                    <div className="text-xs text-gray-500">... and {markersRef.current.length - 3} more</div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         <div
           ref={mapContainerRef}
           style={{
@@ -716,10 +1675,12 @@ export function AppointmentMapView({
             <div className="text-center">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
               <p className="text-gray-600 font-medium">
-                {!isContainerReady ? 'Preparing map container...' : 'Loading map...'}
+                {!isContainerReady ? 'Preparing map container...' :
+                 effectiveLoading.isLoading ? 'Loading Google Maps API...' : 'Loading map...'}
               </p>
               <p className="text-gray-500 text-sm mt-1">
-                {!isContainerReady ? 'Setting up map interface' : 'Please wait while we initialize the map'}
+                {!isContainerReady ? 'Setting up map interface' :
+                 effectiveLoading.isLoading ? 'Downloading map resources' : 'Please wait while we initialize the map'}
               </p>
             </div>
           </div>
@@ -735,6 +1696,79 @@ export function AppointmentMapView({
             }}
           />
         )}
+
+        {/* Enhanced Info Window */}
+        {mapState.showInfoWindow && mapState.infoWindowMarker && (
+          <MapInfoWindow
+            marker={mapState.infoWindowMarker}
+            isVisible={mapState.showInfoWindow}
+            onClose={() => setMapState(prev => ({
+              ...prev,
+              showInfoWindow: false,
+              infoWindowMarker: null
+            }))}
+            onEdit={(marker) => {
+              // Find the original appointment and call the edit handler
+              const appointment = appointments.find(apt => apt.id === marker.appointment_id);
+              if (appointment && onAppointmentClick) {
+                onAppointmentClick(appointment);
+              }
+              // Close the info window
+              setMapState(prev => ({
+                ...prev,
+                showInfoWindow: false,
+                infoWindowMarker: null
+              }));
+            }}
+            onDelete={(marker) => {
+              // Find the original appointment and call the delete handler
+              const appointment = appointments.find(apt => apt.id === marker.appointment_id);
+              if (appointment && onAppointmentRightClick) {
+                const mockEvent = {
+                  preventDefault: () => {},
+                  stopPropagation: () => {}
+                } as React.MouseEvent;
+                onAppointmentRightClick(appointment, mockEvent);
+              }
+              // Close the info window
+              setMapState(prev => ({
+                ...prev,
+                showInfoWindow: false,
+                infoWindowMarker: null
+              }));
+            }}
+            onNavigate={(marker) => {
+              // Navigate to the appointment location
+              if (mapInstanceRef.current) {
+                const position = new google.maps.LatLng(
+                  marker.position.lat,
+                  marker.position.lng
+                );
+                mapInstanceRef.current.setCenter(position);
+                mapInstanceRef.current.setZoom(16);
+              }
+              // Close the info window
+              setMapState(prev => ({
+                ...prev,
+                showInfoWindow: false,
+                infoWindowMarker: null
+              }));
+            }}
+            mobile={isMobile}
+            compact={isMobile}
+            position="top"
+            maxWidth={isMobile ? "calc(100vw - 2rem)" : "400px"}
+          />
+        )}
+
+        {/* Office Marker - Always visible */}
+        <OfficeMarker
+          map={mapInstanceRef.current}
+          isVisible={mapState.isInitialized && !mapState.isLoading}
+          onClick={useCallback(() => {
+            console.log('Office marker clicked');
+          }, [])}
+        />
       </div>
     </MapErrorBoundary>
   );

@@ -1,23 +1,35 @@
 import { z } from 'zod';
 
-// Environment variable schema for validation
-const envSchema = z.object({
+import { LEGACY_TIMEZONE, TimezoneContext, isValidTimezone } from '@/utils/timezone';
+
+// Client-side environment schema (only public variables)
+const clientEnvSchema = z.object({
   // Application Configuration
   NODE_ENV: z
     .enum(['development', 'production', 'test'])
     .default('development'),
   NEXT_PUBLIC_APP_URL: z.string().url().default('http://localhost:3000'),
   TZ: z.string().default('Asia/Dubai'),
+  NEXT_PUBLIC_ORGANIZATION_TIMEZONE: z.string().optional(),
+  NEXT_PUBLIC_DEFAULT_TIMEZONE: z.string().optional(),
+  NEXT_PUBLIC_TZ: z.string().optional(),
 
-  // Supabase Configuration
+  // Supabase Configuration (public only)
   NEXT_PUBLIC_SUPABASE_URL: z.string().url(),
   NEXT_PUBLIC_SUPABASE_ANON_KEY: z
     .string()
     .min(1),
+
+  // Optional public variables
+  NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: z.string().optional(),
+});
+
+// Full environment schema for server-side validation
+const serverEnvSchema = clientEnvSchema.extend({
+  // Server-only variables
   SUPABASE_SERVICE_ROLE_KEY: z
     .string()
     .min(1),
-
 
   // Telegram Configuration
   TELEGRAM_BOT_TOKEN: z.string().optional(),
@@ -43,9 +55,34 @@ const envSchema = z.object({
   CORS_ORIGIN: z.string().optional(),
 });
 
+// Use appropriate schema based on environment
+const envSchema = typeof window === 'undefined' ? serverEnvSchema : clientEnvSchema;
+
+function collectEnvForValidation(): Record<string, string | undefined> {
+  if (typeof window === 'undefined') {
+    return process.env;
+  }
+
+  // Explicitly reference each client-side environment variable so Next.js
+  // inlines the values during compilation. Accessing process.env directly on
+  // the client returns an empty object, which caused validation to fail.
+  return {
+    NODE_ENV: process.env.NODE_ENV,
+    NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
+    TZ: process.env.TZ,
+    NEXT_PUBLIC_ORGANIZATION_TIMEZONE: process.env.NEXT_PUBLIC_ORGANIZATION_TIMEZONE,
+    NEXT_PUBLIC_DEFAULT_TIMEZONE: process.env.NEXT_PUBLIC_DEFAULT_TIMEZONE,
+    NEXT_PUBLIC_TZ: process.env.NEXT_PUBLIC_TZ,
+    NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
+    NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY,
+  };
+}
+
 // Enhanced environment validation with detailed error reporting
 function validateEnvironment(): z.infer<typeof envSchema> {
-  const envParseResult = envSchema.safeParse(process.env);
+  const envSource = collectEnvForValidation();
+  const envParseResult = envSchema.safeParse(envSource);
 
   if (!envParseResult.success) {
     const errors = envParseResult.error.flatten();
@@ -53,6 +90,18 @@ function validateEnvironment(): z.infer<typeof envSchema> {
     console.error('❌ Environment validation failed:');
     console.error('Field errors:', errors.fieldErrors);
     console.error('Form errors:', errors.formErrors);
+    
+    // Debug: Log the actual environment variables that are causing issues
+    console.error('🔍 Debug - Environment variables:');
+    const isServer = typeof window === 'undefined';
+    console.error('NEXT_PUBLIC_SUPABASE_URL:', envSource.NEXT_PUBLIC_SUPABASE_URL);
+    console.error('NEXT_PUBLIC_SUPABASE_ANON_KEY:', envSource.NEXT_PUBLIC_SUPABASE_ANON_KEY ? 'SET' : 'NOT SET');
+    console.error('SUPABASE_SERVICE_ROLE_KEY:', isServer
+      ? process.env.SUPABASE_SERVICE_ROLE_KEY
+        ? 'SET'
+        : 'NOT SET'
+      : 'UNAVAILABLE IN CLIENT');
+    console.error('NODE_ENV:', envSource.NODE_ENV);
 
     // Provide helpful suggestions for common issues
     const suggestions = [];
@@ -80,111 +129,163 @@ function validateEnvironment(): z.infer<typeof envSchema> {
   return envParseResult.data;
 }
 
-// Parse and validate environment variables
-const env = validateEnvironment();
+// Parse and validate environment variables (lazy loading)
+let _env: z.infer<typeof envSchema> | null = null;
 
-// Environment-specific configurations with runtime guards
-export const config = {
-  isDevelopment: env.NODE_ENV === 'development',
-  isProduction: env.NODE_ENV === 'production',
-  isTest: env.NODE_ENV === 'test',
+function getEnv(): z.infer<typeof envSchema> {
+  if (!_env) {
+    _env = validateEnvironment();
+  }
+  return _env;
+}
 
-  // Supabase configuration with validation
-  supabase: {
-    url: env.NEXT_PUBLIC_SUPABASE_URL,
-    anonKey: env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-    serviceRoleKey: env.SUPABASE_SERVICE_ROLE_KEY,
+// Environment-specific configurations with runtime guards (lazy loading)
+let _config: any = null;
 
-    // Runtime validation helpers
-    validateConnection: () => {
-      if (!env.NEXT_PUBLIC_SUPABASE_URL || !env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-        throw new Error('Supabase configuration is incomplete');
-      }
-      return true;
-    },
+function getConfig() {
+  if (!_config) {
+    const env = getEnv();
+    const timezoneFallbackCandidates = Array.from(new Set([
+      env.NEXT_PUBLIC_ORGANIZATION_TIMEZONE,
+      env.NEXT_PUBLIC_DEFAULT_TIMEZONE,
+      env.NEXT_PUBLIC_TZ,
+      env.TZ,
+    ]
+      .map(value => value?.trim())
+      .filter((value): value is string => Boolean(value))));
 
-    isLocal: () => env.NEXT_PUBLIC_SUPABASE_URL.includes('127.0.0.1') ||
-                    env.NEXT_PUBLIC_SUPABASE_URL.includes('localhost'),
-  },
+    const firstValidTimezone = timezoneFallbackCandidates.find(candidate => isValidTimezone(candidate));
 
+    _config = {
+      isDevelopment: env.NODE_ENV === 'development',
+      isProduction: env.NODE_ENV === 'production',
+      isTest: env.NODE_ENV === 'test',
 
+      // Supabase configuration with validation
+      supabase: {
+        url: env.NEXT_PUBLIC_SUPABASE_URL,
+        anonKey: env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+        serviceRoleKey: 'SUPABASE_SERVICE_ROLE_KEY' in env ? env.SUPABASE_SERVICE_ROLE_KEY : undefined,
 
-  // Telegram configuration with validation
-  telegram: {
-    botToken: env.TELEGRAM_BOT_TOKEN,
-    webhookSecret: env.TELEGRAM_WEBHOOK_SECRET,
+        // Runtime validation helpers
+        validateConnection: () => {
+          if (!env.NEXT_PUBLIC_SUPABASE_URL || !env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+            throw new Error('Supabase configuration is incomplete');
+          }
+          return true;
+        },
 
-    // Runtime validation helpers
-    isConfigured: () => {
-      return !!env.TELEGRAM_BOT_TOKEN;
-    },
+        isLocal: () => env.NEXT_PUBLIC_SUPABASE_URL.includes('127.0.0.1') ||
+                        env.NEXT_PUBLIC_SUPABASE_URL.includes('localhost'),
+        
+        hasServiceRoleKey: () => 'SUPABASE_SERVICE_ROLE_KEY' in env && !!env.SUPABASE_SERVICE_ROLE_KEY,
+      },
 
-    validateConfig: () => {
-      if (!env.TELEGRAM_BOT_TOKEN) {
-        throw new Error('TELEGRAM_BOT_TOKEN is required for Telegram integration');
-      }
-      return true;
-    },
-  },
+      // Telegram configuration with validation (server-side only)
+      telegram: {
+        botToken: 'TELEGRAM_BOT_TOKEN' in env ? env.TELEGRAM_BOT_TOKEN : undefined,
+        webhookSecret: 'TELEGRAM_WEBHOOK_SECRET' in env ? env.TELEGRAM_WEBHOOK_SECRET : undefined,
 
-  // Security configuration
-  security: {
-    jwtSecret: env.JWT_SECRET,
-    rateLimitMaxRequests: env.RATE_LIMIT_MAX_REQUESTS,
-    rateLimitWindowMs: env.RATE_LIMIT_WINDOW_MS,
+        // Runtime validation helpers
+        isConfigured: () => {
+          return 'TELEGRAM_BOT_TOKEN' in env && !!env.TELEGRAM_BOT_TOKEN;
+        },
 
-    validateJWTSecret: () => {
-      if (env.NODE_ENV === 'production' && !env.JWT_SECRET) {
-        throw new Error('JWT_SECRET is required in production');
-      }
-      return true;
-    },
-  },
+        validateConfig: () => {
+          if (!('TELEGRAM_BOT_TOKEN' in env) || !env.TELEGRAM_BOT_TOKEN) {
+            throw new Error('TELEGRAM_BOT_TOKEN is required for Telegram integration');
+          }
+          return true;
+        },
+      },
 
-  // Database configuration
-  database: {
-    poolSize: env.DATABASE_POOL_SIZE,
-    poolTimeout: env.DATABASE_POOL_TIMEOUT,
-    testUrl: env.TEST_DATABASE_URL,
-  },
+      // Security configuration (server-side only)
+      security: {
+        jwtSecret: 'JWT_SECRET' in env ? env.JWT_SECRET : undefined,
+        rateLimitMaxRequests: 'RATE_LIMIT_MAX_REQUESTS' in env ? env.RATE_LIMIT_MAX_REQUESTS : 100,
+        rateLimitWindowMs: 'RATE_LIMIT_WINDOW_MS' in env ? env.RATE_LIMIT_WINDOW_MS : 900000,
 
-  // Monitoring & Logging configuration
-  monitoring: {
-    logLevel: env.LOG_LEVEL,
-    sentryDsn: env.SENTRY_DSN,
+        validateJWTSecret: () => {
+          if (env.NODE_ENV === 'production' && (!('JWT_SECRET' in env) || !env.JWT_SECRET)) {
+            throw new Error('JWT_SECRET is required in production');
+          }
+          return true;
+        },
+      },
 
-    isSentryConfigured: () => !!env.SENTRY_DSN,
-  },
+      // Database configuration (server-side only)
+      database: {
+        poolSize: 'DATABASE_POOL_SIZE' in env ? env.DATABASE_POOL_SIZE : 10,
+        poolTimeout: 'DATABASE_POOL_TIMEOUT' in env ? env.DATABASE_POOL_TIMEOUT : 30000,
+        testUrl: 'TEST_DATABASE_URL' in env ? env.TEST_DATABASE_URL : undefined,
+      },
 
+      // Monitoring & Logging configuration (server-side only)
+      monitoring: {
+        logLevel: 'LOG_LEVEL' in env ? env.LOG_LEVEL : 'info',
+        sentryDsn: 'SENTRY_DSN' in env ? env.SENTRY_DSN : undefined,
 
-  // App configuration with validation
-  app: {
-    url: env.NEXT_PUBLIC_APP_URL,
-    timezone: env.TZ,
-    nodeEnv: env.NODE_ENV,
-    port: env.PORT,
-    healthCheckPath: env.HEALTH_CHECK_PATH,
-    corsOrigin: env.CORS_ORIGIN,
+        isSentryConfigured: () => 'SENTRY_DSN' in env && !!env.SENTRY_DSN,
+      },
 
-    // Runtime validation helpers
-    validateTimezone: () => {
-      const validTimezones = ['Asia/Dubai', 'UTC', 'GMT'];
-      if (!validTimezones.includes(env.TZ)) {
-        console.warn(`⚠️  Warning: Timezone '${env.TZ}' may not be supported. Consider using: ${validTimezones.join(', ')}`);
-      }
-      return true;
-    },
-  },
-} as const;
+      // App configuration with validation
+      app: {
+        url: env.NEXT_PUBLIC_APP_URL,
+        timezone: firstValidTimezone ?? LEGACY_TIMEZONE,
+        nodeEnv: env.NODE_ENV,
+        port: 'PORT' in env ? env.PORT : 3000,
+        healthCheckPath: 'HEALTH_CHECK_PATH' in env ? env.HEALTH_CHECK_PATH : '/api/health',
+        corsOrigin: 'CORS_ORIGIN' in env ? env.CORS_ORIGIN : undefined,
+
+        // Runtime validation helpers
+        validateTimezone: () => {
+          if (env.TZ && !isValidTimezone(env.TZ)) {
+            throw new Error(`Environment timezone '${env.TZ}' is not a valid IANA identifier`);
+          }
+          return true;
+        },
+      },
+
+      timezone: {
+        legacy: LEGACY_TIMEZONE,
+        environmentFallbacks: timezoneFallbackCandidates,
+        getEnvironmentFallbacks: () => [...timezoneFallbackCandidates],
+        validateEnvironmentFallbacks: () => {
+          const invalid = timezoneFallbackCandidates.filter(candidate => !isValidTimezone(candidate));
+          if (invalid.length > 0) {
+            console.warn(`⚠️  Invalid timezone fallback(s) detected: ${invalid.join(', ')}`);
+          }
+          return invalid.length === 0;
+        },
+        buildResolverContext: (context: Partial<TimezoneContext> = {}): TimezoneContext => ({
+          ...context,
+          fallbackTimezone: context.fallbackTimezone ?? firstValidTimezone ?? LEGACY_TIMEZONE,
+          preferLegacyFallback: context.preferLegacyFallback ?? true,
+        }),
+      },
+    };
+  }
+  return _config;
+}
+
+export const config = new Proxy({} as any, {
+  get(target, prop) {
+    return getConfig()[prop];
+  }
+});
 
 // Runtime environment checks
 export function performRuntimeChecks(): void {
   try {
+    const env = getEnv();
+    const config = getConfig();
+
     // Validate Supabase connection
     config.supabase.validateConnection();
 
     // Validate timezone
     config.app.validateTimezone();
+    config.timezone.validateEnvironmentFallbacks();
 
     // Validate security configuration
     config.security.validateJWTSecret();
@@ -207,13 +308,15 @@ export function performRuntimeChecks(): void {
 }
 
 // Development-only environment dump (for debugging)
-if (env.NODE_ENV === 'development') {
+if (process.env.NODE_ENV === 'development') {
   console.log('🔧 Development mode - Environment variables loaded');
 }
 
-// Export validated environment
-export { env };
+// Export validated environment (lazy)
+export function getEnvValue() {
+  return getEnv();
+}
 
 // Type exports
-export type Config = typeof config;
-export type Env = typeof env;
+export type Config = ReturnType<typeof getConfig>;
+export type Env = ReturnType<typeof getEnv>;

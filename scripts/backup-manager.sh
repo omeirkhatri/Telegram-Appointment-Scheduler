@@ -43,24 +43,24 @@ show_help() {
 create_backup() {
     local backup_name="${1:-backup_${TIMESTAMP}}"
     local backup_path="${BACKUP_DIR}/${backup_name}"
-    
+
     echo -e "${YELLOW}🔄 Creating backup: ${backup_name}${NC}"
-    
+
     # Create backup directory
     mkdir -p "${backup_path}"
-    
+
     # Check if Supabase is running
     if ! docker ps | grep -q "supabase_db_bestdoc-scheduler"; then
         echo -e "${RED}❌ Supabase database is not running. Please start it first.${NC}"
         exit 1
     fi
-    
+
     # Export database
     echo -e "${YELLOW}📋 Exporting database...${NC}"
     supabase db dump --local --role-only > "${backup_path}/roles.sql"
     supabase db dump --local -s public > "${backup_path}/schema.sql"
     supabase db dump --local --data-only > "${backup_path}/data.sql"
-    
+
     # Export individual tables
     echo -e "${YELLOW}👥 Exporting individual tables...${NC}"
     for table in staff appointments appointment_staff patients; do
@@ -76,10 +76,10 @@ create_backup() {
         done
         supabase db dump --local --data-only -x "$exclude_tables" > "${backup_path}/${table}_data.sql"
     done
-    
+
     # Create full backup
     cat "${backup_path}/schema.sql" "${backup_path}/data.sql" > "${backup_path}/full_backup.sql"
-    
+
     # Create restoration script
     cat > "${backup_path}/restore.sh" << 'EOF'
 #!/bin/bash
@@ -94,7 +94,7 @@ psql -h localhost -p 54322 -U postgres -d postgres -f full_backup.sql
 echo "✅ Database restored successfully!"
 EOF
     chmod +x "${backup_path}/restore.sh"
-    
+
     # Create backup info
     cat > "${backup_path}/BACKUP_INFO.md" << EOF
 # Backup: ${backup_name}
@@ -111,10 +111,10 @@ EOF
 - \`*_data.sql\` - Individual table data
 - \`restore.sh\` - Restoration script
 EOF
-    
+
     # Update latest symlink
     ln -sfn "${backup_name}" "${BACKUP_DIR}/latest_backup"
-    
+
     echo -e "${GREEN}✅ Backup created: ${backup_path}${NC}"
     echo -e "${GREEN}📊 Size: $(du -sh "${backup_path}" | cut -f1)${NC}"
 }
@@ -122,19 +122,19 @@ EOF
 list_backups() {
     echo -e "${BLUE}📋 Available Backups:${NC}"
     echo ""
-    
+
     if [ ! -d "${BACKUP_DIR}" ] || [ -z "$(ls -A "${BACKUP_DIR}" 2>/dev/null)" ]; then
         echo -e "${YELLOW}No backups found.${NC}"
         return
     fi
-    
+
     # List backups with details
     for backup in "${BACKUP_DIR}"/*/; do
         if [ -d "$backup" ]; then
             backup_name=$(basename "$backup")
             backup_date=$(stat -f "%Sm" -t "%Y-%m-%d %H:%M:%S" "$backup" 2>/dev/null || stat -c "%y" "$backup" 2>/dev/null | cut -d' ' -f1-2)
             backup_size=$(du -sh "$backup" | cut -f1)
-            
+
             # Check if it's the latest
             if [ "$backup_name" = "$(readlink "${BACKUP_DIR}/latest_backup" 2>/dev/null || echo "")" ]; then
                 echo -e "${GREEN}📁 ${backup_name} (LATEST) - ${backup_date} - ${backup_size}${NC}"
@@ -148,24 +148,24 @@ list_backups() {
 restore_backup() {
     local backup_name="$1"
     local backup_path="${BACKUP_DIR}/${backup_name}"
-    
+
     if [ -z "$backup_name" ]; then
         echo -e "${RED}❌ Please specify a backup name.${NC}"
         echo "Use '$0 list' to see available backups."
         exit 1
     fi
-    
+
     if [ ! -d "$backup_path" ]; then
         echo -e "${RED}❌ Backup '${backup_name}' not found.${NC}"
         echo "Use '$0 list' to see available backups."
         exit 1
     fi
-    
+
     echo -e "${YELLOW}⚠️  This will restore the database from backup: ${backup_name}${NC}"
     echo -e "${YELLOW}⚠️  Current data will be lost!${NC}"
     read -p "Are you sure? (y/N): " -n 1 -r
     echo
-    
+
     if [[ $REPLY =~ ^[Yy]$ ]]; then
         echo -e "${YELLOW}🔄 Restoring from backup...${NC}"
         cd "$backup_path"
@@ -179,36 +179,36 @@ restore_backup() {
 clean_backups() {
     local days="${1:-30}"
     echo -e "${YELLOW}🧹 Cleaning backups older than ${days} days...${NC}"
-    
+
     if [ ! -d "${BACKUP_DIR}" ]; then
         echo -e "${YELLOW}No backup directory found.${NC}"
         return
     fi
-    
+
     # Find and remove old backups
     find "${BACKUP_DIR}" -maxdepth 1 -type d -name "backup_*" -mtime +${days} -exec rm -rf {} \;
     find "${BACKUP_DIR}" -maxdepth 1 -type d -name "pre_commit_backup_*" -mtime +${days} -exec rm -rf {} \;
-    
+
     echo -e "${GREEN}✅ Cleanup completed!${NC}"
 }
 
 show_status() {
     echo -e "${BLUE}📊 Backup Status:${NC}"
     echo ""
-    
+
     if [ ! -d "${BACKUP_DIR}" ]; then
         echo -e "${YELLOW}No backup directory found.${NC}"
         return
     fi
-    
+
     # Count backups
     local total_backups=$(find "${BACKUP_DIR}" -maxdepth 1 -type d | wc -l | tr -d ' ')
     local total_size=$(du -sh "${BACKUP_DIR}" 2>/dev/null | cut -f1 || echo "0")
-    
+
     echo -e "📁 Total backups: ${total_backups}"
     echo -e "💾 Total size: ${total_size}"
     echo ""
-    
+
     # Show latest backup
     if [ -L "${BACKUP_DIR}/latest_backup" ]; then
         local latest=$(readlink "${BACKUP_DIR}/latest_backup")

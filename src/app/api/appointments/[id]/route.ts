@@ -7,10 +7,11 @@ import { NextRequest, NextResponse } from 'next/server';
 // GET /api/appointments/[id] - Get a single appointment by ID with staff assignments
 export async function GET(
   _request: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    const appointment = await appointmentService.getAppointment(params.id);
+    const { id } = await params;
+    const appointment = await appointmentService.getAppointment(id);
 
     if (!appointment) {
       return NextResponse.json(
@@ -23,7 +24,7 @@ export async function GET(
     }
 
     // Get staff assignments for this appointment
-    const staffAssignments = await appointmentStaffService.getStaffForAppointment(params.id);
+    const staffAssignments = await appointmentStaffService.getStaffForAppointment(id);
 
     return NextResponse.json({
       success: true,
@@ -47,13 +48,14 @@ export async function GET(
 // PUT /api/appointments/[id] - Update an existing appointment
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
+    const { id } = await params;
     const body = await request.json();
 
     // Check if appointment exists
-    const existingAppointment = await appointmentService.getAppointment(params.id);
+    const existingAppointment = await appointmentService.getAppointment(id);
     if (!existingAppointment) {
       return NextResponse.json(
         {
@@ -94,7 +96,7 @@ export async function PUT(
     const validationErrors = validateAppointmentUpdateData(updateData);
     if (validationErrors.length > 0) {
       console.error('Appointment update validation failed:', {
-        appointmentId: params.id,
+        appointmentId: id,
         updateData,
         validationErrors
       });
@@ -113,13 +115,13 @@ export async function PUT(
     const hasAppointmentChanges = Object.keys(updateData).length > 0;
 
     // Update appointment
-    const updatedAppointment = await appointmentService.updateAppointment(params.id, updateData);
+    const updatedAppointment = await appointmentService.updateAppointment(id, updateData);
 
     // Handle staff assignment updates if provided
     let assignedStaff: any[] = [];
     if (body.staff_assignments !== undefined) {
       // Remove all existing staff assignments
-      await appointmentStaffService.removeAllStaffFromAppointment(params.id);
+      await appointmentStaffService.removeAllStaffFromAppointment(id);
 
       // Assign new staff if provided (no validation)
       if (body.staff_assignments.length > 0) {
@@ -127,25 +129,25 @@ export async function PUT(
 
         // Assign staff to appointment without validation
         assignedStaff = await appointmentStaffService.assignStaffToAppointment(
-          params.id,
+          id,
           staffAssignments,
         );
       }
     } else {
       // If no staff assignment changes, get current staff assignments
-      assignedStaff = await appointmentStaffService.getStaffForAppointment(params.id);
+      assignedStaff = await appointmentStaffService.getStaffForAppointment(id);
     }
 
     // Send reschedule notifications if any changes were made (appointment fields or staff assignments)
     if (hasAppointmentChanges || body.staff_assignments !== undefined) {
-      console.log(`📱 Sending reschedule notifications for appointment ${params.id} - appointment changes: ${hasAppointmentChanges}, staff changes: ${body.staff_assignments !== undefined}`);
+      console.log(`📱 Sending reschedule notifications for appointment ${id} - appointment changes: ${hasAppointmentChanges}, staff changes: ${body.staff_assignments !== undefined}`);
       console.log(`📱 Changed fields:`, changedFields);
       await sendTelegramNotifications(updatedAppointment, assignedStaff, changedFields);
     }
 
     // Fetch updated appointment with staff assignments
-    const finalAppointment = await appointmentService.getAppointment(params.id);
-    const staffForAppointment = await appointmentStaffService.getStaffForAppointment(params.id);
+    const finalAppointment = await appointmentService.getAppointment(id);
+    const staffForAppointment = await appointmentStaffService.getStaffForAppointment(id);
 
     return NextResponse.json({
       success: true,
@@ -170,11 +172,12 @@ export async function PUT(
 // DELETE /api/appointments/[id] - Delete an appointment
 export async function DELETE(
   _request: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
+    const { id } = await params;
     // Check if appointment exists
-    const appointment = await appointmentService.getAppointment(params.id);
+    const appointment = await appointmentService.getAppointment(id);
     if (!appointment) {
       return NextResponse.json(
         {
@@ -186,19 +189,19 @@ export async function DELETE(
     }
 
     // Get staff assignments before deleting
-    const staffAssignments = await appointmentStaffService.getStaffForAppointment(params.id);
+    const staffAssignments = await appointmentStaffService.getStaffForAppointment(id);
 
     // Send cancellation notifications to all assigned staff members
     if (staffAssignments && staffAssignments.length > 0) {
-      console.log(`📱 Sending cancellation notifications for appointment ${params.id} to ${staffAssignments.length} staff members`);
+      console.log(`📱 Sending cancellation notifications for appointment ${id} to ${staffAssignments.length} staff members`);
       await sendTelegramNotifications(appointment, staffAssignments, undefined, 'cancelled');
     }
 
     // Remove all staff assignments
-    await appointmentStaffService.removeAllStaffFromAppointment(params.id);
+    await appointmentStaffService.removeAllStaffFromAppointment(id);
 
     // Delete appointment
-    await appointmentService.deleteAppointment(params.id);
+    await appointmentService.deleteAppointment(id);
 
     return NextResponse.json({
       success: true,

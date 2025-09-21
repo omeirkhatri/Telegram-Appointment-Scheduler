@@ -13,3 +13,4 @@ export { default as staffService } from './staffService';
 export { storageService } from './storage';
 export { telegramNotificationService } from './telegramNotificationService';
 export { telegramService } from './telegramService';
+export { timezoneMonitoringService } from './timezoneMonitoringService';

@@ -1,8 +1,5 @@
 import {
-    AddressComponent,
     Coordinates,
-    GeocodingResponse,
-    GeocodingResult,
     MAP_CONSTANTS,
     MapAction,
     MapBounds,
@@ -18,7 +15,6 @@ import {
     MapStatistics,
     MapViewConfig,
     isCoordinates,
-    isGeocodingResult,
     isMapMarker
 } from './map';
 
@@ -46,52 +42,7 @@ describe('Map Types', () => {
     });
   });
 
-  describe('Geocoding Types', () => {
-    it('should create valid GeocodingResult', () => {
-      const result: GeocodingResult = {
-        address: '123 Main St, Dubai, UAE',
-        coordinates: { lat: 25.2048, lng: 55.2708 },
-        formatted_address: '123 Main St, Dubai, UAE',
-        place_id: 'ChIJ123456789',
-        types: ['street_address', 'premise'],
-        address_components: [
-          {
-            long_name: '123',
-            short_name: '123',
-            types: ['street_number']
-          },
-          {
-            long_name: 'Main Street',
-            short_name: 'Main St',
-            types: ['route']
-          }
-        ],
-        geometry: {
-          location: { lat: 25.2048, lng: 55.2708 },
-          location_type: 'ROOFTOP',
-          viewport: {
-            northeast: { lat: 25.2061, lng: 55.2721 },
-            southwest: { lat: 25.2035, lng: 55.2695 }
-          }
-        }
-      };
-
-      expect(result.address).toBe('123 Main St, Dubai, UAE');
-      expect(result.coordinates.lat).toBe(25.2048);
-      expect(result.address_components).toHaveLength(2);
-    });
-
-    it('should create valid AddressComponent', () => {
-      const component: AddressComponent = {
-        long_name: 'United Arab Emirates',
-        short_name: 'AE',
-        types: ['country', 'political']
-      };
-
-      expect(component.long_name).toBe('United Arab Emirates');
-      expect(component.types).toContain('country');
-    });
-  });
+  // Note: Geocoding types removed - using stored coordinates only
 
   describe('Map Marker Types', () => {
     it('should create valid MapMarker', () => {
@@ -335,18 +286,18 @@ describe('Map Types', () => {
   describe('Error and State Types', () => {
     it('should create valid MapError', () => {
       const error: MapError = {
-        code: 'GEOCODING_ERROR',
-        message: 'Failed to geocode address',
+        code: 'MAP_ERROR',
+        message: 'Failed to process map data',
         details: { address: 'Invalid Address' },
         timestamp: Date.now(),
         context: {
           component: 'MapService',
-          action: 'geocodeAddress',
+          action: 'processData',
           data: { address: 'Invalid Address' }
         }
       };
 
-      expect(error.code).toBe('GEOCODING_ERROR');
+      expect(error.code).toBe('MAP_ERROR');
       expect(error.context?.component).toBe('MapService');
     });
 
@@ -443,28 +394,7 @@ describe('Map Types', () => {
       expect(isMapMarker(invalidMarker)).toBe(false);
     });
 
-    it('should correctly identify GeocodingResult', () => {
-      const validResult: GeocodingResult = {
-        address: '123 Main St',
-        coordinates: { lat: 25.2048, lng: 55.2708 },
-        formatted_address: '123 Main St, Dubai, UAE',
-        types: ['street_address'],
-        address_components: [],
-        geometry: {
-          location: { lat: 25.2048, lng: 55.2708 },
-          location_type: 'ROOFTOP',
-          viewport: {
-            northeast: { lat: 25.2061, lng: 55.2721 },
-            southwest: { lat: 25.2035, lng: 55.2695 }
-          }
-        }
-      };
-
-      const invalidResult = { address: '123 Main St' };
-
-      expect(isGeocodingResult(validResult)).toBe(true);
-      expect(isGeocodingResult(invalidResult)).toBe(false);
-    });
+    // Note: isGeocodingResult test removed - using stored coordinates only
   });
 
   describe('Complex Type Combinations', () => {
@@ -510,32 +440,6 @@ describe('Map Types', () => {
       expect(marker.title).toContain(appointment.patient.name);
     });
 
-    it('should handle geocoding response processing', () => {
-      const geocodingResponse: GeocodingResponse = {
-        results: [
-          {
-            address: '123 Main St, Dubai, UAE',
-            coordinates: { lat: 25.2048, lng: 55.2708 },
-            formatted_address: '123 Main St, Dubai, UAE',
-            place_id: 'ChIJ123456789',
-            types: ['street_address', 'premise'],
-            address_components: [],
-            geometry: {
-              location: { lat: 25.2048, lng: 55.2708 },
-              location_type: 'ROOFTOP',
-              viewport: {
-                northeast: { lat: 25.2061, lng: 55.2721 },
-                southwest: { lat: 25.2035, lng: 55.2695 }
-              }
-            }
-          }
-        ],
-        status: 'OK'
-      };
-
-      expect(geocodingResponse.status).toBe('OK');
-      expect(geocodingResponse.results).toHaveLength(1);
-      expect(geocodingResponse.results[0].coordinates.lat).toBe(25.2048);
-    });
+    // Note: Geocoding response processing test removed - using stored coordinates only
   });
 });

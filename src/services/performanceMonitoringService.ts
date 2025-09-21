@@ -529,35 +529,12 @@ export class PerformanceMonitoringService {
 
   /**
    * Create database tables
+   * Note: Tables are now created via database migrations
    */
   private async createTables(): Promise<void> {
-    const tables = [
-      {
-        name: 'performance_metrics',
-        sql: `
-          CREATE TABLE IF NOT EXISTS performance_metrics (
-            id UUID PRIMARY KEY,
-            metric_name VARCHAR(100) NOT NULL,
-            metric_value DECIMAL NOT NULL,
-            metric_unit VARCHAR(20),
-            context JSONB,
-            tags TEXT[],
-            timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW()
-          );
-        `,
-      },
-    ];
-
-    for (const table of tables) {
-      try {
-        const { error } = await this.supabase.rpc('exec_sql', { sql: table.sql });
-        if (error) {
-          console.warn(`⚠️ Could not create table ${table.name}:`, error.message);
-        }
-      } catch (error) {
-        console.warn(`⚠️ Could not create table ${table.name}:`, error);
-      }
-    }
+    // Tables are created via database migrations
+    // This method is kept for compatibility but does nothing
+    console.log('✅ Database tables are managed via migrations');
   }
 
   /**

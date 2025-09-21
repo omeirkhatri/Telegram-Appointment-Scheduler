@@ -2,7 +2,8 @@
 
 import { BackupSection } from '@/components/backup';
 import Header from '@/components/layout/Header';
-import TelegramSettings from '@/components/settings/TelegramSettings';
+import TelegramSettings from '@/components/features/settings/TelegramSettings';
+import OfficeSettings from '@/components/features/settings/OfficeSettings';
 
 export default function SettingsPage() {
 
@@ -71,6 +72,9 @@ export default function SettingsPage() {
                 </button>
               </div>
             </div>
+
+            {/* Office Settings */}
+            <OfficeSettings />
 
             {/* Telegram Settings */}
             <TelegramSettings />

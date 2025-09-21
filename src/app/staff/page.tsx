@@ -1,7 +1,7 @@
 'use client';
 
 import Header from '@/components/layout/Header';
-import { StaffModal } from '@/components/modals';
+import { StaffModal } from '@/components/features/staff';
 import { VirtualizedTable, type VirtualizedTableColumn } from '@/components/ui';
 import { useToastContext } from '@/components/ui/ToastContainer';
 import { useStaff } from '@/hooks';

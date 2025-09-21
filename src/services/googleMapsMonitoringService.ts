@@ -26,7 +26,6 @@ export interface ApiKeyStatus {
 
 export interface UsageMetrics {
   totalRequests: number;
-  geocodingRequests: number;
   mapsRequests: number;
   placesRequests: number;
   errors: number;
@@ -109,7 +108,7 @@ export class GoogleMapsMonitoringService {
   /**
    * Record API usage
    */
-  public recordUsage(apiType: 'geocoding' | 'maps' | 'places'): void {
+  public recordUsage(apiType: 'maps' | 'places'): void {
     const now = new Date();
     const today = now.toISOString().split('T')[0];
 
@@ -117,9 +116,6 @@ export class GoogleMapsMonitoringService {
     this.usageMetrics.lastRequestTime = now;
 
     switch (apiType) {
-      case 'geocoding':
-        this.usageMetrics.geocodingRequests++;
-        break;
       case 'maps':
         this.usageMetrics.mapsRequests++;
         break;
@@ -210,7 +206,6 @@ export class GoogleMapsMonitoringService {
   public resetUsageMetrics(): void {
     this.usageMetrics = {
       totalRequests: 0,
-      geocodingRequests: 0,
       mapsRequests: 0,
       placesRequests: 0,
       errors: 0,
@@ -317,7 +312,6 @@ export class GoogleMapsMonitoringService {
   private getDefaultUsageMetrics(): UsageMetrics {
     return {
       totalRequests: 0,
-      geocodingRequests: 0,
       mapsRequests: 0,
       placesRequests: 0,
       errors: 0,

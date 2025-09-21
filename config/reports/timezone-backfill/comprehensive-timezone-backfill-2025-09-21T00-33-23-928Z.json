@@ -1,0 +1,194 @@
+{
+  "meta": {
+    "generated_at": "2025-09-21T00:33:23.976Z",
+    "dry_run": true,
+    "summary": {
+      "tables": {
+        "appointments": {
+          "table": "appointments",
+          "processed": 5,
+          "updated": 5,
+          "skipped": 0,
+          "fallbackUsed": 5,
+          "legacyUsed": 0,
+          "missingLocation": 5,
+          "missingOrganization": 5,
+          "errors": [],
+          "durationMs": 37
+        }
+      },
+      "totalProcessed": 5,
+      "totalUpdated": 5,
+      "totalSkipped": 0,
+      "totalFallbackUsed": 5,
+      "totalLegacyUsed": 0,
+      "totalMissingLocation": 5,
+      "totalMissingOrganization": 5,
+      "totalErrors": 0,
+      "totalDurationMs": 37,
+      "dryRun": true
+    }
+  },
+  "entries": [
+    {
+      "record_id": "ad7fa5a3-f9a9-4029-a624-d040b924456b",
+      "record_type": "appointment",
+      "action": "would-update",
+      "timezone": "Asia/Dubai",
+      "source": "environment",
+      "fallback_used": true,
+      "legacy_used": false,
+      "previous": null,
+      "next": {
+        "generated_at": "2025-09-21T00:33:23.961Z",
+        "record_type": "appointment",
+        "resolution": {
+          "timezone": "Asia/Dubai",
+          "source": "environment",
+          "offset_minutes": 240,
+          "abbreviation": "GMT+4",
+          "reference": "2025-09-20T17:33:16.242Z",
+          "resolution_path": [
+            {
+              "candidate": "Asia/Dubai",
+              "source": "environment"
+            }
+          ]
+        },
+        "local_time": {
+          "appointment_date": "2028-02-29",
+          "start_time": "06:00:00",
+          "end_time": "06:30"
+        }
+      }
+    },
+    {
+      "record_id": "855ee8c3-909c-4294-b4f2-b9f3fce257e9",
+      "record_type": "appointment",
+      "action": "would-update",
+      "timezone": "Asia/Dubai",
+      "source": "environment",
+      "fallback_used": true,
+      "legacy_used": false,
+      "previous": null,
+      "next": {
+        "generated_at": "2025-09-21T00:33:23.966Z",
+        "record_type": "appointment",
+        "resolution": {
+          "timezone": "Asia/Dubai",
+          "source": "environment",
+          "offset_minutes": 240,
+          "abbreviation": "GMT+4",
+          "reference": "2025-09-20T17:33:16.299Z",
+          "resolution_path": [
+            {
+              "candidate": "Asia/Dubai",
+              "source": "environment"
+            }
+          ]
+        },
+        "local_time": {
+          "appointment_date": "2029-02-28",
+          "start_time": "06:00:00",
+          "end_time": "06:30"
+        }
+      }
+    },
+    {
+      "record_id": "2c1ae56e-b6c6-4490-9a08-a0b199a094c0",
+      "record_type": "appointment",
+      "action": "would-update",
+      "timezone": "Asia/Dubai",
+      "source": "environment",
+      "fallback_used": true,
+      "legacy_used": false,
+      "previous": null,
+      "next": {
+        "generated_at": "2025-09-21T00:33:23.969Z",
+        "record_type": "appointment",
+        "resolution": {
+          "timezone": "Asia/Dubai",
+          "source": "environment",
+          "offset_minutes": 240,
+          "abbreviation": "GMT+4",
+          "reference": "2025-09-20T17:33:16.322Z",
+          "resolution_path": [
+            {
+              "candidate": "Asia/Dubai",
+              "source": "environment"
+            }
+          ]
+        },
+        "local_time": {
+          "appointment_date": "2030-02-28",
+          "start_time": "06:00:00",
+          "end_time": "06:30"
+        }
+      }
+    },
+    {
+      "record_id": "edc838f0-10af-4359-8875-c38e305e3ac6",
+      "record_type": "appointment",
+      "action": "would-update",
+      "timezone": "Asia/Dubai",
+      "source": "environment",
+      "fallback_used": true,
+      "legacy_used": false,
+      "previous": null,
+      "next": {
+        "generated_at": "2025-09-21T00:33:23.972Z",
+        "record_type": "appointment",
+        "resolution": {
+          "timezone": "Asia/Dubai",
+          "source": "environment",
+          "offset_minutes": 240,
+          "abbreviation": "GMT+4",
+          "reference": "2025-09-20T17:33:16.337Z",
+          "resolution_path": [
+            {
+              "candidate": "Asia/Dubai",
+              "source": "environment"
+            }
+          ]
+        },
+        "local_time": {
+          "appointment_date": "2031-02-28",
+          "start_time": "06:00:00",
+          "end_time": "06:30"
+        }
+      }
+    },
+    {
+      "record_id": "3b6f8f02-6510-4e0d-99b7-d0abbd9b705d",
+      "record_type": "appointment",
+      "action": "would-update",
+      "timezone": "Asia/Dubai",
+      "source": "environment",
+      "fallback_used": true,
+      "legacy_used": false,
+      "previous": null,
+      "next": {
+        "generated_at": "2025-09-21T00:33:23.976Z",
+        "record_type": "appointment",
+        "resolution": {
+          "timezone": "Asia/Dubai",
+          "source": "environment",
+          "offset_minutes": 240,
+          "abbreviation": "GMT+4",
+          "reference": "2025-09-20T19:13:37.643Z",
+          "resolution_path": [
+            {
+              "candidate": "Asia/Dubai",
+              "source": "environment"
+            }
+          ]
+        },
+        "local_time": {
+          "appointment_date": "2025-09-21",
+          "start_time": "17:00:00",
+          "end_time": "18:00"
+        }
+      }
+    }
+  ]
+}

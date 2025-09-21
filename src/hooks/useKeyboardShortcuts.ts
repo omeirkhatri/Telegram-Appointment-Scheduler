@@ -93,7 +93,7 @@ export function useKeyboardShortcuts({
  * Predefined global shortcuts for the application
  * Using Ctrl+Shift combinations to avoid browser conflicts
  */
-export const createGlobalShortcuts = (router: any) => [
+export const createGlobalShortcuts = (router: any, toggleMapDebugInfo?: () => void) => [
   {
     key: 'n',
     ctrlKey: true,
@@ -153,6 +153,14 @@ export const createGlobalShortcuts = (router: any) => [
     shiftKey: true,
     action: () => router.push('/appointments'),
     description: 'Go to appointments',
+  },
+  {
+    key: 'd',
+    ctrlKey: true,
+    shiftKey: true,
+    action: () => toggleMapDebugInfo?.(),
+    description: 'Toggle map debug info',
+    disabled: !toggleMapDebugInfo,
   },
 ];
 

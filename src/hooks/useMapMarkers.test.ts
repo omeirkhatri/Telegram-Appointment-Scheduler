@@ -2,17 +2,7 @@ import type { MapMarker } from '@/types/map';
 import { act, renderHook } from '@testing-library/react';
 import { useMapMarkers, useMapMarkersWithDefaults } from './useMapMarkers';
 
-// Mock the geocoding hook
-jest.mock('./useGeocoding', () => ({
-  useGeocoding: () => ({
-    geocode: jest.fn(),
-    geocodeBatch: jest.fn(),
-    state: {
-      isLoading: false,
-      cacheStats: { size: 0, maxSize: 1000, hitRate: 0 }
-    }
-  })
-}));
+// Geocoding removed - using stored coordinates only
 
 describe('useMapMarkers', () => {
   const mockMarker: MapMarker = {

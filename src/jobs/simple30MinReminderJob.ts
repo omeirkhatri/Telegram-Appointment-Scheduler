@@ -1,7 +1,8 @@
+import { buildTimezoneArtifacts, formatLocalDate, getCurrentLocalTime } from '@/lib/timezoneArtifacts';
 import { appointmentService } from '@/services/appointmentService';
 import { appointmentStaffService } from '@/services/appointmentStaffService';
 import { telegramNotificationService } from '@/services/telegramNotificationService';
-import { getCurrentDubaiTime } from '@/utils/timezone';
+import { toUTC } from '@/utils/timezone';
 
 /**
  * SIMPLE 30-MINUTE REMINDER JOB
@@ -12,16 +13,35 @@ export async function simple30MinReminderJob(): Promise<void> {
   console.log('🔔 Starting SIMPLE 30-minute reminder check...');
 
   try {
-    // Get current Dubai time
-    const now = getCurrentDubaiTime();
-    const todayString = now.toISOString().split('T')[0]; // Format as YYYY-MM-DD
+    // Resolve timezone context
+    const artifacts = buildTimezoneArtifacts();
+    const nowLocal = getCurrentLocalTime(artifacts);
+    const timezone = artifacts.resolution;
+    const todayString = formatLocalDate(artifacts, nowLocal, 'yyyy-MM-dd');
 
-    console.log(`⏰ Current Dubai time: ${now.toISOString()}`);
+    // Log timezone resolution telemetry for reminder job
+    console.log('🕐 Reminder job timezone context:', {
+      timezone: timezone.timezone,
+      timezoneSource: timezone.source,
+      offsetMinutes: timezone.offsetMinutes,
+      abbreviation: timezone.abbreviation,
+      resolutionPath: timezone.resolutionPath,
+      contextSummary: {
+        hasExplicit: Boolean(artifacts.context.explicitTimezone),
+        hasLocation: Boolean(artifacts.context.locationTimezone),
+        hasOrganization: Boolean(artifacts.context.organizationTimezone),
+        hasFallback: Boolean(artifacts.context.fallbackTimezone),
+        preferLegacy: artifacts.context.preferLegacyFallback,
+      },
+      timestamp: new Date().toISOString(),
+    });
+
+    console.log(`⏰ Current local time (${timezone.timezone}): ${nowLocal.toISOString()}`);
     console.log(`📅 Today: ${todayString}`);
 
     // Calculate 30 minutes from now
-    const thirtyMinutesFromNow = new Date(now.getTime() + 30 * 60 * 1000);
-    console.log(`⏰ 30 minutes from now: ${thirtyMinutesFromNow.toISOString()}`);
+    const thirtyMinutesFromNow = new Date(nowLocal.getTime() + 30 * 60 * 1000);
+    console.log(`⏰ 30 minutes from now (${timezone.timezone}): ${thirtyMinutesFromNow.toISOString()}`);
 
     // Get all scheduled appointments for today
     const appointments = await appointmentService.getAppointments({
@@ -32,11 +52,12 @@ export async function simple30MinReminderJob(): Promise<void> {
     console.log(`📋 Found ${appointments.length} scheduled appointments for today`);
 
     // Find appointments starting in exactly 30 minutes (±5 minute window)
+    const nowUtc = new Date();
     const reminderAppointments = appointments.filter(appointment => {
-      const appointmentDateTime = new Date(`${appointment.appointment_date}T${appointment.start_time}:00`);
+      const appointmentUtc = toUTC(`${appointment.appointment_date}T${appointment.start_time}:00`, artifacts.context);
 
       // Check if appointment is within 25-35 minutes from now (5-minute window)
-      const timeDiff = appointmentDateTime.getTime() - now.getTime();
+      const timeDiff = appointmentUtc.getTime() - nowUtc.getTime();
       const minutesDiff = timeDiff / (1000 * 60);
 
       return minutesDiff >= 25 && minutesDiff <= 35;

@@ -1,9 +1,11 @@
-import { PrintableAgenda } from '@/components/print/PrintableAgenda';
+import { PrintableAgenda } from '@/components/features/appointments/print/PrintableAgenda';
 import { appointmentService } from '@/services/appointmentService';
 import { appointmentStaffService } from '@/services/appointmentStaffService';
 import { patientService } from '@/services/patientService';
 import { staffService } from '@/services/staffService';
 import { formatInTimeZone } from 'date-fns-tz';
+import { buildTimezoneArtifacts } from '@/lib/timezoneArtifacts';
+import { formatInResolvedTimezone, type TimezoneContext } from '@/utils/timezone';
 import { notFound } from 'next/navigation';
 
 interface PrintAgendaPageProps {
@@ -99,7 +101,14 @@ export async function generateMetadata({ params }: PrintAgendaPageProps) {
       };
     }
 
-    const formattedDate = formatInTimeZone(agendaDate, 'Asia/Dubai', 'dd/MM/yyyy');
+    // Build timezone context for timezone-aware formatting
+    const timezoneContext: TimezoneContext = {
+      // TODO: In the future, this could be derived from staff location or organization settings
+      fallbackTimezone: 'Asia/Dubai',
+      preferLegacyFallback: true,
+    };
+
+    const formattedDate = formatInResolvedTimezone(agendaDate, 'dd/MM/yyyy', timezoneContext);
     const staffName = `${staff.first_name} ${staff.last_name}`;
 
     return {

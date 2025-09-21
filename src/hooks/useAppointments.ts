@@ -1,7 +1,8 @@
 import type { Appointment, CalendarEvent } from '@/types';
 import { getAppointmentTypeDisplayName } from '@/types/appointment';
 import { getAppointmentTypeColor, getDurationConstraints, validateDurationForType } from '@/utils/appointmentTypes';
-import { toDubaiTime } from '@/utils/timezone';
+import { formatInResolvedTimezone, toLocalTime, toUTC } from '@/utils/timezone';
+import { buildTimezoneArtifacts } from '@/lib/timezoneArtifacts';
 import { format } from 'date-fns';
 import { useCallback, useEffect, useState } from 'react';
 
@@ -80,12 +81,24 @@ export function useAppointments(options: UseAppointmentsOptions = {}): UseAppoin
       });
 
       if (!response.ok) {
-        throw new Error(`Failed to fetch appointments: ${response.statusText}`);
+        const errorText = await response.text();
+        console.error('API Error Response:', {
+          status: response.status,
+          statusText: response.statusText,
+          url: response.url,
+          body: errorText
+        });
+        throw new Error(`Failed to fetch appointments: ${response.status} ${response.statusText}`);
       }
 
       const data = await response.json();
 
       if (!data.success) {
+        console.error('API Success False:', {
+          success: data.success,
+          error: data.error,
+          data: data.data
+        });
         throw new Error(data.error || 'Failed to fetch appointments');
       }
 
@@ -103,19 +116,33 @@ export function useAppointments(options: UseAppointmentsOptions = {}): UseAppoin
 
       setAppointments(fetchedAppointments);
 
-      // Transform appointments to calendar events
+      // Get timezone context for calendar events
+      const timezoneArtifacts = buildTimezoneArtifacts();
+
+      // Transform appointments to calendar events with timezone awareness
       const calendarEvents: CalendarEvent[] = fetchedAppointments.map((appointment) => {
-        const startDateTime = new Date(`${appointment.appointment_date}T${appointment.start_time}`);
-        const endDateTime = new Date(startDateTime.getTime() + appointment.duration_minutes * 60000);
+        // Create local date/time from appointment data
+        const localStartDateTime = new Date(`${appointment.appointment_date}T${appointment.start_time}`);
+        const localEndDateTime = new Date(localStartDateTime.getTime() + appointment.duration_minutes * 60000);
+
+        // Convert to UTC for FullCalendar (which expects UTC dates)
+        const utcStartDateTime = toUTC(localStartDateTime, timezoneArtifacts.context);
+        const utcEndDateTime = toUTC(localEndDateTime, timezoneArtifacts.context);
 
         return {
           id: appointment.id,
           title: getAppointmentTypeDisplayName(appointment.appointment_type),
-          start: startDateTime,
-          end: endDateTime,
+          start: utcStartDateTime,
+          end: utcEndDateTime,
           allDay: false,
           color: getAppointmentTypeColor(appointment.appointment_type, 'primary'),
-          appointment: appointment,
+          appointment: {
+            ...appointment,
+            // Add timezone metadata for display
+            timezone: timezoneArtifacts.resolution.timezone,
+            timezoneSource: timezoneArtifacts.resolution.source,
+            timezoneAbbreviation: timezoneArtifacts.resolution.abbreviation,
+          },
         };
       });
 
@@ -220,10 +247,13 @@ export function useUpdateAppointment() {
     setError(null);
 
     try {
-      // Format the new date and time
-      const startInDubai = toDubaiTime(newStart);
-      const appointmentDate = format(startInDubai, 'yyyy-MM-dd');
-      const startTime = format(startInDubai, 'HH:mm');
+      // Get timezone context for appointment updates
+      const timezoneArtifacts = buildTimezoneArtifacts();
+      
+      // Convert the new start time to local timezone for formatting
+      const startInLocal = toLocalTime(newStart, timezoneArtifacts.context);
+      const appointmentDate = format(startInLocal, 'yyyy-MM-dd');
+      const startTime = format(startInLocal, 'HH:mm');
 
       // Use original duration if provided, otherwise calculate from drag distance
       let durationMinutes = originalDuration || Math.round((newEnd.getTime() - newStart.getTime()) / (1000 * 60));

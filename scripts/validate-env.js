@@ -165,7 +165,7 @@ function validateDockerConfig(env) {
 
   if (isDocker) {
     console.log('🐳 Docker Compose environment detected');
-    addSuggestion('Using Docker Compose setup. Run "./scripts/docker-setup.sh status" to check service status.');
+    addSuggestion('Using Docker Compose setup. Run "./docker/docker-setup.sh status" to check service status.');
   }
 }
 

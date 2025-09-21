@@ -1,4 +1,4 @@
-import { env } from '@/lib/env';
+import { getEnvValue } from '@/lib/env';
 import { supabase } from '@/lib/supabase';
 
 export type LogLevel = 'debug' | 'info' | 'warn' | 'error' | 'fatal';
@@ -55,7 +55,7 @@ export class LoggingService {
       enableConsole: true,
       enableDatabase: true,
       enableExternal: false,
-      logLevel: env.LOG_LEVEL as LogLevel,
+      logLevel: getEnvValue().LOG_LEVEL as LogLevel,
       batchSize: 100,
       flushInterval: 5000, // 5 seconds
       maxRetentionDays: 30,
@@ -294,7 +294,7 @@ export class LoggingService {
    * Log to external service (e.g., Sentry)
    */
   private logToExternal(entry: LogEntry): void {
-    if (env.SENTRY_DSN) {
+    if (getEnvValue().SENTRY_DSN) {
       // In a real implementation, you would integrate with Sentry here
       console.log('Would send to external service:', entry);
     }
@@ -358,80 +358,19 @@ export class LoggingService {
 
   /**
    * Create database tables
+   * Note: Tables are now created via database migrations
    */
   private async createTables(): Promise<void> {
-    const tables = [
-      {
-        name: 'application_logs',
-        sql: `
-          CREATE TABLE IF NOT EXISTS application_logs (
-            id UUID PRIMARY KEY,
-            timestamp TIMESTAMPTZ NOT NULL,
-            level VARCHAR(10) NOT NULL,
-            message TEXT NOT NULL,
-            context JSONB,
-            error JSONB,
-            performance JSONB,
-            tags TEXT[],
-            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-          );
-        `,
-      },
-      {
-        name: 'error_tracking',
-        sql: `
-          CREATE TABLE IF NOT EXISTS error_tracking (
-            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-            error_id VARCHAR(255) NOT NULL,
-            error_type VARCHAR(100) NOT NULL,
-            message TEXT NOT NULL,
-            stack_trace TEXT,
-            context JSONB,
-            user_id UUID,
-            session_id VARCHAR(255),
-            request_id VARCHAR(255),
-            component VARCHAR(100),
-            severity VARCHAR(20) NOT NULL,
-            resolved BOOLEAN DEFAULT false,
-            resolved_at TIMESTAMPTZ,
-            resolved_by UUID,
-            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-          );
-        `,
-      },
-      {
-        name: 'performance_metrics',
-        sql: `
-          CREATE TABLE IF NOT EXISTS performance_metrics (
-            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-            metric_name VARCHAR(100) NOT NULL,
-            metric_value DECIMAL NOT NULL,
-            metric_unit VARCHAR(20),
-            context JSONB,
-            tags TEXT[],
-            timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW()
-          );
-        `,
-      },
-    ];
-
-    for (const table of tables) {
-      try {
-        const { error } = await this.supabase.rpc('exec_sql', { sql: table.sql });
-        if (error) {
-          console.warn(`⚠️ Could not create table ${table.name}:`, error.message);
-        }
-      } catch (error) {
-        console.warn(`⚠️ Could not create table ${table.name}:`, error);
-      }
-    }
+    // Tables are created via database migrations
+    // This method is kept for compatibility but does nothing
+    console.log('✅ Database tables are managed via migrations');
   }
 
   /**
    * Generate unique ID
    */
   private generateId(): string {
-    return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    return crypto.randomUUID();
   }
 
   /**

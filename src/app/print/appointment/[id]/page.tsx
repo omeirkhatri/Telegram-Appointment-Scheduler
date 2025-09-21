@@ -1,9 +1,11 @@
-import { PrintableAppointmentSheet } from '@/components/print/PrintableAppointmentSheet';
+import { PrintableAppointmentSheet } from '@/components/features/appointments/print/PrintableAppointmentSheet';
 import { appointmentService } from '@/services/appointmentService';
 import { appointmentStaffService } from '@/services/appointmentStaffService';
 import { patientService } from '@/services/patientService';
 import { staffService } from '@/services/staffService';
 import { formatInTimeZone } from 'date-fns-tz';
+import { buildTimezoneArtifacts } from '@/lib/timezoneArtifacts';
+import { formatInResolvedTimezone, type TimezoneContext } from '@/utils/timezone';
 import { notFound } from 'next/navigation';
 
 interface PrintAppointmentPageProps {
@@ -70,8 +72,15 @@ export async function generateMetadata({ params }: PrintAppointmentPageProps) {
       };
     }
 
+    // Build timezone context for timezone-aware formatting
+    const timezoneContext: TimezoneContext = {
+      // TODO: In the future, this could be derived from appointment location or organization settings
+      fallbackTimezone: 'Asia/Dubai',
+      preferLegacyFallback: true,
+    };
+
     const appointmentDate = new Date(appointment.appointment_date);
-    const formattedDate = formatInTimeZone(appointmentDate, 'Asia/Dubai', 'dd/MM/yyyy');
+    const formattedDate = formatInResolvedTimezone(appointmentDate, 'dd/MM/yyyy', timezoneContext);
     const appointmentType = appointment.appointment_type
       .replace(/_/g, ' ')
       .replace(/\b\w/g, l => l.toUpperCase());

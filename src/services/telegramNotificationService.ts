@@ -1,3 +1,6 @@
+import { config } from '@/lib/env';
+import { formatInTimeZone } from 'date-fns-tz';
+
 import { patientService } from './patientService';
 import { staffService } from './staffService';
 import { TelegramMessage, telegramService } from './telegramService';
@@ -66,17 +69,23 @@ export class TelegramNotificationService {
    */
   async sendDailyAgenda(
     telegramUserId: string,
-    staff: any,
-    appointments: any[],
-    date: string,
+    agenda: {
+      staffName: string;
+      appointments: any[];
+      date: string;
+      dayName: string;
+      totalAppointments: number;
+      timezone?: string;
+      timezoneAbbreviation?: string;
+    },
   ): Promise<{ success: boolean; messageId?: number; error?: string }> {
     const startTime = Date.now();
 
     try {
-      console.log(`📱 Preparing to send daily agenda to user ${telegramUserId} for ${date}`);
+      console.log(`📱 Preparing to send daily agenda to user ${telegramUserId} for ${agenda.date}`);
 
       // Format the daily agenda message
-      const messageText = telegramService.formatDailyAgendaMessage(staff, appointments, date);
+      const messageText = telegramService.formatDailyAgendaMessage(agenda);
 
       // Create Telegram message
       const message: TelegramMessage = {
@@ -376,11 +385,21 @@ export class TelegramNotificationService {
         try {
           console.log(`📱 Sending daily agenda to ${staff.first_name} ${staff.last_name} (${staffAppointments.length} appointments)`);
 
+          const timezoneId = config.app.timezone;
+          const dayName = formatInTimeZone(new Date(`${date}T00:00:00`), timezoneId, 'EEEE');
+          const agendaPayload = {
+            staffName: `${staff.first_name} ${staff.last_name}`,
+            appointments: staffAppointments,
+            date,
+            dayName,
+            totalAppointments: staffAppointments.length,
+            timezone: timezoneId,
+            timezoneAbbreviation: undefined,
+          };
+
           const result = await this.sendDailyAgenda(
             staff.telegram_user_id!,
-            staff,
-            staffAppointments,
-            date
+            agendaPayload,
           );
 
           results.push({

@@ -24,7 +24,7 @@ This guide provides comprehensive instructions for setting up the MediCare Sched
 |----------|----------|---------|-------------|
 | `NODE_ENV` | Yes | `development` | Application environment (`development`, `production`, `test`) |
 | `NEXT_PUBLIC_APP_URL` | Yes | `http://localhost:3000` | Public URL of the application |
-| `TZ` | Yes | `Asia/Dubai` | Application timezone (GMT+4 Dubai time) |
+| `TZ` | Yes | `Asia/Dubai` | Runtime fallback timezone (legacy default; see `docs/timezone/configuration.md` for overrides) |
 | `PORT` | No | `3000` | Port for the application server |
 | `HEALTH_CHECK_PATH` | No | `/api/health` | Health check endpoint path |
 | `CORS_ORIGIN` | No | - | CORS origin for production deployment |
@@ -39,7 +39,8 @@ This guide provides comprehensive instructions for setting up the MediCare Sched
 
 **Local Development:**
 - Use the default values when running `npx supabase start`
-- These work with the local Supabase Docker setup
+- After bootstrapping, apply migrations and confirm the timezone hierarchy via `supabase db reset` (seeds populate `organization_settings`/`locations`).
+- Reference `docs/timezone/configuration.md` for details on managing organization and location timezones.
 
 **Production:**
 - Get your credentials from: https://app.supabase.com/project/YOUR_PROJECT/settings/api
@@ -118,7 +119,7 @@ The application supports two authentication methods:
 #### Local Development with Docker Compose (Recommended)
 ```bash
 # Set up and start all services with Docker
-./scripts/docker-setup.sh setup
+./docker/docker-setup.sh setup
 
 # The default environment variables will work automatically
 ```
@@ -328,34 +329,34 @@ cd scheduler
 cp env.example .env.local
 
 # Start all services with Docker
-./scripts/docker-setup.sh setup
+./docker/docker-setup.sh setup
 ```
 
 ### Docker Commands
 
 ```bash
 # Start services
-./scripts/docker-setup.sh start
+./docker/docker-setup.sh start
 # or
 docker-compose up -d
 
 # Stop services
-./scripts/docker-setup.sh stop
+./docker/docker-setup.sh stop
 # or
 docker-compose down
 
 # View logs
-./scripts/docker-setup.sh logs
+./docker/docker-setup.sh logs
 # or
 docker-compose logs -f
 
 # Check status
-./scripts/docker-setup.sh status
+./docker/docker-setup.sh status
 # or
 docker-compose ps
 
 # Clean up everything
-./scripts/docker-setup.sh cleanup
+./docker/docker-setup.sh cleanup
 ```
 
 ### Docker Service URLs
@@ -372,7 +373,7 @@ docker-compose ps
 1. **Complete Setup**: Follow the service-specific setup instructions above
 2. **Test Configuration**: Run `npm run validate-env` to verify your setup
 3. **Start Development**:
-   - With Docker: `./scripts/docker-setup.sh setup`
+   - With Docker: `./docker/docker-setup.sh setup`
    - Traditional: `npm run dev`
 4. **Deploy**: Follow the deployment guide for production setup
 

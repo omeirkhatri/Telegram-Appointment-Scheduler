@@ -1,21 +1,50 @@
 import type { Appointment, Patient, Staff } from '@/types';
-import { format, parseISO } from 'date-fns';
+import { format, isValid, parseISO } from 'date-fns';
 import { formatInTimeZone } from 'date-fns-tz';
+import { buildTimezoneArtifacts, type TimezoneArtifacts } from '@/lib/timezoneArtifacts';
+import { formatInResolvedTimezone, type TimezoneContext } from '@/utils/timezone';
 
 /**
  * Print utility functions for generating print-friendly content
  */
 
-export const PRINT_TIMEZONE = 'Asia/Dubai';
 export const PRINT_DATE_FORMAT = 'dd/MM/yyyy';
 export const PRINT_TIME_FORMAT = 'HH:mm';
 
+// Legacy constants for backward compatibility
+export const PRINT_TIMEZONE = 'Asia/Dubai';
+
 /**
  * Format date for print display (DD/MM/YYYY)
+ * @param date - Date to format
+ * @param timezoneContext - Optional timezone context, defaults to legacy Dubai behavior
  */
-export function formatPrintDate(date: string | Date): string {
-  const dateObj = typeof date === 'string' ? parseISO(date) : date;
+export function formatPrintDate(date: string | Date, timezoneContext?: TimezoneContext): string {
+  const dateObj = normalizePrintDateInput(date);
+
+  if (!dateObj) {
+    return 'Invalid date';
+  }
+
+  if (timezoneContext) {
+    return formatInResolvedTimezone(dateObj, PRINT_DATE_FORMAT, timezoneContext);
+  }
+
+  // Legacy behavior for backward compatibility
   return formatInTimeZone(dateObj, PRINT_TIMEZONE, PRINT_DATE_FORMAT);
+}
+
+function normalizePrintDateInput(date: string | Date): Date | null {
+  if (date instanceof Date) {
+    return isValid(date) ? date : null;
+  }
+
+  try {
+    const parsed = parseISO(date);
+    return isValid(parsed) ? parsed : null;
+  } catch (error) {
+    return null;
+  }
 }
 
 /**
@@ -25,6 +54,22 @@ export function formatPrintTime(time: string): string {
   // Handle both "HH:mm" and "HH:mm:ss" formats
   const [hours, minutes] = time.split(':');
   return `${hours}:${minutes}`;
+}
+
+/**
+ * Format time for print display with timezone context
+ * @param time - Time string to format
+ * @param timezoneContext - Optional timezone context for timezone metadata
+ */
+export function formatPrintTimeWithTimezone(time: string, timezoneContext?: TimezoneContext): string {
+  const formattedTime = formatPrintTime(time);
+  
+  if (timezoneContext) {
+    const artifacts = buildTimezoneArtifacts(timezoneContext);
+    return `${formattedTime} (${artifacts.resolution.abbreviation})`;
+  }
+  
+  return formattedTime;
 }
 
 /**
@@ -171,12 +216,18 @@ export function formatCustomFieldsForPrint(customFields: any): Array<{ label: st
 
 /**
  * Generate print-friendly appointment summary
+ * @param appointment - Appointment data
+ * @param patient - Patient data
+ * @param staff - Assigned staff members
+ * @param driver - Optional driver
+ * @param timezoneContext - Optional timezone context for timezone-aware formatting
  */
 export function generateAppointmentPrintSummary(
   appointment: Appointment,
   patient: Patient,
   staff: Staff[],
-  driver?: Staff
+  driver?: Staff,
+  timezoneContext?: TimezoneContext
 ): {
   id: string;
   date: string;
@@ -201,8 +252,8 @@ export function generateAppointmentPrintSummary(
 } {
   return {
     id: appointment.id,
-    date: formatPrintDate(appointment.appointment_date),
-    time: formatPrintTime(appointment.start_time),
+    date: formatPrintDate(appointment.appointment_date, timezoneContext),
+    time: formatPrintTimeWithTimezone(appointment.start_time, timezoneContext),
     endTime: getPrintEndTime(appointment.start_time, appointment.duration_minutes),
     duration: `${appointment.duration_minutes} minutes`,
     type: formatAppointmentTypeForPrint(appointment.appointment_type),
@@ -225,6 +276,10 @@ export function generateAppointmentPrintSummary(
 
 /**
  * Generate print-friendly agenda data
+ * @param staff - Staff member for the agenda
+ * @param appointments - Array of appointment data
+ * @param date - Date for the agenda
+ * @param timezoneContext - Optional timezone context for timezone-aware formatting
  */
 export function generateAgendaPrintData(
   staff: Staff,
@@ -234,7 +289,8 @@ export function generateAgendaPrintData(
     staff: Staff[];
     driver?: Staff;
   }>,
-  date: Date
+  date: Date,
+  timezoneContext?: TimezoneContext
 ): {
   staff: {
     name: string;
@@ -253,11 +309,35 @@ export function generateAgendaPrintData(
       phone: staff.phone,
       email: staff.email,
     },
-    date: formatPrintDate(date),
+    date: formatPrintDate(date, timezoneContext),
     appointments: appointments.map(({ appointment, patient, staff: assignedStaff, driver }) =>
-      generateAppointmentPrintSummary(appointment, patient, assignedStaff, driver)
+      generateAppointmentPrintSummary(appointment, patient, assignedStaff, driver, timezoneContext)
     ),
     totalAppointments: appointments.length,
+  };
+}
+
+/**
+ * Generate timezone metadata for print outputs
+ * @param timezoneContext - Timezone context for metadata
+ */
+export function generatePrintTimezoneMetadata(timezoneContext?: TimezoneContext): {
+  timezone: string;
+  abbreviation: string;
+  source: string;
+  offsetMinutes: number;
+} | null {
+  if (!timezoneContext) {
+    return null;
+  }
+  
+  const artifacts = buildTimezoneArtifacts(timezoneContext);
+  
+  return {
+    timezone: artifacts.resolution.timezone,
+    abbreviation: artifacts.resolution.abbreviation,
+    source: artifacts.resolution.source,
+    offsetMinutes: artifacts.resolution.offsetMinutes,
   };
 }
 

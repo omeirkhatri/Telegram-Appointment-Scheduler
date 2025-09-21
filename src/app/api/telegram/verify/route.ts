@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-          error: 'Staff member does not have a Telegram user ID',
+          error: 'Staff member does not have a Telegram user ID. Please add a Telegram User ID first, then try verification again.',
         },
         { status: 400 }
       );

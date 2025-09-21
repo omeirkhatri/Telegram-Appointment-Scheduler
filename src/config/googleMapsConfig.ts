@@ -30,6 +30,19 @@ export interface GoogleMapsConfigOptions {
   customRegion?: string;
 }
 
+export interface OfficeLocation {
+  name: string;
+  coordinates: {
+    lat: number;
+    lng: number;
+  };
+  address: string;
+  phone?: string;
+  email?: string;
+  icon?: string;
+  color?: string;
+}
+
 /**
  * Default configuration for each environment
  */
@@ -348,6 +361,23 @@ export function isProduction(): boolean {
   return getCurrentEnvironment() === 'production';
 }
 
+/**
+ * Office location configuration
+ * TODO: Replace with actual office coordinates
+ */
+export const OFFICE_LOCATION: OfficeLocation = {
+  name: 'Best DOC Office',
+  coordinates: {
+    lat: 25.2048, // TODO: Replace with actual latitude
+    lng: 55.2708  // TODO: Replace with actual longitude
+  },
+  address: 'Office Address, Dubai, UAE', // TODO: Replace with actual address
+  phone: '+971 XX XXX XXXX', // TODO: Replace with actual phone
+  email: 'office@bestdoc.ae', // TODO: Replace with actual email
+  icon: '🏢',
+  color: '#2563eb' // Blue color for office
+};
+
 export default {
   getCurrentEnvironment,
   getGoogleMapsConfig,
@@ -357,5 +387,6 @@ export default {
   getPerformanceConfig,
   isDevelopment,
   isStaging,
-  isProduction
+  isProduction,
+  OFFICE_LOCATION
 };

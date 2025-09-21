@@ -1,7 +1,7 @@
 'use client';
 
 import Header from '@/components/layout/Header';
-import { PatientModal } from '@/components/modals';
+import { PatientModal } from '@/components/features/patients';
 import { VirtualizedTable, type VirtualizedTableColumn } from '@/components/ui';
 import { useToastContext } from '@/components/ui/ToastContainer';
 import { createPatientShortcuts, useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';

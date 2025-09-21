@@ -1,4 +1,6 @@
 import { config } from '@/lib/env';
+import { formatInTimeZone } from 'date-fns-tz';
+
 import { telegramMessageFormatter, type MessageFormatterOptions } from '@/utils/telegramFormatters';
 
 export interface TelegramMessage {
@@ -319,26 +321,34 @@ export class TelegramService {
   /**
    * Format daily agenda message for Telegram
    */
-  formatDailyAgendaMessage(staff: any, appointments: any[], date: string): string {
-    const appointmentDate = new Date(date).toLocaleDateString('en-GB', {
-      timeZone: 'Asia/Dubai',
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-      weekday: 'long'
-    });
+  formatDailyAgendaMessage(agenda: {
+    staffName: string;
+    appointments: any[];
+    date: string;
+    dayName: string;
+    totalAppointments: number;
+    timezone?: string;
+    timezoneAbbreviation?: string;
+  }): string {
+    const timezoneId = agenda.timezone ?? config.app.timezone;
+    const dateRef = new Date(`${agenda.date}T00:00:00`);
+    const appointmentDate = formatInTimeZone(dateRef, timezoneId, 'EEE, dd MMM yyyy');
+    const timezoneLabel = agenda.timezoneAbbreviation
+      ? `${timezoneId} (${agenda.timezoneAbbreviation})`
+      : timezoneId;
 
-    let message = `📅 <b>Daily Agenda - ${appointmentDate}</b>\n\n`;
-    message += `👤 <b>Staff:</b> ${staff.first_name} ${staff.last_name}\n`;
-    message += `📊 <b>Total Appointments:</b> ${appointments.length}\n\n`;
+    let message = `📅 <b>Daily Agenda - ${appointmentDate}</b>\n`;
+    message += `🕒 <b>Timezone:</b> ${timezoneLabel}\n`;
+    message += `👤 <b>Staff:</b> ${agenda.staffName}\n`;
+    message += `📊 <b>Total Appointments:</b> ${agenda.totalAppointments}\n\n`;
 
-    if (appointments.length === 0) {
+    if (agenda.appointments.length === 0) {
       message += `✅ No appointments scheduled for today.`;
       return message;
     }
 
     // Sort appointments by time
-    const sortedAppointments = appointments.sort((a, b) =>
+    const sortedAppointments = agenda.appointments.sort((a, b) =>
       a.start_time.localeCompare(b.start_time)
     );
 

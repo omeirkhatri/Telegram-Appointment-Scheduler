@@ -1,14 +1,22 @@
+import { config } from '@/lib/env';
 import { supabase } from '@/lib/supabase';
 import type { Staff } from '@/types';
 import {
     formatAppointmentTime,
-    getAgendaDate,
-    getDubaiDayRange,
+    formatInResolvedTimezone,
     getStaffForDailyAgenda,
-    toDubaiTime
+    resolveTimezone,
+    toLocalTime,
+    type TimezoneContext,
+    type TimezoneResolution,
 } from '@/utils/timezone';
-import { format } from 'date-fns';
+import { addDays, startOfDay } from 'date-fns';
 import { telegramNotificationService } from './telegramNotificationService';
+
+type TimezoneArtifacts = {
+  context: TimezoneContext;
+  resolution: TimezoneResolution;
+};
 
 interface TelegramDeliveryStatus {
   staffId: string;
@@ -18,6 +26,30 @@ interface TelegramDeliveryStatus {
 }
 
 export class StaffAggregationService {
+  private getTimezoneArtifacts(overrides: Partial<TimezoneContext> = {}): TimezoneArtifacts {
+    const context = config.timezone.buildResolverContext(overrides);
+    return {
+      context,
+      resolution: resolveTimezone(context),
+    };
+  }
+
+  private formatRelativeDayName(date: Date, artifacts: TimezoneArtifacts): string {
+    const today = toLocalTime(new Date(), artifacts.context);
+    const startOfToday = startOfDay(today);
+    const startOfTomorrow = addDays(startOfToday, 1);
+
+    if (date >= startOfToday && date < startOfTomorrow) {
+      return 'Today';
+    }
+
+    if (date >= startOfTomorrow && date < addDays(startOfTomorrow, 1)) {
+      return 'Tomorrow';
+    }
+
+    return formatInResolvedTimezone(date, 'EEEE', artifacts.context);
+  }
+
   /**
    * Generate daily agenda for all eligible staff members via Telegram
    */
@@ -32,15 +64,18 @@ export class StaffAggregationService {
     };
   }> {
     try {
-      const agendaDate = date || getAgendaDate();
-      // Convert to YYYY-MM-DD format for database query (ensure we get the date in Dubai timezone)
-      const dubaiDate = toDubaiTime(agendaDate);
-      const dateString = format(dubaiDate, 'yyyy-MM-dd');
+      const artifacts = this.getTimezoneArtifacts();
+      const referenceDate = date
+        ? toLocalTime(date, artifacts.context)
+        : addDays(startOfDay(toLocalTime(new Date(), artifacts.context)), 1);
+      const dateString = formatInResolvedTimezone(referenceDate, 'yyyy-MM-dd', artifacts.context);
 
-      console.log(`📅 Generating daily agendas for ${dateString}`);
+      console.log(
+        `📅 Generating daily agendas for ${dateString} (${artifacts.resolution.timezone})`,
+      );
 
       // Get all eligible staff members
-      const eligibleStaff = await this.getEligibleStaffForAgenda(agendaDate);
+      const eligibleStaff = await this.getEligibleStaffForAgenda(referenceDate, artifacts);
 
       if (eligibleStaff.length === 0) {
         console.log('No eligible staff members found for daily agenda');
@@ -78,7 +113,7 @@ export class StaffAggregationService {
             continue;
           }
 
-          const agendaData = await this.generateStaffAgenda(staff.id, agendaDate);
+          const agendaData = await this.generateStaffAgenda(staff.id, referenceDate, artifacts);
           const telegramResult = await telegramNotificationService.sendDailyAgenda(
             staff.telegram_user_id,
             agendaData
@@ -150,7 +185,7 @@ export class StaffAggregationService {
   /**
    * Generate agenda for a specific staff member
    */
-  async generateStaffAgenda(staffId: string, date: Date): Promise<{
+  async generateStaffAgenda(staffId: string, date: Date, artifacts: TimezoneArtifacts): Promise<{
     date: string;
     dayName: string;
     staffName: string;
@@ -164,23 +199,19 @@ export class StaffAggregationService {
     }
 
     // Get appointments for the staff member on the given date
-    const appointments = await this.getStaffAppointmentsForDate(staffId, date);
+    const appointments = await this.getStaffAppointmentsForDate(staffId, date, artifacts);
 
     // Transform appointments to agenda format
     const agendaAppointments = await Promise.all(
-      appointments.map(appointment => this.transformAppointmentToAgenda(appointment)),
+      appointments.map(appointment => this.transformAppointmentToAgenda(appointment, artifacts)),
     );
 
     // Sort appointments by start time
     agendaAppointments.sort((a, b) => a.startTime.localeCompare(b.startTime));
 
     // Format date for display
-    // Convert to YYYY-MM-DD format for database query (ensure we get the date in Dubai timezone)
-    const dubaiDate = toDubaiTime(date);
-    const dateString = format(dubaiDate, 'yyyy-MM-dd');
-    const { getRelativeDayName } = require('@/utils/timezone');
-
-    const dayName = getRelativeDayName(date);
+    const dateString = formatInResolvedTimezone(date, 'yyyy-MM-dd', artifacts.context);
+    const dayName = this.formatRelativeDayName(date, artifacts);
 
     return {
       date: dateString,
@@ -188,13 +219,18 @@ export class StaffAggregationService {
       staffName: `${staff.first_name} ${staff.last_name}`,
       appointments: agendaAppointments,
       totalAppointments: agendaAppointments.length,
+      timezone: artifacts.resolution.timezone,
+      timezoneAbbreviation: artifacts.resolution.abbreviation,
     };
   }
 
   /**
    * Get all staff members eligible for daily agenda
    */
-  private async getEligibleStaffForAgenda(date: Date): Promise<Array<{ id: string; first_name: string; last_name: string; telegram_user_id: string; telegram_verified: boolean }>> {
+  private async getEligibleStaffForAgenda(
+    date: Date,
+    artifacts: TimezoneArtifacts,
+  ): Promise<Array<{ id: string; first_name: string; last_name: string; telegram_user_id: string; telegram_verified: boolean }>> {
     const { data: staff, error } = await supabase
       .from('staff')
       .select('id, first_name, last_name, telegram_user_id, telegram_verified, status, available_days')
@@ -205,7 +241,7 @@ export class StaffAggregationService {
       throw new Error(`Failed to fetch staff: ${error.message}`);
     }
 
-    return getStaffForDailyAgenda(staff || [], date);
+    return getStaffForDailyAgenda(staff || [], date, artifacts.context);
   }
 
   /**
@@ -231,13 +267,13 @@ export class StaffAggregationService {
   /**
    * Get appointments for a staff member on a specific date
    */
-  private async getStaffAppointmentsForDate(staffId: string, date: Date): Promise<AppointmentWithDetails[]> {
-    const { start, end } = getDubaiDayRange(date);
-    // Convert to YYYY-MM-DD format for database query (ensure we get the date in Dubai timezone)
-    const dubaiDate = toDubaiTime(date);
-    const dateString = format(dubaiDate, 'yyyy-MM-dd');
+  private async getStaffAppointmentsForDate(
+    staffId: string,
+    date: Date,
+    artifacts: TimezoneArtifacts,
+  ): Promise<AppointmentWithDetails[]> {
+    const dateString = formatInResolvedTimezone(date, 'yyyy-MM-dd', artifacts.context);
 
-    // Get appointments where the staff member is assigned
     const { data: appointmentStaff, error: staffError } = await supabase
       .from('appointment_staff')
       .select(`
@@ -262,7 +298,10 @@ export class StaffAggregationService {
             flat_villa_no,
             building_street,
             area,
-            city
+            city,
+            latitude,
+            longitude,
+            google_maps_link
           )
         )
       `)
@@ -274,7 +313,6 @@ export class StaffAggregationService {
       throw new Error(`Failed to fetch staff appointments: ${staffError.message}`);
     }
 
-    // Get driver information for appointments that have drivers
     const appointmentsWithDrivers = await Promise.all(
       (appointmentStaff || []).map(async (item) => {
         const appointment = item.appointments;
@@ -302,11 +340,15 @@ export class StaffAggregationService {
   /**
    * Transform appointment to agenda format
    */
-  private async transformAppointmentToAgenda(appointment: AppointmentWithDetails): Promise<AgendaAppointment> {
+  private async transformAppointmentToAgenda(
+    appointment: AppointmentWithDetails,
+    artifacts: TimezoneArtifacts,
+  ): Promise<AgendaAppointment> {
     const { startTime, endTime } = formatAppointmentTime(
       appointment.appointment_date,
       appointment.start_time,
       appointment.duration_minutes,
+      artifacts.context,
     );
 
     const appointmentTypeDisplay = appointment.appointment_type
@@ -372,16 +414,16 @@ export class StaffAggregationService {
 
   /**
    * Get daily agenda statistics
-   */
+  */
   async getDailyAgendaStats(date: Date): Promise<{
     totalStaff: number;
     eligibleStaff: number;
     totalAppointments: number;
     staffWithAppointments: number;
   }> {
-    // Convert to YYYY-MM-DD format for database query (ensure we get the date in Dubai timezone)
-    const dubaiDate = toDubaiTime(date);
-    const dateString = format(dubaiDate, 'yyyy-MM-dd');
+    const artifacts = this.getTimezoneArtifacts();
+    const localDate = toLocalTime(date, artifacts.context);
+    const dateString = formatInResolvedTimezone(localDate, 'yyyy-MM-dd', artifacts.context);
 
     // Get total staff count
     const { count: totalStaff } = await supabase
@@ -390,7 +432,7 @@ export class StaffAggregationService {
       .eq('status', 'active');
 
     // Get eligible staff count
-    const eligibleStaff = await this.getEligibleStaffForAgenda(date);
+    const eligibleStaff = await this.getEligibleStaffForAgenda(localDate, artifacts);
 
     // Get total appointments for the date
     const { count: totalAppointments } = await supabase

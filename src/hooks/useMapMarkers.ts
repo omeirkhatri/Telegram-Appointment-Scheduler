@@ -10,8 +10,10 @@ import type {
     MapSearchFilters,
     MapStatistics
 } from '@/types/map';
+import { toLocalTime } from '@/utils/timezone';
+import { buildTimezoneArtifacts } from '@/lib/timezoneArtifacts';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useGeocoding } from './useGeocoding';
+// Geocoding removed - using stored coordinates only
 
 export interface UseMapMarkersOptions {
   enableClustering?: boolean;
@@ -20,12 +22,7 @@ export interface UseMapMarkersOptions {
     gridSize?: number;
     styles?: unknown[];
   };
-  enableGeocoding?: boolean;
-  geocodingOptions?: {
-    enableCaching?: boolean;
-    cacheTTL?: number;
-    maxCacheSize?: number;
-  };
+  // Geocoding options removed - using stored coordinates only
   enableStatistics?: boolean;
   enablePerformanceMonitoring?: boolean;
   onMarkerClick?: (marker: MapMarker) => void;
@@ -67,8 +64,7 @@ export interface UseMapMarkersReturn {
   filterMarkers: (filters: MapSearchFilters) => MapMarker[];
   searchMarkers: (query: string) => MapMarker[];
 
-  // Geocoding
-  geocodeMarkers: (markers: MapMarker[]) => Promise<MapMarker[]>;
+  // Geocoding removed - using stored coordinates only
 
   // Statistics and performance
   calculateStatistics: () => MapStatistics;
@@ -86,10 +82,10 @@ export interface UseMapMarkersReturn {
 }
 
 /**
- * Custom hook for managing map markers with clustering, geocoding, and statistics
+ * Custom hook for managing map markers with clustering and statistics
  *
  * This hook provides comprehensive marker management functionality including
- * clustering, geocoding, filtering, and performance monitoring.
+ * clustering, filtering, and performance monitoring.
  */
 export function useMapMarkers(options: UseMapMarkersOptions = {}): UseMapMarkersReturn {
   const [state, setState] = useState<MapMarkersState>({
@@ -108,13 +104,7 @@ export function useMapMarkers(options: UseMapMarkersOptions = {}): UseMapMarkers
   const performanceStartTime = useRef<number>(0);
   const isMountedRef = useRef(true);
 
-  // Use geocoding hook if enabled
-  const { geocode, geocodeBatch, state: geocodingState } = useGeocoding({
-    enableCaching: options.geocodingOptions?.enableCaching ?? true,
-    cacheTTL: options.geocodingOptions?.cacheTTL ?? 24 * 60 * 60 * 1000,
-    maxCacheSize: options.geocodingOptions?.maxCacheSize ?? 1000,
-    autoInitialize: options.enableGeocoding ?? true,
-  });
+  // Geocoding removed - using stored coordinates only
 
   // Cleanup on unmount
   useEffect(() => {
@@ -348,13 +338,19 @@ export function useMapMarkers(options: UseMapMarkersOptions = {}): UseMapMarkers
         }
       }
 
-      // Filter by date range
+      // Filter by date range (timezone-aware)
       if (filters.date_range) {
-        const markerDate = new Date(marker.appointment_date);
+        const timezoneArtifacts = buildTimezoneArtifacts();
+        
+        // Create marker date in local timezone for comparison
+        const markerDate = new Date(`${marker.appointment_date}T00:00:00`);
+        const markerDateLocal = toLocalTime(markerDate, timezoneArtifacts.context);
+        
         const startDate = new Date(filters.date_range.start_date);
         const endDate = new Date(filters.date_range.end_date);
 
-        if (markerDate < startDate || markerDate > endDate) {
+        // Compare dates in local timezone
+        if (markerDateLocal < startDate || markerDateLocal > endDate) {
           return false;
         }
       }
@@ -431,60 +427,7 @@ export function useMapMarkers(options: UseMapMarkersOptions = {}): UseMapMarkers
     });
   }, []);
 
-  /**
-   * Geocode markers that don't have coordinates
-   */
-  const geocodeMarkers = useCallback(async (markers: MapMarker[]): Promise<MapMarker[]> => {
-    if (!options.enableGeocoding || geocodingState.isLoading) {
-      return markers;
-    }
-
-    const markersToGeocode = markers.filter(marker =>
-      !marker.position || (marker.position.lat === 0 && marker.position.lng === 0)
-    );
-
-    if (markersToGeocode.length === 0) {
-      return markers;
-    }
-
-    try {
-      const addresses = markersToGeocode.map(marker => marker.address);
-      const geocodingResults = await geocodeBatch(addresses);
-
-      const geocodedMarkers = markers.map(marker => {
-        const geocodingResult = geocodingResults.find(result =>
-          result.address.toLowerCase() === marker.address.toLowerCase()
-        );
-
-        if (geocodingResult) {
-          return {
-            ...marker,
-            position: geocodingResult.coordinates
-          };
-        }
-
-        return marker;
-      });
-
-      return geocodedMarkers;
-    } catch (error) {
-      const mapError: MapError = {
-        code: 'GEOCODING_ERROR',
-        message: 'Failed to geocode markers',
-        details: error,
-        timestamp: Date.now(),
-        context: {
-          component: 'useMapMarkers',
-          action: 'geocodeMarkers'
-        }
-      };
-
-      setState(prev => ({ ...prev, error: mapError }));
-      options.onError?.(mapError);
-
-      return markers;
-    }
-  }, [options.enableGeocoding, geocodingState.isLoading, geocodeBatch, options.onError]);
+  // Geocoding removed - using stored coordinates only
 
   /**
    * Calculate statistics for current markers
@@ -557,10 +500,10 @@ export function useMapMarkers(options: UseMapMarkersOptions = {}): UseMapMarkers
       marker_count: markersRef.current.length,
       cluster_count: clustersRef.current.length,
       memory_usage: 0, // Would need performance.memory API
-      api_calls: geocodingState.cacheStats?.size || 0,
+      api_calls: 0, // Geocoding removed
       errors: state.error ? 1 : 0
     };
-  }, [state.performanceMetrics, geocodingState.cacheStats, state.error]);
+  }, [state.performanceMetrics, state.error]);
 
   /**
    * Get marker by ID
@@ -790,8 +733,7 @@ export function useMapMarkers(options: UseMapMarkersOptions = {}): UseMapMarkers
     filterMarkers,
     searchMarkers,
 
-    // Geocoding
-    geocodeMarkers,
+    // Geocoding removed - using stored coordinates only
 
     // Statistics and performance
     calculateStatistics,
@@ -815,7 +757,7 @@ export function useMapMarkers(options: UseMapMarkersOptions = {}): UseMapMarkers
 export function useMapMarkersWithDefaults(): UseMapMarkersReturn {
   return useMapMarkers({
     enableClustering: true,
-    enableGeocoding: true,
+    // enableGeocoding removed - using stored coordinates only
     enableStatistics: true,
     enablePerformanceMonitoring: true,
   });

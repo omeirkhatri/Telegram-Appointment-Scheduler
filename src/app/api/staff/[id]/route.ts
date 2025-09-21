@@ -62,6 +62,15 @@ export async function PUT(
       telegram_verified: body.telegram_verified,
     };
 
+    // Debug logging
+    console.log('🔍 Staff update API received data:', {
+      staffId: id,
+      body: body,
+      updateData: updateData,
+      telegramUserId: body.telegram_user_id,
+      telegramVerified: body.telegram_verified
+    });
+
     // Remove undefined values
     Object.keys(updateData).forEach(key => {
       if (updateData[key as keyof UpdateStaff] === undefined) {

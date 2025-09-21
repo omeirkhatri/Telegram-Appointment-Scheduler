@@ -58,7 +58,7 @@ export function validateCoordinatePair(coords: CoordinatePair): CoordinateValida
   }
 
   // Check if coordinates are in UAE region (rough bounds)
-  if (coords.latitude < 22.5 || coords.latitude > 26.1 || 
+  if (coords.latitude < 22.5 || coords.latitude > 26.1 ||
       coords.longitude < 51.0 || coords.longitude > 56.4) {
     warnings.push('Coordinates appear to be outside UAE region - please verify');
   }
@@ -77,18 +77,18 @@ export function parseCoordinates(coordinateString: string): CoordinatePair | nul
   if (!coordinateString?.trim()) return null;
 
   const trimmed = coordinateString.trim();
-  
+
   // Support multiple separators: comma, semicolon, space, tab
   const separators = [',', ';', ' ', '\t'];
   let parts: string[] = [];
-  
+
   for (const separator of separators) {
     if (trimmed.includes(separator)) {
       parts = trimmed.split(separator).map(part => part.trim());
       break;
     }
   }
-  
+
   // If no separator found, try to split by common patterns
   if (parts.length === 0) {
     // Try to match patterns like "25.157134 55.409436" or "25.157134,55.409436"
@@ -116,8 +116,8 @@ export function parseCoordinates(coordinateString: string): CoordinatePair | nul
  * Formats coordinates for display with configurable precision
  */
 export function formatCoordinates(
-  latitude?: number, 
-  longitude?: number, 
+  latitude?: number,
+  longitude?: number,
   precision: number = 6
 ): string {
   if (latitude === undefined || longitude === undefined) return '';
@@ -151,8 +151,8 @@ export function extractCoordinatesFromGoogleMapsUrl(url: string): CoordinatePair
   if (atMatch) {
     const latitude = parseFloat(atMatch[1]);
     const longitude = parseFloat(atMatch[2]);
-    if (!isNaN(latitude) && !isNaN(longitude) && 
-        isValidCoordinate(latitude, 'latitude') && 
+    if (!isNaN(latitude) && !isNaN(longitude) &&
+        isValidCoordinate(latitude, 'latitude') &&
         isValidCoordinate(longitude, 'longitude')) {
       return { latitude, longitude };
     }
@@ -164,8 +164,8 @@ export function extractCoordinatesFromGoogleMapsUrl(url: string): CoordinatePair
   if (qMatch) {
     const latitude = parseFloat(qMatch[1]);
     const longitude = parseFloat(qMatch[2]);
-    if (!isNaN(latitude) && !isNaN(longitude) && 
-        isValidCoordinate(latitude, 'latitude') && 
+    if (!isNaN(latitude) && !isNaN(longitude) &&
+        isValidCoordinate(latitude, 'latitude') &&
         isValidCoordinate(longitude, 'longitude')) {
       return { latitude, longitude };
     }
@@ -177,8 +177,8 @@ export function extractCoordinatesFromGoogleMapsUrl(url: string): CoordinatePair
   if (llMatch) {
     const latitude = parseFloat(llMatch[1]);
     const longitude = parseFloat(llMatch[2]);
-    if (!isNaN(latitude) && !isNaN(longitude) && 
-        isValidCoordinate(latitude, 'latitude') && 
+    if (!isNaN(latitude) && !isNaN(longitude) &&
+        isValidCoordinate(latitude, 'latitude') &&
         isValidCoordinate(longitude, 'longitude')) {
       return { latitude, longitude };
     }
@@ -195,11 +195,11 @@ export function calculateDistance(coord1: CoordinatePair, coord2: CoordinatePair
   const R = 6371; // Earth's radius in kilometers
   const dLat = toRadians(coord2.latitude - coord1.latitude);
   const dLon = toRadians(coord2.longitude - coord1.longitude);
-  
+
   const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
     Math.cos(toRadians(coord1.latitude)) * Math.cos(toRadians(coord2.latitude)) *
     Math.sin(dLon / 2) * Math.sin(dLon / 2);
-  
+
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return R * c;
 }
@@ -216,7 +216,7 @@ function toRadians(degrees: number): number {
  */
 export function calculateCenter(coordinates: CoordinatePair[]): CoordinatePair | null {
   if (coordinates.length === 0) return null;
-  
+
   const sum = coordinates.reduce(
     (acc, coord) => ({
       latitude: acc.latitude + coord.latitude,
@@ -224,7 +224,7 @@ export function calculateCenter(coordinates: CoordinatePair[]): CoordinatePair |
     }),
     { latitude: 0, longitude: 0 }
   );
-  
+
   return {
     latitude: sum.latitude / coordinates.length,
     longitude: sum.longitude / coordinates.length
@@ -236,10 +236,10 @@ export function calculateCenter(coordinates: CoordinatePair[]): CoordinatePair |
  */
 export function calculateBounds(coordinates: CoordinatePair[]): CoordinateBounds | null {
   if (coordinates.length === 0) return null;
-  
+
   const latitudes = coordinates.map(coord => coord.latitude);
   const longitudes = coordinates.map(coord => coord.longitude);
-  
+
   return {
     north: Math.max(...latitudes),
     south: Math.min(...latitudes),
@@ -258,10 +258,10 @@ export function isWithinUAEBounds(coords: CoordinatePair): boolean {
     east: 56.4,
     west: 51.0
   };
-  
-  return coords.latitude >= uaeBounds.south && 
+
+  return coords.latitude >= uaeBounds.south &&
          coords.latitude <= uaeBounds.north &&
-         coords.longitude >= uaeBounds.west && 
+         coords.longitude >= uaeBounds.west &&
          coords.longitude <= uaeBounds.east;
 }
 
@@ -280,19 +280,181 @@ export function generateGoogleMapsSearchUrl(coords: CoordinatePair): string {
 }
 
 /**
+ * Generates a Google Maps URL with q parameter for coordinates
+ * Format: https://www.google.com/maps?q=lat,lng
+ */
+export function generateGoogleMapsQUrl(coords: CoordinatePair): string {
+  return `https://www.google.com/maps?q=${coords.latitude},${coords.longitude}`;
+}
+
+/**
+ * Enhanced function to extract coordinates from Google Maps URLs
+ * Handles various URL formats including shared links without explicit coordinates
+ */
+export function extractCoordinatesFromGoogleMapsUrlEnhanced(url: string): CoordinatePair | null {
+  if (!url?.trim()) return null;
+
+  // Clean the URL
+  const cleanUrl = url.trim();
+
+  // Pattern 1: @lat,lng,zoom (e.g., @25.157134,55.409436,15z)
+  const atPattern = /@(-?\d+\.?\d*),(-?\d+\.?\d*)/;
+  const atMatch = cleanUrl.match(atPattern);
+  if (atMatch) {
+    const latitude = parseFloat(atMatch[1]);
+    const longitude = parseFloat(atMatch[2]);
+    if (!isNaN(latitude) && !isNaN(longitude) &&
+        isValidCoordinate(latitude, 'latitude') &&
+        isValidCoordinate(longitude, 'longitude')) {
+      return { latitude, longitude };
+    }
+  }
+
+  // Pattern 2: q=lat,lng (e.g., q=25.157134,55.409436)
+  const qPattern = /q=(-?\d+\.?\d*),(-?\d+\.?\d*)/;
+  const qMatch = cleanUrl.match(qPattern);
+  if (qMatch) {
+    const latitude = parseFloat(qMatch[1]);
+    const longitude = parseFloat(qMatch[2]);
+    if (!isNaN(latitude) && !isNaN(longitude) &&
+        isValidCoordinate(latitude, 'latitude') &&
+        isValidCoordinate(longitude, 'longitude')) {
+      return { latitude, longitude };
+    }
+  }
+
+  // Pattern 3: ll=lat,lng (e.g., ll=25.157134,55.409436)
+  const llPattern = /ll=(-?\d+\.?\d*),(-?\d+\.?\d*)/;
+  const llMatch = cleanUrl.match(llPattern);
+  if (llMatch) {
+    const latitude = parseFloat(llMatch[1]);
+    const longitude = parseFloat(llMatch[2]);
+    if (!isNaN(latitude) && !isNaN(longitude) &&
+        isValidCoordinate(latitude, 'latitude') &&
+        isValidCoordinate(longitude, 'longitude')) {
+      return { latitude, longitude };
+    }
+  }
+
+  // Pattern 4: center=lat,lng (e.g., center=25.157134,55.409436)
+  const centerPattern = /center=(-?\d+\.?\d*),(-?\d+\.?\d*)/;
+  const centerMatch = cleanUrl.match(centerPattern);
+  if (centerMatch) {
+    const latitude = parseFloat(centerMatch[1]);
+    const longitude = parseFloat(centerMatch[2]);
+    if (!isNaN(latitude) && !isNaN(longitude) &&
+        isValidCoordinate(latitude, 'latitude') &&
+        isValidCoordinate(longitude, 'longitude')) {
+      return { latitude, longitude };
+    }
+  }
+
+  // Pattern 5: !3d and !4d patterns (e.g., !3d25.157134!4d55.409436)
+  const d3d4Pattern = /!3d(-?\d+\.?\d*)!4d(-?\d+\.?\d*)/;
+  const d3d4Match = cleanUrl.match(d3d4Pattern);
+  if (d3d4Match) {
+    const latitude = parseFloat(d3d4Match[1]);
+    const longitude = parseFloat(d3d4Match[2]);
+    if (!isNaN(latitude) && !isNaN(longitude) &&
+        isValidCoordinate(latitude, 'latitude') &&
+        isValidCoordinate(longitude, 'longitude')) {
+      return { latitude, longitude };
+    }
+  }
+
+  // Pattern 6: !4d and !3d patterns (e.g., !4d55.409436!3d25.157134)
+  const d4d3Pattern = /!4d(-?\d+\.?\d*)!3d(-?\d+\.?\d*)/;
+  const d4d3Match = cleanUrl.match(d4d3Pattern);
+  if (d4d3Match) {
+    const latitude = parseFloat(d4d3Match[2]);
+    const longitude = parseFloat(d4d3Match[1]);
+    if (!isNaN(latitude) && !isNaN(longitude) &&
+        isValidCoordinate(latitude, 'latitude') &&
+        isValidCoordinate(longitude, 'longitude')) {
+      return { latitude, longitude };
+    }
+  }
+
+  // Pattern 7: Look for any two decimal numbers that could be coordinates
+  const anyCoordsPattern = /(-?\d+\.\d+),(-?\d+\.\d+)/;
+  const anyCoordsMatch = cleanUrl.match(anyCoordsPattern);
+  if (anyCoordsMatch) {
+    const latitude = parseFloat(anyCoordsMatch[1]);
+    const longitude = parseFloat(anyCoordsMatch[2]);
+    // More lenient validation for this pattern
+    if (!isNaN(latitude) && !isNaN(longitude) &&
+        latitude >= -90 && latitude <= 90 &&
+        longitude >= -180 && longitude <= 180) {
+      return { latitude, longitude };
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Attempts to extract location information from Google Maps URLs that don't contain coordinates
+ * This function looks for place names, addresses, or other location identifiers in the URL
+ */
+export function extractLocationFromGoogleMapsUrl(url: string): string | null {
+  if (!url?.trim()) return null;
+
+  const cleanUrl = url.trim();
+
+  // Pattern 1: Extract place name from /place/ URLs
+  const placePattern = /\/place\/([^/]+)/;
+  const placeMatch = cleanUrl.match(placePattern);
+  if (placeMatch) {
+    return decodeURIComponent(placeMatch[1].replace(/\+/g, ' '));
+  }
+
+  // Pattern 2: Extract search query from search URLs
+  const searchPattern = /\/search\/([^/]+)/;
+  const searchMatch = cleanUrl.match(searchPattern);
+  if (searchMatch) {
+    return decodeURIComponent(searchMatch[1].replace(/\+/g, ' '));
+  }
+
+  // Pattern 3: Extract query parameter
+  const queryPattern = /[?&]q=([^&]+)/;
+  const queryMatch = cleanUrl.match(queryPattern);
+  if (queryMatch) {
+    return decodeURIComponent(queryMatch[1].replace(/\+/g, ' '));
+  }
+
+  // Pattern 4: Extract from data parameter
+  const dataPattern = /[?&]data=([^&]+)/;
+  const dataMatch = cleanUrl.match(dataPattern);
+  if (dataMatch) {
+    try {
+      const decoded = decodeURIComponent(dataMatch[1]);
+      // Look for location names in the data
+      const locationMatch = decoded.match(/([A-Za-z\s,.-]+)/);
+      if (locationMatch) {
+        return locationMatch[1].trim();
+      }
+    } catch (e) {
+      // Ignore decode errors
+    }
+  }
+
+  return null;
+}
+
+/**
  * Normalizes coordinates to ensure they're within valid ranges
  */
 export function normalizeCoordinates(coords: CoordinatePair): CoordinatePair {
   let { latitude, longitude } = coords;
-  
+
   // Normalize latitude
   if (latitude > 90) latitude = 90;
   if (latitude < -90) latitude = -90;
-  
+
   // Normalize longitude to -180 to 180 range
   while (longitude > 180) longitude -= 360;
   while (longitude < -180) longitude += 360;
-  
+
   return { latitude, longitude };
 }
 
@@ -300,8 +462,8 @@ export function normalizeCoordinates(coords: CoordinatePair): CoordinatePair {
  * Checks if two coordinate pairs are approximately equal (within tolerance)
  */
 export function areCoordinatesEqual(
-  coord1: CoordinatePair, 
-  coord2: CoordinatePair, 
+  coord1: CoordinatePair,
+  coord2: CoordinatePair,
   tolerance: number = 0.000001
 ): boolean {
   return Math.abs(coord1.latitude - coord2.latitude) < tolerance &&
@@ -314,7 +476,7 @@ export function areCoordinatesEqual(
 export function convertToDMS(coords: CoordinatePair): { lat: string; lng: string } {
   const latDMS = convertToDMSFormat(coords.latitude, 'lat');
   const lngDMS = convertToDMSFormat(coords.longitude, 'lng');
-  
+
   return { lat: latDMS, lng: lngDMS };
 }
 
@@ -323,11 +485,11 @@ function convertToDMSFormat(decimal: number, type: 'lat' | 'lng'): string {
   const degrees = Math.floor(abs);
   const minutes = Math.floor((abs - degrees) * 60);
   const seconds = ((abs - degrees) * 60 - minutes) * 60;
-  
-  const direction = type === 'lat' 
+
+  const direction = type === 'lat'
     ? (decimal >= 0 ? 'N' : 'S')
     : (decimal >= 0 ? 'E' : 'W');
-  
+
   return `${degrees}°${minutes}'${seconds.toFixed(2)}"${direction}`;
 }
 
@@ -335,30 +497,59 @@ function convertToDMSFormat(decimal: number, type: 'lat' | 'lng'): string {
  * Parses DMS format coordinates
  */
 export function parseDMS(dmsString: string): CoordinatePair | null {
-  const dmsPattern = /(\d+)°(\d+)'([\d.]+)"([NSEW])/i;
-  const match = dmsString.match(dmsPattern);
-  
+  // Pattern to match both lat and lng in one string: "25°9'25.68"N 55°24'33.97"E"
+  const fullPattern = /(\d+)°(\d+)'([\d.]+)"([NS])\s+(\d+)°(\d+)'([\d.]+)"([EW])/i;
+  const fullMatch = dmsString.match(fullPattern);
+
+  if (fullMatch) {
+    const latDegrees = parseInt(fullMatch[1]);
+    const latMinutes = parseInt(fullMatch[2]);
+    const latSeconds = parseFloat(fullMatch[3]);
+    const latDirection = fullMatch[4].toUpperCase();
+
+    const lngDegrees = parseInt(fullMatch[5]);
+    const lngMinutes = parseInt(fullMatch[6]);
+    const lngSeconds = parseFloat(fullMatch[7]);
+    const lngDirection = fullMatch[8].toUpperCase();
+
+    let latitude = latDegrees + latMinutes / 60 + latSeconds / 3600;
+    let longitude = lngDegrees + lngMinutes / 60 + lngSeconds / 3600;
+
+    if (latDirection === 'S') latitude = -latitude;
+    if (lngDirection === 'W') longitude = -longitude;
+
+    if (!isValidCoordinate(latitude, 'latitude') || !isValidCoordinate(longitude, 'longitude')) {
+      return null;
+    }
+
+    return { latitude, longitude };
+  }
+
+  // Pattern to match single coordinate: "25°9'25.68"N"
+  const singlePattern = /(\d+)°(\d+)'([\d.]+)"([NSEW])/i;
+  const match = dmsString.match(singlePattern);
+
   if (!match) return null;
-  
+
   const degrees = parseInt(match[1]);
   const minutes = parseInt(match[2]);
   const seconds = parseFloat(match[3]);
   const direction = match[4].toUpperCase();
-  
+
   let decimal = degrees + minutes / 60 + seconds / 3600;
-  
+
   if (direction === 'S' || direction === 'W') {
     decimal = -decimal;
   }
-  
+
   const isLatitude = direction === 'N' || direction === 'S';
-  const coords: CoordinatePair = isLatitude 
+  const coords: CoordinatePair = isLatitude
     ? { latitude: decimal, longitude: 0 }
     : { latitude: 0, longitude: decimal };
-  
+
   if (!isValidCoordinate(decimal, isLatitude ? 'latitude' : 'longitude')) {
     return null;
   }
-  
+
   return coords;
 }

@@ -65,12 +65,6 @@ export const patientFormSchema = z.object({
     .optional()
     .or(z.literal('')),
 
-  preferred_transport: z
-    .string()
-    .max(100, 'Preferred transport must be less than 100 characters')
-    .optional()
-    .or(z.literal('')),
-
   id_document_url: z
     .string()
     .url('Please enter a valid URL')

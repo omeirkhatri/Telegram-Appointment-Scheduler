@@ -20,6 +20,9 @@ export interface Appointment {
   full_notes?: string;
   pickup_instructions?: string;
   recurring_rule?: RecurringRule;
+  recurring_group_id?: string;
+  is_recurring_base?: boolean;
+  recurring_occurrence_number?: number;
   created_at: string;
   updated_at: string;
   // Patient data (populated when fetching appointments)
@@ -31,7 +34,29 @@ export interface Appointment {
     building_street?: string;
     area?: string;
     city?: string;
+    latitude?: number;
+    longitude?: number;
+    address?: string;
   };
+  // Staff assignments (populated when fetching appointments)
+  appointment_staff?: Array<{
+    id: string;
+    staff_id: string;
+    role: string;
+    is_primary: boolean;
+    staff: {
+      id: string;
+      first_name: string;
+      last_name: string;
+      staff_type: string;
+      specialization?: string;
+      phone: string;
+      email: string;
+    };
+  }>;
+  // Pre-processed staff information (added by appointmentService)
+  staff_name?: string;
+  all_staff_names?: string;
 }
 
 // Appointment creation type (without id and timestamps)
@@ -51,6 +76,9 @@ export interface CreateAppointment {
   full_notes?: string;
   pickup_instructions?: string;
   recurring_rule?: RecurringRule;
+  recurring_group_id?: string;
+  is_recurring_base?: boolean;
+  recurring_occurrence_number?: number;
 }
 
 // Appointment update type (all fields optional except id)
@@ -71,6 +99,9 @@ export interface UpdateAppointment {
   full_notes?: string;
   pickup_instructions?: string;
   recurring_rule?: RecurringRule;
+  recurring_group_id?: string;
+  is_recurring_base?: boolean;
+  recurring_occurrence_number?: number;
 }
 
 // Appointment search/filter options

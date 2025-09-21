@@ -1,6 +1,7 @@
 import { KeyboardShortcutsProvider } from '@/components/providers/KeyboardShortcutsProvider';
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
 import { ToastProvider } from '@/components/ui/ToastContainer';
+import { DebugProvider } from '@/hooks/useDebugState';
 import type { Metadata } from 'next';
 import './globals.css';
 
@@ -30,9 +31,11 @@ export default function RootLayout({
       >
         <ErrorBoundary>
           <ToastProvider>
-            <KeyboardShortcutsProvider>
-              {children}
-            </KeyboardShortcutsProvider>
+            <DebugProvider>
+              <KeyboardShortcutsProvider>
+                {children}
+              </KeyboardShortcutsProvider>
+            </DebugProvider>
           </ToastProvider>
         </ErrorBoundary>
       </body>

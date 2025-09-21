@@ -129,6 +129,40 @@ export async function testKeyboardNavigation(page: Page, selectors: string[]): P
 }
 
 /**
+ * Test keyboard navigation with specific expectations
+ */
+export async function runKeyboardNavigationTest(
+  page: Page,
+  testCases: Array<{
+    selector: string;
+    description: string;
+    expectedFocus: boolean;
+  }>,
+): Promise<void> {
+  console.log('🎹 Testing keyboard navigation with expectations...');
+
+  for (const testCase of testCases) {
+    try {
+      // Focus the element
+      await page.focus(testCase.selector);
+
+      // Verify element is focused
+      const isFocused = await page.evaluate((sel) => {
+        const element = document.querySelector(sel);
+        return element === document.activeElement;
+      }, testCase.selector);
+
+      expect(isFocused, `${testCase.description} should be focusable`).toBe(testCase.expectedFocus);
+
+      console.log(`✅ Keyboard navigation test passed for ${testCase.description}`);
+    } catch (error) {
+      console.error(`❌ Keyboard navigation test failed for ${testCase.description}:`, error);
+      throw error;
+    }
+  }
+}
+
+/**
  * Test screen reader compatibility
  */
 export async function testScreenReaderCompatibility(page: Page): Promise<void> {
@@ -193,6 +227,71 @@ export async function testScreenReaderCompatibility(page: Page): Promise<void> {
   console.log(`Found ${landmarks.length} ARIA landmarks:`, landmarks);
 
   console.log('✅ Screen reader compatibility tests completed');
+}
+
+/**
+ * Test screen reader compatibility with specific expectations
+ */
+export async function runScreenReaderTest(
+  page: Page,
+  testCases: Array<{
+    selector: string;
+    description: string;
+    expectedAnnouncement: string;
+  }>,
+): Promise<{ passed: boolean; results: any[] }> {
+  console.log('🔊 Testing screen reader compatibility with expectations...');
+
+  const results = [];
+
+  for (const testCase of testCases) {
+    try {
+      const element = page.locator(testCase.selector);
+
+      if (await element.isVisible()) {
+        // Check for proper ARIA attributes
+        const ariaLabel = await element.getAttribute('aria-label');
+        const ariaLabelledBy = await element.getAttribute('aria-labelledby');
+        const role = await element.getAttribute('role');
+        const textContent = await element.textContent();
+
+        const hasAccessibleName = !!(ariaLabel || ariaLabelledBy || textContent);
+
+        results.push({
+          selector: testCase.selector,
+          description: testCase.description,
+          hasAccessibleName,
+          ariaLabel,
+          ariaLabelledBy,
+          role,
+          textContent,
+          passed: hasAccessibleName,
+        });
+
+        expect(hasAccessibleName, `${testCase.description} should have accessible name`).toBe(true);
+
+        console.log(`✅ Screen reader test passed for ${testCase.description}`);
+      } else {
+        results.push({
+          selector: testCase.selector,
+          description: testCase.description,
+          passed: false,
+          error: 'Element not visible',
+        });
+      }
+    } catch (error) {
+      console.error(`❌ Screen reader test failed for ${testCase.description}:`, error);
+      results.push({
+        selector: testCase.selector,
+        description: testCase.description,
+        passed: false,
+        error: error.message,
+      });
+    }
+  }
+
+  const passed = results.every(result => result.passed);
+  return { passed, results };
 }
 
 /**
@@ -410,4 +509,121 @@ export const HEALTHCARE_ACCESSIBILITY_SELECTORS = [
   '[data-testid="modal-close"]',
   '[data-testid="modal-submit"]',
   '[data-testid="modal-cancel"]',
+];
+
+/**
+ * Map-specific accessibility selectors
+ */
+export const MAP_ACCESSIBILITY_SELECTORS = [
+  // Map container and controls
+  '[data-testid="appointment-map-view"]',
+  '[data-testid="map-zoom-controls"]',
+  '[data-testid="zoom-in-button"]',
+  '[data-testid="zoom-out-button"]',
+  '[data-testid="map-date-navigation"]',
+  '[data-testid="next-day-button"]',
+  '[data-testid="previous-day-button"]',
+  '[data-testid="today-button"]',
+  '[data-testid="satellite-view-button"]',
+  '[data-testid="street-view-button"]',
+
+  // Map markers and info windows
+  '[data-testid="map-marker"]',
+  '[data-testid="map-cluster"]',
+  '[data-testid="map-info-window"]',
+  '[data-testid="appointment-details"]',
+
+  // Map error states
+  '[data-testid="map-error"]',
+  '[data-testid="map-error-message"]',
+  '[data-testid="map-retry-button"]',
+  '[data-testid="map-empty-state"]',
+  '[data-testid="map-empty-message"]',
+
+  // Map filters and search
+  '[data-testid="appointment-type-filter"]',
+  '[data-testid="appointment-search"]',
+  '[data-testid="filter-doctor-on-call"]',
+  '[data-testid="filter-driver-on-call"]',
+  '[data-testid="filter-nurse-on-call"]',
+
+  // Mobile map controls
+  '[data-testid="mobile-map-controls"]',
+];
+
+/**
+ * Map-specific keyboard navigation test cases
+ */
+export const MAP_KEYBOARD_NAVIGATION_TEST_CASES = [
+  {
+    selector: '[data-testid="zoom-in-button"]',
+    description: 'Zoom in button',
+    expectedFocus: true,
+  },
+  {
+    selector: '[data-testid="zoom-out-button"]',
+    description: 'Zoom out button',
+    expectedFocus: true,
+  },
+  {
+    selector: '[data-testid="next-day-button"]',
+    description: 'Next day button',
+    expectedFocus: true,
+  },
+  {
+    selector: '[data-testid="previous-day-button"]',
+    description: 'Previous day button',
+    expectedFocus: true,
+  },
+  {
+    selector: '[data-testid="today-button"]',
+    description: 'Today button',
+    expectedFocus: true,
+  },
+  {
+    selector: '[data-testid="map-marker"]',
+    description: 'Map marker',
+    expectedFocus: true,
+  },
+];
+
+/**
+ * Map-specific screen reader test cases
+ */
+export const MAP_SCREEN_READER_TEST_CASES = [
+  {
+    selector: '[data-testid="appointment-map-view"]',
+    description: 'Map container',
+    expectedAnnouncement: 'Map',
+  },
+  {
+    selector: '[data-testid="zoom-in-button"]',
+    description: 'Zoom in button',
+    expectedAnnouncement: 'Zoom in',
+  },
+  {
+    selector: '[data-testid="zoom-out-button"]',
+    description: 'Zoom out button',
+    expectedAnnouncement: 'Zoom out',
+  },
+  {
+    selector: '[data-testid="next-day-button"]',
+    description: 'Next day button',
+    expectedAnnouncement: 'Next day',
+  },
+  {
+    selector: '[data-testid="previous-day-button"]',
+    description: 'Previous day button',
+    expectedAnnouncement: 'Previous day',
+  },
+  {
+    selector: '[data-testid="today-button"]',
+    description: 'Today button',
+    expectedAnnouncement: 'Today',
+  },
+  {
+    selector: '[data-testid="map-marker"]',
+    description: 'Map marker',
+    expectedAnnouncement: 'Appointment marker',
+  },
 ];

@@ -2,6 +2,7 @@
 
 import { KeyboardShortcutsHelp, useKeyboardShortcutsHelp } from '@/components/ui/KeyboardShortcutsHelp';
 import { createGlobalShortcuts, useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
+import { useDebugState } from '@/hooks/useDebugState';
 import { useRouter } from 'next/navigation';
 import React from 'react';
 
@@ -12,9 +13,10 @@ interface KeyboardShortcutsProviderProps {
 export function KeyboardShortcutsProvider({ children }: KeyboardShortcutsProviderProps) {
   const router = useRouter();
   const { isOpen, close } = useKeyboardShortcutsHelp();
+  const { toggleMapDebugInfo } = useDebugState();
 
   // Global shortcuts
-  const globalShortcuts = createGlobalShortcuts(router);
+  const globalShortcuts = createGlobalShortcuts(router, toggleMapDebugInfo);
 
   useKeyboardShortcuts({
     shortcuts: globalShortcuts,

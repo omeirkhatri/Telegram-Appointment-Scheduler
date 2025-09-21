@@ -3,8 +3,8 @@
  * Enhanced formatting utilities for command responses with consistent styling and structure
  */
 
-import { DUBAI_TIMEZONE, getCurrentDubaiTime } from '@/utils/timezone';
-import { addDays, endOfWeek, format, isSameDay, startOfWeek } from 'date-fns';
+import { isSameDay } from 'date-fns';
+import { formatInTimeZone } from 'date-fns-tz';
 
 export interface ScheduleAppointment {
   id: string;
@@ -44,49 +44,65 @@ export interface StaffInfo {
   staff_type: string;
 }
 
+export interface DayScheduleContext {
+  timezone: string;
+  localDate: Date;
+}
+
+export interface WeekScheduleContext {
+  timezone: string;
+  weekStart: Date;
+  weekEnd: Date;
+}
+
+export interface StatusContext {
+  timezone: string;
+  now: Date;
+}
+
 export class TelegramCommandFormatters {
   /**
    * Format today's schedule message
    */
-  static formatTodaySchedule(staff: StaffInfo, appointments: ScheduleAppointment[]): string {
-    const today = getCurrentDubaiTime();
-    const dateString = format(today, 'EEEE, d MMM yyyy', { timeZone: DUBAI_TIMEZONE });
-
+  static formatTodaySchedule(
+    staff: StaffInfo,
+    appointments: ScheduleAppointment[],
+    context: DayScheduleContext,
+  ): string {
     return this.formatScheduleMessage(
       'Today\'s Schedule',
       staff,
       appointments,
-      today,
-      dateString
+      context,
     );
   }
 
   /**
    * Format tomorrow's schedule message
    */
-  static formatTomorrowSchedule(staff: StaffInfo, appointments: ScheduleAppointment[]): string {
-    const tomorrow = addDays(getCurrentDubaiTime(), 1);
-    const dateString = format(tomorrow, 'EEEE, d MMM yyyy', { timeZone: DUBAI_TIMEZONE });
-
+  static formatTomorrowSchedule(
+    staff: StaffInfo,
+    appointments: ScheduleAppointment[],
+    context: DayScheduleContext,
+  ): string {
     return this.formatScheduleMessage(
       'Tomorrow\'s Schedule',
       staff,
       appointments,
-      tomorrow,
-      dateString
+      context,
     );
   }
 
   /**
    * Format week schedule message
    */
-  static formatWeekSchedule(staff: StaffInfo, appointments: ScheduleAppointment[]): string {
-    const now = getCurrentDubaiTime();
-    const weekStart = startOfWeek(now, { weekStartsOn: 1 });
-    const weekEnd = endOfWeek(now, { weekStartsOn: 1 });
-
-    const weekStartString = format(weekStart, 'd MMM', { timeZone: DUBAI_TIMEZONE });
-    const weekEndString = format(weekEnd, 'd MMM yyyy', { timeZone: DUBAI_TIMEZONE });
+  static formatWeekSchedule(
+    staff: StaffInfo,
+    appointments: ScheduleAppointment[],
+    context: WeekScheduleContext,
+  ): string {
+    const weekStartString = formatInTimeZone(context.weekStart, context.timezone, 'd MMM');
+    const weekEndString = formatInTimeZone(context.weekEnd, context.timezone, 'd MMM yyyy');
 
     let message = `📅 <b>This Week's Schedule - ${weekStartString} to ${weekEndString}</b>\n\n`;
     message += this.formatStaffHeader(staff);
@@ -102,8 +118,9 @@ export class TelegramCommandFormatters {
 
     Object.keys(appointmentsByDate).sort().forEach(date => {
       const dayAppointments = appointmentsByDate[date];
-      const dayName = format(new Date(date), 'EEEE', { timeZone: DUBAI_TIMEZONE });
-      const dayDate = format(new Date(date), 'd MMM', { timeZone: DUBAI_TIMEZONE });
+      const dateRef = new Date(`${date}T00:00:00`);
+      const dayName = formatInTimeZone(dateRef, context.timezone, 'EEEE');
+      const dayDate = formatInTimeZone(dateRef, context.timezone, 'd MMM');
 
       message += `📅 <b>${dayName}, ${dayDate}</b>\n`;
 
@@ -120,8 +137,14 @@ export class TelegramCommandFormatters {
   /**
    * Format status message
    */
-  static formatStatusMessage(staff: StaffInfo, todayAppointments: ScheduleAppointment[], nextAppointment: ScheduleAppointment | null, currentAppointment: ScheduleAppointment | null): string {
-    const now = getCurrentDubaiTime();
+  static formatStatusMessage(
+    staff: StaffInfo,
+    todayAppointments: ScheduleAppointment[],
+    nextAppointment: ScheduleAppointment | null,
+    currentAppointment: ScheduleAppointment | null,
+    context: StatusContext,
+  ): string {
+    const now = context.now;
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
     let message = this.formatStaffHeader(staff);
@@ -150,7 +173,7 @@ export class TelegramCommandFormatters {
   /**
    * Format help message with enhanced features
    */
-  static formatHelpMessage(): string {
+  static formatHelpMessage(timezoneLabel = 'your assigned timezone'): string {
     return `📋 <b>Best DOC Scheduler Bot - Help</b>\n\n` +
       `<b>📅 Schedule Commands:</b>\n` +
       `• <code>/today</code> - View today's schedule with mini notes\n` +
@@ -164,7 +187,7 @@ export class TelegramCommandFormatters {
       `• <b>Same-day notifications</b> - Instant alerts for today's appointments\n` +
       `• <b>1-hour reminders</b> - Automated reminders before appointments\n` +
       `• <b>Reschedule alerts</b> - Notifications when appointments change\n` +
-      `• <b>Daily agendas</b> - Evening summary at 9 PM Dubai time\n` +
+      `• <b>Daily agendas</b> - Evening summary at 9 PM (${timezoneLabel})\n` +
       `• <b>Staff-specific formatting</b> - Messages tailored to your role\n\n` +
       `<b>📝 Enhanced Note System:</b>\n` +
       `• <b>Mini notes</b> - Brief summaries in schedule views\n` +
@@ -180,7 +203,7 @@ export class TelegramCommandFormatters {
       `• <b>Rate limiting</b> - 10 commands per minute per user\n` +
       `• <b>Command cooldown</b> - 5 seconds between same commands\n` +
       `• <b>Error handling</b> - User-friendly error messages\n` +
-      `• <b>Timezone support</b> - All times in Dubai (GMT+4)\n\n` +
+      `• <b>Timezone support</b> - All times reflect ${timezoneLabel}\n\n` +
       `<b>💡 Getting Started:</b>\n` +
       `1. Use <code>/info</code> to get your User ID\n` +
       `2. Send your User ID to your administrator\n` +
@@ -189,7 +212,7 @@ export class TelegramCommandFormatters {
       `• <b>Rate limited?</b> Wait 1 minute before trying again\n` +
       `• <b>Command not working?</b> Wait 5 seconds and try again\n` +
       `• <b>No notifications?</b> Check with admin about your setup\n` +
-      `• <b>Wrong timezone?</b> All times are in Dubai (GMT+4)\n\n` +
+      `• <b>Wrong timezone?</b> All times are shown in ${timezoneLabel}\n\n` +
       `For technical support, contact your administrator.`;
   }
 
@@ -276,9 +299,9 @@ export class TelegramCommandFormatters {
     title: string,
     staff: StaffInfo,
     appointments: ScheduleAppointment[],
-    date: Date,
-    dateString: string
+    context: DayScheduleContext,
   ): string {
+    const dateString = formatInTimeZone(context.localDate, context.timezone, 'EEEE, d MMM yyyy');
     let message = `📅 <b>${title} - ${dateString}</b>\n\n`;
     message += this.formatStaffHeader(staff);
     message += `📊 <b>Total Appointments:</b> ${appointments.length}\n\n`;

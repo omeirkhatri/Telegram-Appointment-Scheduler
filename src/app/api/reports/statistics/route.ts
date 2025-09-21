@@ -2,6 +2,15 @@ import { supabase } from '@/lib/supabase';
 import { appointmentService, auditTrailService } from '@/services';
 import type { DashboardStatistics, DateRange } from '@/types/reports';
 import { NextRequest, NextResponse } from 'next/server';
+import {
+  addVersionHeaders,
+  buildTimezoneContext,
+  createErrorResponse,
+  formatResponseForVersion,
+  shouldIncludeTimezoneMetadata,
+  validateApiVersion,
+} from '@/lib/apiUtils';
+import { resolveTimezone } from '@/utils/timezone';
 
 // GET /api/reports/statistics - Get comprehensive dashboard statistics
 export async function GET(request: NextRequest) {
@@ -12,6 +21,16 @@ export async function GET(request: NextRequest) {
     const dateTo = searchParams.get('dateTo') || new Date().toISOString().split('T')[0];
 
     const dateRange: DateRange = { from: dateFrom, to: dateTo };
+
+    const versionValidation = validateApiVersion(request);
+    if (!versionValidation.valid) {
+      const errorResponse = createErrorResponse(
+        versionValidation.error!,
+        { supportedVersions: ['1.0', '1.1'] },
+        request,
+      );
+      return NextResponse.json(errorResponse, { status: 400 });
+    }
 
     // Fetch all statistics in parallel
     const [
@@ -37,22 +56,28 @@ export async function GET(request: NextRequest) {
       systemHealth: systemHealthStats,
     };
 
-    return NextResponse.json({
-      success: true,
-      data: dashboardStats,
+    // Build timezone context and resolution
+    const timezoneContext = await buildTimezoneContext(request);
+    const timezoneResolution = resolveTimezone(timezoneContext);
+    const includeTimezone = shouldIncludeTimezoneMetadata(request);
+
+    const responseData = {
+      ...dashboardStats,
       dateRange,
-      generatedAt: new Date().toISOString(),
-    });
+    };
+
+    const versionedResponse = formatResponseForVersion(responseData, request, includeTimezone ? timezoneResolution : undefined);
+    const jsonResponse = NextResponse.json(versionedResponse);
+    return await addVersionHeaders(jsonResponse, request);
 
   } catch (error) {
     console.error('Error fetching dashboard statistics:', error);
-    return NextResponse.json(
-      {
-        success: false,
-        error: error instanceof Error ? error.message : 'Failed to fetch statistics',
-      },
-      { status: 500 },
+    const errorResponse = createErrorResponse(
+      error instanceof Error ? error.message : 'Failed to fetch statistics',
+      undefined,
+      request
     );
+    return NextResponse.json(errorResponse, { status: 500 });
   }
 }
 

@@ -104,22 +104,12 @@ describe('GoogleMapsMonitoringService', () => {
   });
 
   describe('recordUsage', () => {
-    it('should record geocoding usage', () => {
-      service.recordUsage('geocoding');
-
-      const metrics = service.getUsageMetrics();
-      expect(metrics.totalRequests).toBe(1);
-      expect(metrics.geocodingRequests).toBe(1);
-      expect(metrics.mapsRequests).toBe(0);
-      expect(metrics.placesRequests).toBe(0);
-    });
 
     it('should record maps usage', () => {
       service.recordUsage('maps');
 
       const metrics = service.getUsageMetrics();
       expect(metrics.totalRequests).toBe(1);
-      expect(metrics.geocodingRequests).toBe(0);
       expect(metrics.mapsRequests).toBe(1);
       expect(metrics.placesRequests).toBe(0);
     });
@@ -129,14 +119,13 @@ describe('GoogleMapsMonitoringService', () => {
 
       const metrics = service.getUsageMetrics();
       expect(metrics.totalRequests).toBe(1);
-      expect(metrics.geocodingRequests).toBe(0);
       expect(metrics.mapsRequests).toBe(0);
       expect(metrics.placesRequests).toBe(1);
     });
 
     it('should update daily usage', () => {
-      service.recordUsage('geocoding');
-      service.recordUsage('geocoding');
+      service.recordUsage('maps');
+      service.recordUsage('maps');
 
       const metrics = service.getUsageMetrics();
       const today = new Date().toISOString().split('T')[0];
@@ -231,8 +220,8 @@ describe('GoogleMapsMonitoringService', () => {
   describe('resetUsageMetrics', () => {
     it('should reset all metrics', () => {
       // Record some usage first
-      service.recordUsage('geocoding');
       service.recordUsage('maps');
+      service.recordUsage('places');
       service.recordError(new Error('Test'));
 
       // Reset
@@ -240,7 +229,6 @@ describe('GoogleMapsMonitoringService', () => {
 
       const metrics = service.getUsageMetrics();
       expect(metrics.totalRequests).toBe(0);
-      expect(metrics.geocodingRequests).toBe(0);
       expect(metrics.mapsRequests).toBe(0);
       expect(metrics.placesRequests).toBe(0);
       expect(metrics.errors).toBe(0);
@@ -251,7 +239,6 @@ describe('GoogleMapsMonitoringService', () => {
     it('should load metrics from localStorage', () => {
       const mockMetrics = {
         totalRequests: 10,
-        geocodingRequests: 5,
         mapsRequests: 3,
         placesRequests: 2,
         errors: 1,
@@ -266,11 +253,10 @@ describe('GoogleMapsMonitoringService', () => {
       const metrics = newService.getUsageMetrics();
 
       expect(metrics.totalRequests).toBe(10);
-      expect(metrics.geocodingRequests).toBe(5);
     });
 
     it('should save metrics to localStorage', () => {
-      service.recordUsage('geocoding');
+      service.recordUsage('maps');
 
       expect(localStorageMock.setItem).toHaveBeenCalledWith(
         'google_maps_usage_metrics',

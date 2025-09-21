@@ -1,7 +1,7 @@
 'use client';
 
 import Header from '@/components/layout/Header';
-import { ReportsDashboard } from '@/components/reports';
+import { ReportsDashboard } from '@/components/features/reports';
 
 export default function ReportsPage() {
   return (

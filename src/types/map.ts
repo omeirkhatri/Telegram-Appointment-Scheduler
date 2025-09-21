@@ -15,36 +15,7 @@ export interface MapCoordinates extends Coordinates {
   timestamp?: number; // Unix timestamp
 }
 
-// Geocoding result from Google Maps API
-export interface GeocodingResult {
-  address: string;
-  coordinates: Coordinates;
-  formatted_address: string;
-  place_id?: string;
-  types: string[]; // e.g., ['street_address', 'premise']
-  address_components: AddressComponent[];
-  geometry: {
-    location: Coordinates;
-    location_type: 'ROOFTOP' | 'RANGE_INTERPOLATED' | 'GEOMETRIC_CENTER' | 'APPROXIMATE';
-    viewport: {
-      northeast: Coordinates;
-      southwest: Coordinates;
-    };
-    bounds?: {
-      northeast: Coordinates;
-      southwest: Coordinates;
-    };
-  };
-  partial_match?: boolean;
-  postcode_localities?: string[];
-}
-
-// Address component from geocoding
-export interface AddressComponent {
-  long_name: string;
-  short_name: string;
-  types: string[];
-}
+// Note: Geocoding types removed - using stored coordinates only
 
 // Map marker for appointments
 export interface MapMarker {
@@ -62,6 +33,15 @@ export interface MapMarker {
   patient_name: string;
   patient_phone: string;
   address: string;
+  // Individual address components for detailed display
+  flat_villa_no?: string;
+  building_street?: string;
+  area?: string;
+  city?: string;
+  // Staff information
+  staff_name?: string;
+  all_staff_names?: string;
+  staff_id?: string;
   is_clustered?: boolean;
   cluster_id?: string;
   custom_fields?: Record<string, unknown>;
@@ -132,22 +112,7 @@ export interface MapClusterClickEvent {
   stop?: () => void;
 }
 
-// Geocoding service response
-export interface GeocodingResponse {
-  results: GeocodingResult[];
-  status: 'OK' | 'ZERO_RESULTS' | 'OVER_QUERY_LIMIT' | 'REQUEST_DENIED' | 'INVALID_REQUEST' | 'UNKNOWN_ERROR';
-  error_message?: string;
-}
-
-// Reverse geocoding result
-export interface ReverseGeocodingResult {
-  address: string;
-  coordinates: Coordinates;
-  formatted_address: string;
-  place_id?: string;
-  types: string[];
-  address_components: AddressComponent[];
-}
+// Note: Geocoding service response types removed - using stored coordinates only
 
 // Map search filters
 export interface MapSearchFilters {
@@ -203,22 +168,7 @@ export interface MapError {
   };
 }
 
-// Geocoding error types
-export interface GeocodingError {
-  code: 'ZERO_RESULTS' | 'OVER_QUERY_LIMIT' | 'REQUEST_DENIED' | 'INVALID_REQUEST' | 'UNKNOWN_ERROR' | 'GEOCODING_ERROR' | 'NETWORK_ERROR' | 'TIMEOUT_ERROR' | 'RATE_LIMIT_ERROR' | 'SERVICE_UNAVAILABLE' | 'AUTHENTICATION_ERROR' | 'QUOTA_EXCEEDED' | 'API_KEY_INVALID' | 'BATCH_GEOCODING_FAILED' | 'ALL_FALLBACKS_FAILED';
-  message: string;
-  details?: {
-    address?: string;
-    coordinates?: Coordinates;
-    originalError?: unknown;
-    status?: string;
-    retryAfter?: number;
-    [key: string]: unknown;
-  };
-  timestamp: number;
-  retryable?: boolean;
-  severity?: 'low' | 'medium' | 'high' | 'critical';
-}
+// Note: Geocoding error types removed - using stored coordinates only
 
 // Map state management
 export interface MapState {
@@ -279,11 +229,9 @@ export interface MapComponentProps {
   style?: React.CSSProperties;
 }
 
-// Map service interfaces
+// Map service interfaces (coordinate-based)
 export interface MapService {
   initialize(): Promise<void>;
-  geocodeAddress(address: string): Promise<GeocodingResult[]>;
-  reverseGeocode(coordinates: Coordinates): Promise<ReverseGeocodingResult[]>;
   calculateDistance(from: Coordinates, to: Coordinates): number;
   calculateBounds(markers: MapMarker[]): MapBounds | null;
   fitBounds(bounds: MapBounds): void;
@@ -308,8 +256,7 @@ export interface UseMapReturn {
     setSelectedCluster: (cluster: MapCluster | null) => void;
     updateViewConfig: (config: Partial<MapViewConfig>) => void;
     updateSearchFilters: (filters: Partial<MapSearchFilters>) => void;
-    geocodeAddress: (address: string) => Promise<GeocodingResult[]>;
-    reverseGeocode: (coordinates: Coordinates) => Promise<ReverseGeocodingResult[]>;
+    // Geocoding methods removed - using stored coordinates only
     calculateDistance: (from: Coordinates, to: Coordinates) => number;
     fitBounds: (bounds: MapBounds) => void;
     resetMap: () => void;
@@ -320,7 +267,7 @@ export interface UseMapReturn {
 
 // Constants for map configuration
 export const MAP_CONSTANTS = {
-  DEFAULT_ZOOM: 12,
+  DEFAULT_ZOOM: 12, // Set to show ~1km scale as requested
   MIN_ZOOM: 1,
   MAX_ZOOM: 20,
   DEFAULT_CENTER: {
@@ -356,12 +303,4 @@ export function isMapMarker(obj: unknown): obj is MapMarker {
   );
 }
 
-export function isGeocodingResult(obj: unknown): obj is GeocodingResult {
-  return (
-    typeof obj === 'object' &&
-    obj !== null &&
-    typeof (obj as GeocodingResult).address === 'string' &&
-    isCoordinates((obj as GeocodingResult).coordinates) &&
-    typeof (obj as GeocodingResult).formatted_address === 'string'
-  );
-}
+// Note: isGeocodingResult type guard removed - using stored coordinates only

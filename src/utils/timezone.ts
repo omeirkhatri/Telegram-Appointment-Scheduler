@@ -1,168 +1,580 @@
-import {
-    addDays,
-    addMinutes,
-    endOfDay,
-    endOfWeek,
-    format,
-    isSameDay,
-    isValid,
-    parseISO,
-    startOfDay,
-    startOfWeek,
-    subDays,
-} from 'date-fns';
-import { fromZonedTime, toZonedTime } from 'date-fns-tz';
+import { addDays, addMinutes, endOfDay, endOfWeek, format, isSameDay, isValid, parseISO, startOfDay, startOfWeek, subDays } from 'date-fns';
+import { fromZonedTime, getTimezoneOffset as getTzOffset, toZonedTime } from 'date-fns-tz';
 
-// Timezone constants
-export const DUBAI_TIMEZONE = 'Asia/Dubai';
+export const LEGACY_TIMEZONE = 'Asia/Dubai';
 export const UTC_TIMEZONE = 'UTC';
 
-// Legacy constants for backward compatibility
-export const TZ = DUBAI_TIMEZONE;
-export const UTC_TZ = UTC_TIMEZONE;
-
-// Date format constants
 export const DATE_FMT = 'dd/MM/yyyy';
 export const TIME_FMT = 'HH:mm';
 export const DATETIME_FMT = `${DATE_FMT} ${TIME_FMT}`;
 export const ISO_DATE_FMT = 'yyyy-MM-dd';
 export const ISO_TIME_FMT = 'HH:mm:ss';
+export const DAILY_AGENDA_TIME = '21:00';
 
-// Daily agenda schedule
-export const DAILY_AGENDA_TIME = '21:00'; // 21:00 (9 PM) Asia/Dubai time
+type TimezoneMonitoringService = typeof import('../services/timezoneMonitoringService').timezoneMonitoringService;
 
-/**
- * Convert a date to Dubai timezone
- */
-export function toDubaiTime(date: Date): Date {
-  return toZonedTime(date, DUBAI_TIMEZONE);
+let cachedMonitoringService: TimezoneMonitoringService | null = null;
+
+function getMonitoringService(): TimezoneMonitoringService | null {
+  if (cachedMonitoringService) {
+    return cachedMonitoringService;
+  }
+
+  // Try to load the monitoring service asynchronously without blocking
+  if (typeof window === 'undefined') {
+    // Server-side: use dynamic import but don't await
+    import('../services/timezoneMonitoringService')
+      .then(module => {
+        cachedMonitoringService = module.timezoneMonitoringService;
+      })
+      .catch(error => {
+        if (process.env.NODE_ENV !== 'test') {
+          console.warn('⚠️  Timezone monitoring service unavailable:', error);
+        }
+      });
+  }
+
+  return null;
 }
 
-/**
- * Convert a Dubai time to UTC
- */
-export function fromDubaiTime(date: Date): Date {
-  return fromZonedTime(date, DUBAI_TIMEZONE);
-}
+export type DateInput = Date | string;
 
-/**
- * Get current time in Dubai timezone
- */
-export function getCurrentDubaiTime(): Date {
-  return toDubaiTime(new Date());
-}
+export type TimezoneSource =
+  | 'explicit'
+  | 'location'
+  | 'organization'
+  | 'contextFallback'
+  | 'environment'
+  | 'legacy'
+  | 'default';
 
-/**
- * Format date in Dubai timezone with DD/MM/YYYY format
- */
-export function formatDubaiDate(date: Date): string {
-  const dubaiDate = toDubaiTime(date);
-  return format(dubaiDate, 'dd/MM/yyyy');
-}
-
-/**
- * Format time in Dubai timezone with HH:mm format
- */
-export function formatDubaiTime(date: Date): string {
-  const dubaiDate = toDubaiTime(date);
-  return format(dubaiDate, 'HH:mm');
-}
-
-/**
- * Get today's date in Dubai timezone
- */
-export function getTodayDubai(): Date {
-  const now = getCurrentDubaiTime();
-  return startOfDay(now);
-}
-
-/**
- * Get tomorrow's date in Dubai timezone
- */
-export function getTomorrowDubai(): Date {
-  const today = getTodayDubai();
-  return addDays(today, 1);
-}
-
-/**
- * Get start and end of day in Dubai timezone for a given date
- */
-export function getDubaiDayRange(date: Date): { start: Date; end: Date } {
-  const dubaiDate = toDubaiTime(date);
-  const start = startOfDay(dubaiDate);
-  const end = endOfDay(dubaiDate);
-
-  return {
-    start: fromDubaiTime(start),
-    end: fromDubaiTime(end),
+export interface TimezoneResolutionTelemetry {
+  context: NormalizedContext;
+  options: InternalOptions;
+  resolution: TimezoneResolution;
+  cacheHit: boolean;
+  timestamp: string;
+  performance?: {
+    cacheHit: boolean;
+    resolutionPathLength: number;
+    fallbackUsed: boolean;
+    legacyUsed: boolean;
+  };
+  contextSummary?: {
+    hasExplicit: boolean;
+    hasLocation: boolean;
+    hasOrganization: boolean;
+    hasFallback: boolean;
+    preferLegacy: boolean;
   };
 }
 
-/**
- * Check if current Dubai time is past the daily agenda time (21:00/9 PM)
- */
+export interface TimezoneContext {
+  explicitTimezone?: string | null;
+  locationTimezone?: string | null;
+  organizationTimezone?: string | null;
+  fallbackTimezone?: string | null;
+  preferLegacyFallback?: boolean;
+}
+
+export interface ResolveOptions {
+  allowLegacy?: boolean;
+  referenceDate?: Date;
+  memoize?: boolean;
+  strict?: boolean;
+}
+
+export interface TimezoneResolution {
+  timezone: string;
+  source: TimezoneSource;
+  offsetMinutes: number;
+  abbreviation: string;
+  referenceDate: Date;
+  resolutionPath: Array<{ candidate: string; source: TimezoneSource }>;
+}
+
+interface NormalizedContext {
+  explicitTimezone: string | null;
+  locationTimezone: string | null;
+  organizationTimezone: string | null;
+  fallbackTimezone: string | null;
+  preferLegacyFallback: boolean;
+}
+
+interface InternalOptions {
+  allowLegacy: boolean;
+  referenceDate: Date;
+  memoize: boolean;
+  strict: boolean;
+}
+
+const DEFAULT_OPTIONS: InternalOptions = {
+  allowLegacy: true,
+  referenceDate: new Date(),
+  memoize: true,
+  strict: false,
+};
+
+const resolutionCache = new Map<string, TimezoneResolution>();
+
+const DEFAULT_LEGACY_CONTEXT: TimezoneContext = {
+  fallbackTimezone: LEGACY_TIMEZONE,
+  preferLegacyFallback: true,
+};
+
+// Telemetry logging for timezone resolution tracking
+function logTimezoneResolution(telemetry: TimezoneResolutionTelemetry): void {
+  const logLevel = process.env.NODE_ENV === 'production' ? 'info' : 'debug';
+  
+  // Only log in development or when explicitly enabled
+  if (process.env.NODE_ENV === 'production' && !process.env.ENABLE_TIMEZONE_TELEMETRY) {
+    return;
+  }
+
+  const logData = {
+    type: 'timezone_resolution',
+    level: logLevel,
+    ...telemetry,
+    // Add performance metrics
+    performance: {
+      cacheHit: telemetry.cacheHit,
+      resolutionPathLength: telemetry.resolution.resolutionPath.length,
+      fallbackUsed: telemetry.resolution.source !== 'explicit' && telemetry.resolution.source !== 'location',
+      legacyUsed: telemetry.resolution.source === 'legacy',
+    },
+    // Add context summary for easier debugging
+    contextSummary: {
+      hasExplicit: Boolean(telemetry.context.explicitTimezone),
+      hasLocation: Boolean(telemetry.context.locationTimezone),
+      hasOrganization: Boolean(telemetry.context.organizationTimezone),
+      hasFallback: Boolean(telemetry.context.fallbackTimezone),
+      preferLegacy: telemetry.context.preferLegacyFallback,
+    },
+  };
+
+  // Use structured logging
+  if (logLevel === 'debug') {
+    console.debug('🕐 Timezone Resolution:', JSON.stringify(logData, null, 2));
+  } else {
+    console.log('🕐 Timezone Resolution:', JSON.stringify(logData));
+  }
+
+  const monitoringService = getMonitoringService();
+  if (monitoringService) {
+    try {
+      monitoringService.recordResolution(logData);
+    } catch (error) {
+      console.warn('⚠️  Failed to record timezone monitoring telemetry:', error);
+    }
+  }
+}
+
+const ENV_TIMEZONE_KEYS = [
+  'NEXT_PUBLIC_ORGANIZATION_TIMEZONE',
+  'NEXT_PUBLIC_DEFAULT_TIMEZONE',
+  'NEXT_PUBLIC_TZ',
+  'TZ',
+];
+
+function normalizeTimezone(value?: string | null): string | null {
+  if (!value) {
+    return null;
+  }
+  const trimmed = value.trim();
+  return trimmed.length === 0 ? null : trimmed;
+}
+
+function buildCacheKey(context: NormalizedContext, options: InternalOptions): string {
+  return JSON.stringify({
+    explicitTimezone: context.explicitTimezone,
+    locationTimezone: context.locationTimezone,
+    organizationTimezone: context.organizationTimezone,
+    fallbackTimezone: context.fallbackTimezone,
+    preferLegacyFallback: context.preferLegacyFallback,
+    allowLegacy: options.allowLegacy,
+    referenceDate: options.referenceDate.toISOString(),
+  });
+}
+
+export function isValidTimezone(timezone: string | null | undefined): timezone is string {
+  if (!timezone) {
+    return false;
+  }
+  try {
+    new Intl.DateTimeFormat('en-US', { timeZone: timezone }).format(new Date());
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export function getAvailableTimezones(): string[] {
+  if (typeof Intl.supportedValuesOf === 'function') {
+    return Intl.supportedValuesOf('timeZone');
+  }
+  return [];
+}
+
+function normalizeContext(context?: TimezoneContext): NormalizedContext {
+  return {
+    explicitTimezone: normalizeTimezone(context?.explicitTimezone),
+    locationTimezone: normalizeTimezone(context?.locationTimezone),
+    organizationTimezone: normalizeTimezone(context?.organizationTimezone),
+    fallbackTimezone: normalizeTimezone(context?.fallbackTimezone),
+    preferLegacyFallback: context?.preferLegacyFallback ?? true,
+  };
+}
+
+function normalizeOptions(options?: ResolveOptions): InternalOptions {
+  return {
+    allowLegacy: options?.allowLegacy ?? DEFAULT_OPTIONS.allowLegacy,
+    referenceDate: options?.referenceDate ?? DEFAULT_OPTIONS.referenceDate,
+    memoize: options?.memoize ?? DEFAULT_OPTIONS.memoize,
+    strict: options?.strict ?? DEFAULT_OPTIONS.strict,
+  };
+}
+
+function parseDateInput(input: DateInput): Date {
+  if (input instanceof Date) {
+    return input;
+  }
+
+  const parsed = parseISO(input);
+  if (Number.isNaN(parsed.getTime())) {
+    throw new Error(`Invalid date input: ${input}`);
+  }
+  return parsed;
+}
+
+function getTimezoneAbbreviation(timezone: string, referenceDate: Date): string {
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: timezone,
+    timeZoneName: 'short',
+  });
+
+  const parts = formatter.formatToParts(referenceDate);
+  const match = parts.find(part => part.type === 'timeZoneName');
+  return match?.value ?? timezone;
+}
+
+function getOffsetMinutes(timezone: string, referenceDate: Date): number {
+  return getTzOffset(timezone, referenceDate) / (1000 * 60);
+}
+
+function getEnvironmentFallbacks(): Array<{ candidate: string; source: TimezoneSource }> {
+  const values = ENV_TIMEZONE_KEYS
+    .map(key => normalizeTimezone(process.env[key]))
+    .filter((value): value is string => Boolean(value));
+
+  const unique = Array.from(new Set(values));
+  return unique.map(value => ({ candidate: value, source: 'environment' as const }));
+}
+
+function resolveCandidateTimezone(
+  candidates: Array<{ candidate: string | null; source: TimezoneSource }>,
+  referenceDate: Date,
+  strict: boolean,
+): TimezoneResolution {
+  const resolutionPath: Array<{ candidate: string; source: TimezoneSource }> = [];
+
+  for (const { candidate, source } of candidates) {
+    if (!candidate) {
+      continue;
+    }
+
+    resolutionPath.push({ candidate, source });
+
+    if (isValidTimezone(candidate)) {
+      return {
+        timezone: candidate,
+        source,
+        offsetMinutes: getOffsetMinutes(candidate, referenceDate),
+        abbreviation: getTimezoneAbbreviation(candidate, referenceDate),
+        referenceDate,
+        resolutionPath,
+      };
+    }
+  }
+
+  if (strict) {
+    throw new Error('Could not resolve a valid timezone from provided context');
+  }
+
+  return {
+    timezone: UTC_TIMEZONE,
+    source: 'default',
+    offsetMinutes: 0,
+    abbreviation: 'UTC',
+    referenceDate,
+    resolutionPath,
+  };
+}
+
+export function resolveTimezone(
+  context?: TimezoneContext,
+  options?: ResolveOptions,
+): TimezoneResolution {
+  const normalizedContext = normalizeContext(context);
+  const normalizedOptions = normalizeOptions(options);
+
+  const cacheKey = buildCacheKey(normalizedContext, normalizedOptions);
+  if (normalizedOptions.memoize) {
+    const cachedResolution = resolutionCache.get(cacheKey);
+    if (cachedResolution) {
+      // Log cache hit for telemetry
+      logTimezoneResolution({
+        context: normalizedContext,
+        options: normalizedOptions,
+        resolution: cachedResolution,
+        cacheHit: true,
+        timestamp: new Date().toISOString(),
+      });
+      return cachedResolution;
+    }
+  }
+
+  const candidateChain: Array<{ candidate: string | null; source: TimezoneSource }> = [
+    { candidate: normalizedContext.explicitTimezone, source: 'explicit' },
+    { candidate: normalizedContext.locationTimezone, source: 'location' },
+    { candidate: normalizedContext.organizationTimezone, source: 'organization' },
+    { candidate: normalizedContext.fallbackTimezone, source: 'contextFallback' },
+    ...getEnvironmentFallbacks(),
+  ];
+
+  if (normalizedOptions.allowLegacy && normalizedContext.preferLegacyFallback) {
+    candidateChain.push({ candidate: LEGACY_TIMEZONE, source: 'legacy' });
+  }
+
+  candidateChain.push({ candidate: UTC_TIMEZONE, source: 'default' });
+
+  let resolution: TimezoneResolution;
+
+  try {
+    resolution = resolveCandidateTimezone(
+      candidateChain,
+      normalizedOptions.referenceDate,
+      normalizedOptions.strict,
+    );
+  } catch (error) {
+    const monitoringService = getMonitoringService();
+    if (monitoringService) {
+      monitoringService.recordResolverError(error, {
+        candidates: candidateChain,
+        strict: normalizedOptions.strict,
+      });
+    }
+    throw error;
+  }
+
+  // Log resolution for telemetry
+  logTimezoneResolution({
+    context: normalizedContext,
+    options: normalizedOptions,
+    resolution,
+    cacheHit: false,
+    timestamp: new Date().toISOString(),
+  });
+
+  if (normalizedOptions.memoize) {
+    resolutionCache.set(cacheKey, resolution);
+  }
+
+  return resolution;
+}
+
+export function clearTimezoneResolutionCache(): void {
+  resolutionCache.clear();
+}
+
+export function toLocalTime(
+  date: DateInput,
+  context?: TimezoneContext,
+  options?: ResolveOptions,
+): Date {
+  const resolution = resolveTimezone(context, options);
+  return toZonedTime(parseDateInput(date), resolution.timezone);
+}
+
+export function toUTC(
+  date: DateInput,
+  context?: TimezoneContext,
+  options?: ResolveOptions,
+): Date {
+  const resolution = resolveTimezone(context, options);
+  return fromZonedTime(parseDateInput(date), resolution.timezone);
+}
+
+export function toLocal(
+  date: DateInput,
+  context?: TimezoneContext,
+  options?: ResolveOptions,
+): Date {
+  return toLocalTime(date, context ?? DEFAULT_LEGACY_CONTEXT, options);
+}
+
+export function formatInResolvedTimezone(
+  date: DateInput,
+  formatStr: string,
+  context?: TimezoneContext,
+  options?: ResolveOptions,
+): string {
+  const resolution = resolveTimezone(context, options);
+  const parsedDate = parseDateInput(date);
+  const zoned = toZonedTime(parsedDate, resolution.timezone);
+  return format(zoned, formatStr);
+}
+
+export function getResolvedDayRange(
+  date: DateInput,
+  context?: TimezoneContext,
+  options?: ResolveOptions,
+): { start: Date; end: Date; timezone: TimezoneResolution } {
+  const resolution = resolveTimezone(context, options);
+  const parsedDate = parseDateInput(date);
+  const start = startOfDay(toZonedTime(parsedDate, resolution.timezone));
+  const end = endOfDay(start);
+
+  return {
+    start: fromZonedTime(start, resolution.timezone),
+    end: fromZonedTime(end, resolution.timezone),
+    timezone: resolution,
+  };
+}
+
+export function getResolvedWeekRange(
+  date: DateInput,
+  context?: TimezoneContext,
+  options?: ResolveOptions,
+): { start: Date; end: Date; timezone: TimezoneResolution } {
+  const resolution = resolveTimezone(context, options);
+  const parsedDate = parseDateInput(date);
+  const zonedDate = toZonedTime(parsedDate, resolution.timezone);
+  const start = startOfWeek(zonedDate, { weekStartsOn: 1 });
+  const end = endOfWeek(zonedDate, { weekStartsOn: 1 });
+
+  return {
+    start: fromZonedTime(start, resolution.timezone),
+    end: fromZonedTime(end, resolution.timezone),
+    timezone: resolution,
+  };
+}
+
+export function getResolvedAgendaAnchor(
+  reference: DateInput = new Date(),
+  context?: TimezoneContext,
+  options?: ResolveOptions,
+): Date {
+  const resolution = resolveTimezone(context, options);
+  const zonedNow = toZonedTime(parseDateInput(reference), resolution.timezone);
+  const agendaAnchor = parseISO(`${format(zonedNow, 'yyyy-MM-dd')}T${DAILY_AGENDA_TIME}:00`);
+
+  if (zonedNow > agendaAnchor) {
+    const tomorrow = addDays(startOfDay(zonedNow), 1);
+    return fromZonedTime(
+      parseISO(`${format(tomorrow, 'yyyy-MM-dd')}T${DAILY_AGENDA_TIME}:00`),
+      resolution.timezone,
+    );
+  }
+
+  return fromZonedTime(agendaAnchor, resolution.timezone);
+}
+
+export function formatAppointmentWindow(
+  appointmentDate: string,
+  startTime: string,
+  durationMinutes: number,
+  context?: TimezoneContext,
+  options?: ResolveOptions,
+): { startLocal: string; endLocal: string; timezone: TimezoneResolution } {
+  const resolution = resolveTimezone(context, options);
+  const startLocal = parseISO(`${appointmentDate}T${startTime}:00`);
+  const endLocal = addMinutes(startLocal, durationMinutes);
+
+  return {
+    startLocal: formatInResolvedTimezone(startLocal, TIME_FMT, context, options),
+    endLocal: formatInResolvedTimezone(endLocal, TIME_FMT, context, options),
+    timezone: resolution,
+  };
+}
+
+export function buildLegacyTimezoneContext(): TimezoneContext {
+  return { ...DEFAULT_LEGACY_CONTEXT };
+}
+
+// ---------------------------------------------------------------------------
+// Legacy compatibility exports - retained for incremental migration
+// ---------------------------------------------------------------------------
+
+export const DUBAI_TIMEZONE = LEGACY_TIMEZONE;
+export const TZ = LEGACY_TIMEZONE;
+export const UTC_TZ = UTC_TIMEZONE;
+
+const legacyContext = buildLegacyTimezoneContext();
+
+export function toDubaiTime(date: DateInput): Date {
+  return toLocalTime(date, legacyContext);
+}
+
+export function fromDubaiTime(date: DateInput): Date {
+  return toUTC(date, legacyContext);
+}
+
+export function getCurrentDubaiTime(): Date {
+  return toLocalTime(new Date(), legacyContext);
+}
+
+export function formatDubaiDate(date: DateInput, formatStr: string = DATE_FMT): string {
+  return formatInResolvedTimezone(date, formatStr, legacyContext);
+}
+
+export function formatDubaiTime(date: DateInput, formatStr: string = TIME_FMT): string {
+  return formatInResolvedTimezone(date, formatStr, legacyContext);
+}
+
+export function getTodayDubai(): Date {
+  const start = getResolvedDayRange(new Date(), legacyContext).start;
+  return start;
+}
+
+export function getTomorrowDubai(): Date {
+  return addDays(getTodayDubai(), 1);
+}
+
+export function getDubaiDayRange(date: DateInput): { start: Date; end: Date } {
+  const { start, end } = getResolvedDayRange(date, legacyContext);
+  return { start, end };
+}
+
 export function isPastDailyAgendaTime(): boolean {
   const now = getCurrentDubaiTime();
   const agendaTime = parseISO(`${format(now, 'yyyy-MM-dd')}T${DAILY_AGENDA_TIME}:00`);
   return now > agendaTime;
 }
 
-/**
- * Get next daily agenda time in Dubai timezone
- */
 export function getNextDailyAgendaTime(): Date {
-  const now = getCurrentDubaiTime();
-  const today = startOfDay(now);
-  const todayAgendaTime = parseISO(`${format(today, 'yyyy-MM-dd')}T${DAILY_AGENDA_TIME}:00`);
-
-  // If it's past 21:00 (9 PM) today, schedule for tomorrow
-  if (now > todayAgendaTime) {
-    const tomorrow = addDays(today, 1);
-    return fromDubaiTime(parseISO(`${format(tomorrow, 'yyyy-MM-dd')}T${DAILY_AGENDA_TIME}:00`));
-  }
-
-  // Otherwise, schedule for today
-  return fromDubaiTime(todayAgendaTime);
+  return getResolvedAgendaAnchor(new Date(), legacyContext);
 }
 
-/**
- * Get the date for which to generate daily agenda
- * At 21:00 (9 PM), generate agenda for the next day
- */
 export function getAgendaDate(): Date {
-  const now = getCurrentDubaiTime();
-  const today = startOfDay(now);
-
-  // Generate agenda for tomorrow (next day)
-  return addDays(today, 1);
+  return addDays(startOfDay(getCurrentDubaiTime()), 1);
 }
 
-/**
- * Convert UTC date to Dubai date string (YYYY-MM-DD)
- */
 export function utcToDubaiDateString(utcDate: Date): string {
-  const dubaiDate = toDubaiTime(utcDate);
-  return format(dubaiDate, 'yyyy-MM-dd');
+  return formatInResolvedTimezone(utcDate, 'yyyy-MM-dd', legacyContext);
 }
 
-/**
- * Convert Dubai date string to UTC date range
- */
 export function dubaiDateStringToUtcRange(dateString: string): { start: Date; end: Date } {
-  const dubaiDate = parseISO(`${dateString}T00:00:00`);
-  return getDubaiDayRange(dubaiDate);
+  return getDubaiDayRange(parseISO(`${dateString}T00:00:00`));
 }
 
-/**
- * Get working hours for a staff member in Dubai timezone
- */
 export function getStaffWorkingHours(
   workingHoursStart: string,
   workingHoursEnd: string,
   date: Date,
 ): { start: Date; end: Date } {
-  const dubaiDate = toDubaiTime(date);
-  const dateString = format(dubaiDate, 'yyyy-MM-dd');
+  const resolution = resolveTimezone(legacyContext);
+  const zonedDate = toZonedTime(date, resolution.timezone);
+  const dateString = format(zonedDate, 'yyyy-MM-dd');
 
   const startTime = parseISO(`${dateString}T${workingHoursStart}:00`);
   const endTime = parseISO(`${dateString}T${workingHoursEnd}:00`);
@@ -173,160 +585,85 @@ export function getStaffWorkingHours(
   };
 }
 
-/**
- * Check if a staff member is available on a specific day
- */
 export function isStaffAvailableOnDay(
   availableDays: number[],
   date: Date,
+  context?: TimezoneContext,
+  options?: ResolveOptions,
 ): boolean {
-  const dubaiDate = toDubaiTime(date);
-  const dayOfWeek = dubaiDate.getDay(); // 0 = Sunday, 1 = Monday, etc.
-
-  // Convert to 1-7 format (1 = Monday, 7 = Sunday)
+  const resolution = resolveTimezone(context ?? legacyContext, options);
+  const localDate = toZonedTime(date, resolution.timezone);
+  const dayOfWeek = localDate.getDay();
   const dayNumber = dayOfWeek === 0 ? 7 : dayOfWeek;
-
   return availableDays.includes(dayNumber);
 }
 
-/**
- * Get all staff who should receive daily agenda for a given date
- * This includes staff who:
- * 1. Are active
- * 2. Are available on the given day
- */
 export function getStaffForDailyAgenda(
-  staff: Array<{
-    id: string;
-    email: string;
-    status: 'active' | 'inactive';
-    available_days: number[];
-  }>,
+  staff: Array<{ id: string; email: string; status: 'active' | 'inactive'; available_days: number[] }>,
   date: Date,
+  context?: TimezoneContext,
+  options?: ResolveOptions,
 ): Array<{ id: string; email: string }> {
   return staff
     .filter(member =>
       member.status === 'active' &&
-      isStaffAvailableOnDay(member.available_days, date),
+      isStaffAvailableOnDay(member.available_days, date, context, options)
     )
-    .map(member => ({
-      id: member.id,
-      email: member.email,
-    }));
+    .map(member => ({ id: member.id, email: member.email }));
 }
 
-/**
- * Format appointment time for display in Dubai timezone
- */
 export function formatAppointmentTime(
   appointmentDate: string,
   startTime: string,
   durationMinutes: number,
-): { startTime: string; endTime: string } {
-  const startDateTime = parseISO(`${appointmentDate}T${startTime}:00`);
-  const endDateTime = new Date(startDateTime.getTime() + durationMinutes * 60000);
+  context?: TimezoneContext,
+  options?: ResolveOptions,
+): { startTime: string; endTime: string; timezone: TimezoneResolution } {
+  const window = formatAppointmentWindow(appointmentDate, startTime, durationMinutes, context, options);
 
   return {
-    startTime: formatDubaiTime(startDateTime),
-    endTime: formatDubaiTime(endDateTime),
+    startTime: window.startLocal,
+    endTime: window.endLocal,
+    timezone: window.timezone,
   };
 }
 
-/**
- * Get timezone offset for Dubai
- */
 export function getDubaiTimezoneOffset(): number {
-  const now = new Date();
-  const dubaiTime = toDubaiTime(now);
-  const utcTime = new Date(now.getTime() + (now.getTimezoneOffset() * 60000));
-
-  return (dubaiTime.getTime() - utcTime.getTime()) / (1000 * 60 * 60); // Hours
+  return resolveTimezone(legacyContext).offsetMinutes;
 }
 
-/**
- * Validate timezone string
- */
-export function isValidTimezone(timezone: string): boolean {
-  try {
-    Intl.DateTimeFormat(undefined, { timeZone: timezone });
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-/**
- * Get all available timezones (for future use)
- */
-export function getAvailableTimezones(): string[] {
-  return Intl.supportedValuesOf('timeZone');
-}
-
-/**
- * Check if Dubai timezone is supported
- */
 export function isDubaiTimezoneSupported(): boolean {
-  return isValidTimezone(DUBAI_TIMEZONE);
+  return isValidTimezone(LEGACY_TIMEZONE);
 }
 
-// ============================================================================
-// LEGACY COMPATIBILITY FUNCTIONS (from date.ts)
-// ============================================================================
-
-/**
- * Convert Asia/Dubai time to UTC for storage (legacy compatibility)
- * @deprecated Use fromDubaiTime instead
- */
-export function toUTC(date: Date | string): Date {
-  const dateObj = typeof date === 'string' ? parseISO(date) : date;
-  // JavaScript automatically converts timezone-aware dates to UTC
-  // So if the input was Asia/Dubai time, it's already converted to UTC
-  return dateObj;
-}
-
-/**
- * Convert UTC time to Asia/Dubai timezone for display (legacy compatibility)
- * @deprecated Use toDubaiTime instead
- */
-export function toLocal(date: Date | string): Date {
-  const dateObj = typeof date === 'string' ? parseISO(date) : date;
-  return toDubaiTime(dateObj);
-}
-
-/**
- * Format date in Asia/Dubai timezone for display (legacy compatibility)
- * @deprecated Use formatDubaiDate instead
- */
 export function formatDateInTimezone(
-  date: Date | string,
+  date: DateInput,
   formatStr: string = DATE_FMT,
-  timezone: string = TZ,
+  timezone: string = LEGACY_TIMEZONE,
 ): string {
-  const dateObj = typeof date === 'string' ? parseISO(date) : date;
-
-  if (!isValid(dateObj)) {
+  const candidate = normalizeTimezone(timezone);
+  if (!candidate) {
     return 'Invalid date';
   }
-
-  // Convert to Asia/Dubai timezone if needed
-  const localDate = timezone === TZ ? toDubaiTime(dateObj) : dateObj;
-  return format(localDate, formatStr);
-}
-
-/**
- * Get current date in Asia/Dubai timezone (legacy compatibility)
- * @deprecated Use getCurrentDubaiTime instead
- */
-export function nowInTimezone(timezone: string = TZ): Date {
-  if (timezone === TZ) {
-    return getCurrentDubaiTime();
+  if (!isValidTimezone(candidate)) {
+    return 'Invalid date';
   }
-  return new Date();
+  const parsed = typeof date === 'string' ? parseISO(date) : date;
+  if (!isValid(parsed)) {
+    return 'Invalid date';
+  }
+  const zoned = toZonedTime(parsed, candidate);
+  return format(zoned, formatStr);
 }
 
-/**
- * Convert time string (HH:mm) to UTC Date object
- */
+export function nowInTimezone(timezone: string = LEGACY_TIMEZONE): Date {
+  const candidate = normalizeTimezone(timezone);
+  if (!candidate || !isValidTimezone(candidate)) {
+    return new Date();
+  }
+  return toZonedTime(new Date(), candidate);
+}
+
 export function timeStringToUTC(timeString: string, date: Date = new Date()): Date {
   const [hours, minutes] = timeString.split(':').map(Number);
   const localDate = new Date(date);
@@ -334,52 +671,35 @@ export function timeStringToUTC(timeString: string, date: Date = new Date()): Da
   return fromDubaiTime(localDate);
 }
 
-/**
- * Convert UTC Date to time string (HH:mm) in Asia/Dubai timezone
- */
-export function utcToTimeString(utcDate: Date | string): string {
-  const dateObj = typeof utcDate === 'string' ? parseISO(utcDate) : utcDate;
-  const localDate = toDubaiTime(dateObj);
-  return format(localDate, TIME_FMT);
+export function utcToTimeString(utcDate: DateInput): string {
+  const dateObj = parseDateInput(utcDate);
+  return formatDubaiTime(dateObj, TIME_FMT);
 }
 
-/**
- * Convert date string (yyyy-MM-dd) to UTC Date object
- */
 export function dateStringToUTC(dateString: string, timeString: string = '00:00'): Date {
   const [year, month, day] = dateString.split('-').map(Number);
   const [hours, minutes] = timeString.split(':').map(Number);
-  const localDate = new Date(year, month - 1, day, hours, minutes, 0, 0);
+  const localDate = new Date(Date.UTC(year, month - 1, day, hours, minutes, 0, 0));
   return fromDubaiTime(localDate);
 }
 
-/**
- * Convert UTC Date to date string (yyyy-MM-dd) in Asia/Dubai timezone
- */
-export function utcToDateString(utcDate: Date | string): string {
-  const dateObj = typeof utcDate === 'string' ? parseISO(utcDate) : utcDate;
-  const localDate = toDubaiTime(dateObj);
-  return format(localDate, ISO_DATE_FMT);
+export function utcToDateString(utcDate: DateInput): string {
+  return formatDubaiDate(parseDateInput(utcDate), ISO_DATE_FMT);
 }
 
-/**
- * Get appointment start time in UTC
- */
 export function getAppointmentStartTimeUTC(appointmentDate: string, startTime: string): Date {
   return dateStringToUTC(appointmentDate, startTime);
 }
 
-/**
- * Get appointment end time in UTC
- */
-export function getAppointmentEndTimeUTC(appointmentDate: string, startTime: string, durationMinutes: number): Date {
+export function getAppointmentEndTimeUTC(
+  appointmentDate: string,
+  startTime: string,
+  durationMinutes: number,
+): Date {
   const startUTC = getAppointmentStartTimeUTC(appointmentDate, startTime);
   return addMinutes(startUTC, durationMinutes);
 }
 
-/**
- * Format appointment time range for display
- */
 export function formatAppointmentTimeRange(
   appointmentDate: string,
   startTime: string,
@@ -388,17 +708,13 @@ export function formatAppointmentTimeRange(
   const startUTC = getAppointmentStartTimeUTC(appointmentDate, startTime);
   const endUTC = getAppointmentEndTimeUTC(appointmentDate, startTime, durationMinutes);
 
-  const startDisplay = format(toDubaiTime(startUTC), TIME_FMT);
-  const endDisplay = format(toDubaiTime(endUTC), TIME_FMT);
+  const startDisplay = formatDubaiTime(startUTC, TIME_FMT);
+  const endDisplay = formatDubaiTime(endUTC, TIME_FMT);
 
   return `${startDisplay} - ${endDisplay}`;
 }
 
-/**
- * Format time string to HH:MM format (removes seconds if present)
- */
 export function formatTimeToHHMM(timeString: string): string {
-  // Handle both HH:MM:SS and HH:MM formats
   if (timeString.includes(':')) {
     const parts = timeString.split(':');
     if (parts.length >= 2) {
@@ -408,9 +724,6 @@ export function formatTimeToHHMM(timeString: string): string {
   return timeString;
 }
 
-/**
- * Check if two appointments overlap
- */
 export function appointmentsOverlap(
   date1: string,
   startTime1: string,
@@ -427,13 +740,10 @@ export function appointmentsOverlap(
   return start1 < end2 && start2 < end1;
 }
 
-/**
- * Get working hours in Asia/Dubai timezone
- */
 export function getWorkingHoursInTimezone(
   startTime: string,
   endTime: string,
-  timezone: string = TZ,
+  timezone: string = LEGACY_TIMEZONE,
 ): { start: Date; end: Date } {
   const today = new Date();
   const startDate = new Date(today);
@@ -445,7 +755,7 @@ export function getWorkingHoursInTimezone(
   startDate.setHours(startHours, startMinutes, 0, 0);
   endDate.setHours(endHours, endMinutes, 0, 0);
 
-  if (timezone === TZ) {
+  if (timezone === LEGACY_TIMEZONE) {
     return {
       start: fromDubaiTime(startDate),
       end: fromDubaiTime(endDate),
@@ -458,14 +768,7 @@ export function getWorkingHoursInTimezone(
   };
 }
 
-/**
- * Check if time is within working hours
- */
-export function isWithinWorkingHours(
-  time: string,
-  startTime: string,
-  endTime: string,
-): boolean {
+export function isWithinWorkingHours(time: string, startTime: string, endTime: string): boolean {
   const [timeHours, timeMinutes] = time.split(':').map(Number);
   const [startHours, startMinutes] = startTime.split(':').map(Number);
   const [endHours, endMinutes] = endTime.split(':').map(Number);
@@ -477,138 +780,71 @@ export function isWithinWorkingHours(
   return timeMinutesTotal >= startMinutesTotal && timeMinutesTotal <= endMinutesTotal;
 }
 
-/**
- * Get timezone offset in minutes
- */
 export function getTimezoneOffset(): number {
-  // Asia/Dubai is UTC+4, so offset is 240 minutes
-  return 240;
+  return getDubaiTimezoneOffset();
 }
 
-/**
- * Format date for display in Asia/Dubai timezone (legacy compatibility)
- * @deprecated Use formatDubaiDate instead
- */
-export function formatDate(
-  date: Date | string,
-  formatStr: string = DATE_FMT,
-): string {
-  return formatDateInTimezone(date, formatStr, TZ);
+export function formatDate(date: DateInput, formatStr: string = DATE_FMT): string {
+  return formatDubaiDate(date, formatStr);
 }
 
-/**
- * Format time for display in Asia/Dubai timezone (legacy compatibility)
- * @deprecated Use formatDubaiTime instead
- */
-export function formatTime(
-  date: Date | string,
-  formatStr: string = TIME_FMT,
-): string {
-  const dateObj = typeof date === 'string' ? parseISO(date) : date;
-
-  if (!isValid(dateObj)) {
-    return 'Invalid time';
-  }
-
-  const localDate = toDubaiTime(dateObj);
-  return format(localDate, formatStr);
+export function formatTime(date: DateInput, formatStr: string = TIME_FMT): string {
+  return formatDubaiTime(date, formatStr);
 }
 
-/**
- * Format datetime for display in Asia/Dubai timezone (legacy compatibility)
- * @deprecated Use formatDubaiDate and formatDubaiTime instead
- */
-export function formatDateTime(
-  date: Date | string,
-  formatStr: string = DATETIME_FMT,
-): string {
-  const dateObj = typeof date === 'string' ? parseISO(date) : date;
-
-  if (!isValid(dateObj)) {
-    return 'Invalid datetime';
-  }
-
-  const localDate = toDubaiTime(dateObj);
-  return format(localDate, formatStr);
+export function formatDateTime(date: DateInput, formatStr: string = DATETIME_FMT): string {
+  return formatInResolvedTimezone(date, formatStr, legacyContext);
 }
 
-/**
- * Get current date in Asia/Dubai timezone (legacy compatibility)
- * @deprecated Use getCurrentDubaiTime instead
- */
 export function now(): Date {
   return getCurrentDubaiTime();
 }
 
-/**
- * Get start of week (Monday) in Asia/Dubai timezone
- */
 export function startOfWeekLocal(date: Date = getCurrentDubaiTime()): Date {
   return startOfWeek(date, { weekStartsOn: 1 });
 }
 
-/**
- * Get end of week (Sunday) in Asia/Dubai timezone
- */
 export function endOfWeekLocal(date: Date = getCurrentDubaiTime()): Date {
   return endOfWeek(date, { weekStartsOn: 1 });
 }
 
-/**
- * Add days to date in Asia/Dubai timezone
- */
 export function addDaysLocal(date: Date, days: number): Date {
   return addDays(date, days);
 }
 
-/**
- * Subtract days from date in Asia/Dubai timezone
- */
 export function subDaysLocal(date: Date, days: number): Date {
   return subDays(date, days);
 }
 
-/**
- * Check if date is today in Asia/Dubai timezone
- */
-export function isToday(date: Date | string): boolean {
+export function isToday(date: DateInput): boolean {
   const dateObj = typeof date === 'string' ? parseISO(date) : date;
   const today = getCurrentDubaiTime();
-
   return isSameDay(dateObj, today);
 }
 
-/**
- * Check if date is in the past in Asia/Dubai timezone
- */
-export function isPast(date: Date | string): boolean {
+export function isPast(date: DateInput): boolean {
   const dateObj = typeof date === 'string' ? parseISO(date) : date;
   return dateObj < getCurrentDubaiTime();
 }
 
-/**
- * Check if date is in the future in Asia/Dubai timezone
- */
-export function isFuture(date: Date | string): boolean {
+export function isFuture(date: DateInput): boolean {
   const dateObj = typeof date === 'string' ? parseISO(date) : date;
   return dateObj > getCurrentDubaiTime();
 }
 
-/**
- * Get relative time string (e.g., "2 hours ago", "in 3 days")
- */
-export function getRelativeTime(date: Date | string): string {
+export function getRelativeTime(date: DateInput): string {
   const dateObj = typeof date === 'string' ? parseISO(date) : date;
-  const now = new Date();
-  const diffInMs = dateObj.getTime() - now.getTime();
+  const nowDate = new Date();
+  const diffInMs = dateObj.getTime() - nowDate.getTime();
   const diffInMinutes = Math.floor(diffInMs / (1000 * 60));
   const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
   const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
 
   if (Math.abs(diffInMinutes) < 60) {
-    return diffInMinutes === 0
-      ? 'now'
-      : `${Math.abs(diffInMinutes)} minutes ${diffInMinutes > 0 ? 'from now' : 'ago'}`;
+    if (diffInMinutes === 0) {
+      return 'now';
+    }
+    return `${Math.abs(diffInMinutes)} minutes ${diffInMinutes > 0 ? 'from now' : 'ago'}`;
   }
 
   if (Math.abs(diffInHours) < 24) {
@@ -622,33 +858,27 @@ export function getRelativeTime(date: Date | string): string {
   return formatDubaiDate(dateObj);
 }
 
-/**
- * Format date for email subject lines
- * Returns format like "9, Sep" or "10, Sep" for today/tomorrow
- */
 export function formatEmailSubjectDate(date: Date): string {
-  const dubaiDate = toDubaiTime(date);
-  const day = dubaiDate.getDate();
-  const month = dubaiDate.toLocaleDateString('en-US', { month: 'short' });
+  const localDate = toDubaiTime(date);
+  const day = localDate.getDate();
+  const month = localDate.toLocaleDateString('en-US', { month: 'short' });
   return `${day}, ${month}`;
 }
 
-/**
- * Get relative day name for email subjects
- * Returns "Today", "Tomorrow", or the actual day name
- */
 export function getRelativeDayName(date: Date): string {
   const today = getTodayDubai();
   const tomorrow = addDays(today, 1);
 
   if (isSameDay(date, today)) {
     return 'Today';
-  } else if (isSameDay(date, tomorrow)) {
-    return 'Tomorrow';
-  } else {
-    return date.toLocaleDateString('en-US', {
-      weekday: 'long',
-      timeZone: 'Asia/Dubai'
-    });
   }
+
+  if (isSameDay(date, tomorrow)) {
+    return 'Tomorrow';
+  }
+
+  return date.toLocaleDateString('en-US', {
+    weekday: 'long',
+    timeZone: LEGACY_TIMEZONE,
+  });
 }

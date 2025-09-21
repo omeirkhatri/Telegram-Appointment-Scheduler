@@ -4,10 +4,11 @@ import { NextRequest, NextResponse } from 'next/server';
 // GET /api/appointments/[id]/staff - Get staff assignments for an appointment
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    const staffAssignments = await appointmentStaffService.getStaffForAppointment(params.id);
+    const { id } = await params;
+    const staffAssignments = await appointmentStaffService.getStaffForAppointment(id);
 
     return NextResponse.json({
       success: true,

@@ -57,6 +57,14 @@ export class PatientPage extends BasePage {
       await this.page.fill(selectors.patientForm.googleMapsLink, patientData.googleMapsLink);
     }
 
+    if (patientData.latitude) {
+      await this.page.fill(selectors.patientForm.latitude, patientData.latitude);
+    }
+
+    if (patientData.longitude) {
+      await this.page.fill(selectors.patientForm.longitude, patientData.longitude);
+    }
+
     if (patientData.medicalNotes) {
       await this.page.fill(selectors.patientForm.medicalNotes, patientData.medicalNotes);
     }
@@ -216,6 +224,103 @@ export class AppointmentPage extends BasePage {
 
     await event.dragTo(targetDate);
     await this.waitForLoadingToFinish();
+  }
+
+  // Map view methods
+  async switchToMapView() {
+    await this.page.click('[data-testid="map-view-option"]');
+    await this.page.waitForSelector('[data-testid="appointment-map-view"]', { timeout: 10000 });
+  }
+
+  async switchToCalendarView() {
+    await this.page.click('[data-testid="calendar-view-option"]');
+    await this.page.waitForSelector('[data-testid="appointment-calendar"]', { timeout: 5000 });
+  }
+
+  async switchToTableView() {
+    await this.page.click('[data-testid="table-view-option"]');
+    await this.page.waitForSelector('[data-testid="appointment-table"]', { timeout: 5000 });
+  }
+
+  async clickOnMap(position: { x: number; y: number }) {
+    await this.page.locator('[data-testid="appointment-map-view"]').click({ position });
+  }
+
+  async clickOnMapMarker(index: number = 0) {
+    await this.page.locator('[data-testid="map-marker"]').nth(index).click();
+  }
+
+  async rightClickOnMapMarker(index: number = 0) {
+    await this.page.locator('[data-testid="map-marker"]').nth(index).click({ button: 'right' });
+  }
+
+  async expectMapVisible() {
+    await expect(this.page.locator('[data-testid="appointment-map-view"]')).toBeVisible();
+  }
+
+  async expectMapMarkerCount(count: number) {
+    await expect(this.page.locator('[data-testid="map-marker"]')).toHaveCount(count);
+  }
+
+  async expectMapClusterVisible() {
+    await expect(this.page.locator('[data-testid="map-cluster"]')).toBeVisible();
+  }
+
+  async expectMapInfoWindowVisible() {
+    await expect(this.page.locator('[data-testid="map-info-window"]')).toBeVisible();
+  }
+
+  async expectMapErrorVisible() {
+    await expect(this.page.locator('[data-testid="map-error"]')).toBeVisible();
+  }
+
+  async zoomInMap() {
+    await this.page.click('[data-testid="zoom-in-button"]');
+  }
+
+  async zoomOutMap() {
+    await this.page.click('[data-testid="zoom-out-button"]');
+  }
+
+  async navigateToNextDay() {
+    await this.page.click('[data-testid="next-day-button"]');
+  }
+
+  async navigateToPreviousDay() {
+    await this.page.click('[data-testid="previous-day-button"]');
+  }
+
+  async navigateToToday() {
+    await this.page.click('[data-testid="today-button"]');
+  }
+
+  async switchToSatelliteView() {
+    await this.page.click('[data-testid="satellite-view-button"]');
+  }
+
+  async switchToStreetView() {
+    await this.page.click('[data-testid="street-view-button"]');
+  }
+
+  async applyAppointmentTypeFilter(appointmentType: string) {
+    await this.page.click('[data-testid="appointment-type-filter"]');
+    await this.page.click(`[data-testid="filter-${appointmentType}"]`);
+  }
+
+  async searchAppointments(query: string) {
+    await this.page.fill('[data-testid="appointment-search"]', query);
+  }
+
+  async clearSearch() {
+    await this.page.fill('[data-testid="appointment-search"]', '');
+  }
+
+  async expectMapEmptyState() {
+    await expect(this.page.locator('[data-testid="map-empty-state"]')).toBeVisible();
+  }
+
+  async expectMapEmptyMessage(message: string) {
+    await expect(this.page.locator('[data-testid="map-empty-message"]')).toContainText(message);
   }
 }
 

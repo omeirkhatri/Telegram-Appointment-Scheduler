@@ -1,7 +1,20 @@
 import { supabase } from '@/lib/supabase';
 import { auditTrailService } from '@/services';
 import type { CSVExportData, GenerateReportRequest, ReportFilters } from '@/types/reports';
+import { buildTimezoneArtifacts } from '@/lib/timezoneArtifacts';
+import { formatInResolvedTimezone, type TimezoneContext } from '@/utils/timezone';
 import { NextRequest, NextResponse } from 'next/server';
+import {
+  addVersionHeaders,
+  buildTimezoneContext,
+  createErrorResponse,
+  formatResponseForVersion,
+  shouldIncludeTimezoneMetadata,
+  shouldUseLegacyFormat,
+  validateApiVersion,
+} from '@/lib/apiUtils';
+import { resolveTimezone } from '@/utils/timezone';
+import type { TimezoneAwareReportData } from '@/types/api';
 
 // POST /api/reports/export - Generate and export reports
 export async function POST(request: NextRequest) {
@@ -21,12 +34,36 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const versionValidation = validateApiVersion(request);
+    if (!versionValidation.valid) {
+      const errorResponse = createErrorResponse(
+        versionValidation.error!,
+        { supportedVersions: ['1.0', '1.1'] },
+        request,
+      );
+      return NextResponse.json(errorResponse, { status: 400 });
+    }
+
+    const apiVersion = versionValidation.version;
+    const useLegacyFormat = shouldUseLegacyFormat(apiVersion);
+
+    const includeTimezone = shouldIncludeTimezoneMetadata(request);
+    const requestTimezoneContext = await buildTimezoneContext(request);
+
     // Generate report data based on type
     let exportData: CSVExportData;
 
     switch (type) {
       case 'appointments':
-        exportData = await generateAppointmentsReport(filters, dateRange, includeFields, sortBy, sortOrder);
+        exportData = await generateAppointmentsReport(
+          filters,
+          dateRange,
+          includeFields,
+          sortBy,
+          sortOrder,
+          requestTimezoneContext,
+          includeTimezone,
+        );
         break;
       case 'patients':
         exportData = await generatePatientsReport(filters, dateRange, includeFields, sortBy, sortOrder);
@@ -53,6 +90,9 @@ export async function POST(request: NextRequest) {
         );
     }
 
+    // Build timezone context and resolution
+    const timezoneResolution = resolveTimezone(requestTimezoneContext);
+
     // Convert to CSV format
     const csvContent = convertToCSV(exportData);
 
@@ -60,8 +100,26 @@ export async function POST(request: NextRequest) {
     const timestamp = new Date().toISOString().split('T')[0];
     const filename = `${type}_report_${timestamp}.csv`;
 
-    // Return CSV content as downloadable response
-    return new NextResponse(csvContent, {
+    // If timezone metadata is requested and not using legacy format, return JSON with metadata
+    if (includeTimezone && !useLegacyFormat) {
+      const timezoneAwareData: TimezoneAwareReportData = {
+        headers: exportData.headers,
+        rows: exportData.rows,
+        metadata: {
+          generatedAt: new Date().toISOString(),
+          timezone: timezoneResolution,
+          reportType: type,
+          dateRange: dateRange,
+        },
+      };
+
+      const versionedResponse = formatResponseForVersion(timezoneAwareData, request, timezoneResolution);
+      const jsonResponse = NextResponse.json(versionedResponse);
+      return await addVersionHeaders(jsonResponse, request);
+    }
+
+    // Return CSV content as downloadable response for legacy format or when timezone metadata not requested
+    const csvResponse = new NextResponse(csvContent, {
       status: 200,
       headers: {
         'Content-Type': 'text/csv',
@@ -70,15 +128,16 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    return await addVersionHeaders(csvResponse, request);
+
   } catch (error) {
     console.error('Error generating report:', error);
-    return NextResponse.json(
-      {
-        success: false,
-        error: error instanceof Error ? error.message : 'Failed to generate report',
-      },
-      { status: 500 },
+    const errorResponse = createErrorResponse(
+      error instanceof Error ? error.message : 'Failed to generate report',
+      undefined,
+      request
     );
+    return NextResponse.json(errorResponse, { status: 500 });
   }
 }
 
@@ -88,12 +147,14 @@ async function generateAppointmentsReport(
   includeFields?: string[],
   sortBy?: string,
   sortOrder?: 'asc' | 'desc',
+  timezoneContext?: TimezoneContext,
+  includeTimezoneMetadata: boolean = false,
 ): Promise<CSVExportData> {
   let query = supabase
     .from('appointments')
     .select(`
       *,
-      patients(name, phone, area, city),
+      patients(name, phone, area, city, latitude, longitude, google_maps_link),
       appointment_staff(
         staff_id,
         staff(first_name, last_name, staff_type)
@@ -148,9 +209,13 @@ async function generateAppointmentsReport(
     'Notes',
     'Created At',
     'Updated At',
+    ...(timezoneContext && includeTimezoneMetadata ? ['Timezone', 'Timezone Abbreviation'] : []),
   ];
 
   const headers = includeFields ? includeFields : defaultHeaders;
+
+  // Get timezone metadata if context is provided
+  const timezoneMetadata = timezoneContext && includeTimezoneMetadata ? buildTimezoneArtifacts(timezoneContext) : null;
 
   // Convert appointments to CSV rows
   const rows = (appointments || []).map(appointment => {
@@ -159,10 +224,19 @@ async function generateAppointmentsReport(
       `${as.staff?.first_name} ${as.staff?.last_name} (${as.staff?.staff_type})`,
     ).join(', ') || '';
 
+    // Format dates with timezone context if available
+    const formattedDate = timezoneContext 
+      ? formatInResolvedTimezone(appointment.appointment_date, 'dd/MM/yyyy', timezoneContext)
+      : appointment.appointment_date;
+    
+    const formattedStartTime = timezoneContext
+      ? formatInResolvedTimezone(`${appointment.appointment_date}T${appointment.start_time}:00`, 'HH:mm', timezoneContext)
+      : appointment.start_time;
+
     const row: Record<string, any> = {
       'ID': appointment.id,
-      'Date': appointment.appointment_date,
-      'Start Time': appointment.start_time,
+      'Date': formattedDate,
+      'Start Time': formattedStartTime,
       'Duration (min)': appointment.duration_minutes,
       'Type': appointment.appointment_type,
       'Status': appointment.status,
@@ -176,6 +250,10 @@ async function generateAppointmentsReport(
       'Notes': appointment.notes || '',
       'Created At': appointment.created_at,
       'Updated At': appointment.updated_at,
+      ...(timezoneMetadata ? {
+        'Timezone': timezoneMetadata.resolution.timezone,
+        'Timezone Abbreviation': timezoneMetadata.resolution.abbreviation,
+      } : {}),
     };
 
     // Filter to only include requested fields

@@ -1,8 +1,9 @@
 import { supabase } from '@/lib/supabase';
+import { buildTimezoneArtifacts, formatLocalDate, getCurrentLocalTime, type TimezoneArtifacts } from '@/lib/timezoneArtifacts';
+import type { TimezoneContext } from '@/types/timezone';
 import { staffService } from '@/services/staffService';
 import { telegramCommandFormatters } from '@/utils/telegramCommandFormatters';
 import { telegramValidationService } from '@/utils/telegramValidation';
-import { DUBAI_TIMEZONE, formatDubaiDate, getCurrentDubaiTime, toDubaiTime } from '@/utils/timezone';
 import { addDays, endOfWeek, format, startOfWeek } from 'date-fns';
 
 export interface ScheduleAppointment {
@@ -44,6 +45,10 @@ export interface CommandResult {
 }
 
 export class TelegramCommandService {
+  private getTimezoneArtifacts(overrides: Partial<TimezoneContext> = {}): TimezoneArtifacts {
+    return buildTimezoneArtifacts(overrides);
+  }
+
   /**
    * Handle /today command - Get today's schedule
    */
@@ -93,11 +98,17 @@ export class TelegramCommandService {
         };
       }
 
-      // Get appointments
-      const today = getCurrentDubaiTime();
-      const appointments = await this.getStaffAppointmentsForDate(staff.id, today);
+      // Resolve timezone context
+      const timezone = this.getTimezoneArtifacts();
 
-      const message = telegramCommandFormatters.formatTodaySchedule(staff, appointments);
+      // Get appointments
+      const today = getCurrentLocalTime(timezone);
+      const appointments = await this.getStaffAppointmentsForDate(staff.id, today, timezone);
+
+      const message = telegramCommandFormatters.formatTodaySchedule(staff, appointments, {
+        timezone: timezone.resolution.timezone,
+        localDate: today,
+      });
 
       // Record successful command usage
       telegramValidationService.recordCommandUsage(telegramUserId, '/today', true);
@@ -168,11 +179,16 @@ export class TelegramCommandService {
         };
       }
 
-      // Get appointments
-      const tomorrow = addDays(getCurrentDubaiTime(), 1);
-      const appointments = await this.getStaffAppointmentsForDate(staff.id, tomorrow);
+      const timezone = this.getTimezoneArtifacts();
 
-      const message = telegramCommandFormatters.formatTomorrowSchedule(staff, appointments);
+      // Get appointments
+      const tomorrow = addDays(getCurrentLocalTime(timezone), 1);
+      const appointments = await this.getStaffAppointmentsForDate(staff.id, tomorrow, timezone);
+
+      const message = telegramCommandFormatters.formatTomorrowSchedule(staff, appointments, {
+        timezone: timezone.resolution.timezone,
+        localDate: tomorrow,
+      });
 
       // Record successful command usage
       telegramValidationService.recordCommandUsage(telegramUserId, '/tomorrow', true);
@@ -243,14 +259,20 @@ export class TelegramCommandService {
         };
       }
 
+      const timezone = this.getTimezoneArtifacts();
+
       // Get appointments
-      const now = getCurrentDubaiTime();
+      const now = getCurrentLocalTime(timezone);
       const weekStart = startOfWeek(now, { weekStartsOn: 1 }); // Monday
       const weekEnd = endOfWeek(now, { weekStartsOn: 1 }); // Sunday
 
-      const appointments = await this.getStaffAppointmentsForDateRange(staff.id, weekStart, weekEnd);
+      const appointments = await this.getStaffAppointmentsForDateRange(staff.id, weekStart, weekEnd, timezone);
 
-      const message = telegramCommandFormatters.formatWeekSchedule(staff, appointments);
+      const message = telegramCommandFormatters.formatWeekSchedule(staff, appointments, {
+        timezone: timezone.resolution.timezone,
+        weekStart,
+        weekEnd,
+      });
 
       // Record successful command usage
       telegramValidationService.recordCommandUsage(telegramUserId, '/week', true);
@@ -310,7 +332,10 @@ export class TelegramCommandService {
         };
       }
 
-      const message = telegramCommandFormatters.formatHelpMessage();
+      const timezone = this.getTimezoneArtifacts();
+      const message = telegramCommandFormatters.formatHelpMessage(
+        `${timezone.resolution.timezone} (${timezone.resolution.abbreviation})`,
+      );
 
       // Record successful command usage
       telegramValidationService.recordCommandUsage(telegramUserId, '/help', true);
@@ -441,15 +466,17 @@ export class TelegramCommandService {
         };
       }
 
+      const timezone = this.getTimezoneArtifacts();
+
       // Get status information
-      const now = getCurrentDubaiTime();
+      const now = getCurrentLocalTime(timezone);
       const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
       // Get today's appointments
-      const todayAppointments = await this.getStaffAppointmentsForDate(staff.id, today);
+      const todayAppointments = await this.getStaffAppointmentsForDate(staff.id, today, timezone);
 
       // Get next appointment (today or tomorrow)
-      const nextAppointment = await this.getNextAppointment(staff.id, now);
+      const nextAppointment = await this.getNextAppointment(staff.id, now, timezone);
 
       // Get current appointment if any
       const currentAppointment = this.getCurrentAppointment(todayAppointments, now);
@@ -458,7 +485,11 @@ export class TelegramCommandService {
         staff,
         todayAppointments,
         nextAppointment,
-        currentAppointment
+        currentAppointment,
+        {
+          timezone: timezone.resolution.timezone,
+          now,
+        },
       );
 
       // Record successful command usage
@@ -484,10 +515,12 @@ export class TelegramCommandService {
   /**
    * Get staff appointments for a specific date
    */
-  private async getStaffAppointmentsForDate(staffId: string, date: Date): Promise<ScheduleAppointment[]> {
-    // Convert to YYYY-MM-DD format for database query (ensure we get the date in Dubai timezone)
-    const dubaiDate = toDubaiTime(date);
-    const dateString = format(dubaiDate, 'yyyy-MM-dd');
+  private async getStaffAppointmentsForDate(
+    staffId: string,
+    date: Date,
+    timezone: TimezoneArtifacts,
+  ): Promise<ScheduleAppointment[]> {
+    const dateString = formatLocalDate(timezone, date, 'yyyy-MM-dd');
 
     const { data: appointmentStaff, error } = await supabase
       .from('appointment_staff')
@@ -511,7 +544,10 @@ export class TelegramCommandService {
             flat_villa_no,
             building_street,
             area,
-            city
+            city,
+            latitude,
+            longitude,
+            google_maps_link
           )
         ),
         staff!inner (
@@ -552,12 +588,14 @@ export class TelegramCommandService {
   /**
    * Get staff appointments for a date range
    */
-  private async getStaffAppointmentsForDateRange(staffId: string, startDate: Date, endDate: Date): Promise<ScheduleAppointment[]> {
-    // Convert to YYYY-MM-DD format for database query (ensure we get the date in Dubai timezone)
-    const startDubaiDate = toDubaiTime(startDate);
-    const endDubaiDate = toDubaiTime(endDate);
-    const startDateString = format(startDubaiDate, 'yyyy-MM-dd');
-    const endDateString = format(endDubaiDate, 'yyyy-MM-dd');
+  private async getStaffAppointmentsForDateRange(
+    staffId: string,
+    startDate: Date,
+    endDate: Date,
+    timezone: TimezoneArtifacts,
+  ): Promise<ScheduleAppointment[]> {
+    const startDateString = formatLocalDate(timezone, startDate, 'yyyy-MM-dd');
+    const endDateString = formatLocalDate(timezone, endDate, 'yyyy-MM-dd');
 
     const { data: appointmentStaff, error } = await supabase
       .from('appointment_staff')
@@ -581,7 +619,10 @@ export class TelegramCommandService {
             flat_villa_no,
             building_street,
             area,
-            city
+            city,
+            latitude,
+            longitude,
+            google_maps_link
           )
         ),
         staff!inner (
@@ -623,8 +664,12 @@ export class TelegramCommandService {
   /**
    * Get next appointment for staff
    */
-  private async getNextAppointment(staffId: string, fromDate: Date): Promise<ScheduleAppointment | null> {
-    const fromDateString = formatDubaiDate(fromDate);
+  private async getNextAppointment(
+    staffId: string,
+    fromDate: Date,
+    timezone: TimezoneArtifacts,
+  ): Promise<ScheduleAppointment | null> {
+    const fromDateString = formatLocalDate(timezone, fromDate, 'yyyy-MM-dd');
 
     const { data: appointmentStaff, error } = await supabase
       .from('appointment_staff')
@@ -648,7 +693,10 @@ export class TelegramCommandService {
             flat_villa_no,
             building_street,
             area,
-            city
+            city,
+            latitude,
+            longitude,
+            google_maps_link
           )
         ),
         staff!inner (
@@ -705,122 +753,6 @@ export class TelegramCommandService {
   }
 
   /**
-   * Format schedule message for a specific date
-   */
-  private formatScheduleMessage(title: string, staff: any, appointments: ScheduleAppointment[], date: Date): string {
-    const dateString = format(date, 'EEEE, d MMM yyyy', { timeZone: DUBAI_TIMEZONE });
-
-    let message = `📅 <b>${title} - ${dateString}</b>\n\n`;
-    message += `👤 <b>${staff.first_name} ${staff.last_name}</b>\n`;
-    message += `📊 <b>Total:</b> ${appointments.length} appointments\n\n`;
-
-    if (appointments.length === 0) {
-      message += `✅ No appointments scheduled.`;
-      return message;
-    }
-
-    appointments.forEach((appointment, index) => {
-      const startTime = appointment.start_time;
-      const endTime = this.getAppointmentEndTime(startTime, appointment.duration_minutes);
-
-      message += `${index + 1}. <b>${startTime} - ${endTime}</b>\n`;
-      message += `   🏥 ${this.formatAppointmentType(appointment.appointment_type)}\n`;
-      message += `   👤 ${appointment.patient.name}\n`;
-      message += `   📞 ${appointment.patient.phone}\n`;
-
-      if (appointment.patient.flat_villa_no || appointment.patient.building_street) {
-        const address = this.formatAddress(appointment.patient);
-        message += `   📍 ${address}\n`;
-      }
-
-      if (appointment.mini_notes) {
-        message += `   📝 ${appointment.mini_notes}\n`;
-      }
-
-      message += `\n`;
-    });
-
-    return message;
-  }
-
-  /**
-   * Format week schedule message
-   */
-  private formatWeekScheduleMessage(staff: any, appointments: ScheduleAppointment[], weekStart: Date, weekEnd: Date): string {
-    const weekStartString = format(weekStart, 'd MMM', { timeZone: DUBAI_TIMEZONE });
-    const weekEndString = format(weekEnd, 'd MMM yyyy', { timeZone: DUBAI_TIMEZONE });
-
-    let message = `📅 <b>This Week's Schedule - ${weekStartString} to ${weekEndString}</b>\n\n`;
-    message += `👤 <b>${staff.first_name} ${staff.last_name}</b>\n`;
-    message += `📊 <b>Total:</b> ${appointments.length} appointments\n\n`;
-
-    if (appointments.length === 0) {
-      message += `✅ No appointments scheduled this week.`;
-      return message;
-    }
-
-    // Group appointments by date
-    const appointmentsByDate = this.groupAppointmentsByDate(appointments);
-
-    Object.keys(appointmentsByDate).sort().forEach(date => {
-      const dayAppointments = appointmentsByDate[date];
-      const dayName = format(new Date(date), 'EEEE', { timeZone: DUBAI_TIMEZONE });
-
-      message += `📅 <b>${dayName}, ${format(new Date(date), 'd MMM', { timeZone: DUBAI_TIMEZONE })}</b>\n`;
-
-      dayAppointments.forEach((appointment, index) => {
-        const startTime = appointment.start_time;
-        const endTime = this.getAppointmentEndTime(startTime, appointment.duration_minutes);
-
-        message += `   ${index + 1}. <b>${startTime} - ${endTime}</b>\n`;
-        message += `      🏥 ${this.formatAppointmentType(appointment.appointment_type)}\n`;
-        message += `      👤 ${appointment.patient.name}\n`;
-
-        if (appointment.mini_notes) {
-          message += `      📝 ${appointment.mini_notes}\n`;
-        }
-
-        message += `\n`;
-      });
-    });
-
-    return message;
-  }
-
-  /**
-   * Format appointment summary for status command
-   */
-  private formatAppointmentSummary(appointment: ScheduleAppointment): string {
-    const startTime = appointment.start_time;
-    const endTime = this.getAppointmentEndTime(startTime, appointment.duration_minutes);
-    const dateString = format(new Date(appointment.appointment_date), 'EEEE, d MMM', { timeZone: DUBAI_TIMEZONE });
-
-    let summary = `   🏥 ${this.formatAppointmentType(appointment.appointment_type)}\n`;
-    summary += `   👤 ${appointment.patient.name}\n`;
-    summary += `   📅 ${dateString} at ${startTime} - ${endTime}\n`;
-
-    if (appointment.mini_notes) {
-      summary += `   📝 ${appointment.mini_notes}\n`;
-    }
-
-    return summary;
-  }
-
-  /**
-   * Group appointments by date
-   */
-  private groupAppointmentsByDate(appointments: ScheduleAppointment[]): Record<string, ScheduleAppointment[]> {
-    return appointments.reduce((groups, appointment) => {
-      const date = appointment.appointment_date;
-      if (!groups[date]) {
-        groups[date] = [];
-      }
-      groups[date].push(appointment);
-      return groups;
-    }, {} as Record<string, ScheduleAppointment[]>);
-  }
-
-  /**
    * Get appointment end time
    */
   private getAppointmentEndTime(startTime: string, durationMinutes: number): string {
@@ -831,47 +763,6 @@ export class TelegramCommandService {
     return end.toTimeString().slice(0, 5); // HH:MM format
   }
 
-  /**
-   * Format appointment type
-   */
-  private formatAppointmentType(type: string): string {
-    const typeMap: Record<string, string> = {
-      'doctor_on_call': 'Doctor on Call',
-      'lab_test': 'Lab Test',
-      'teleconsultation': 'Teleconsultation',
-      'physiotherapy': 'Physiotherapy',
-      'caregiver': 'Caregiver',
-      'iv_therapy': 'IV Therapy',
-    };
-    return typeMap[type] || type;
-  }
-
-  /**
-   * Format staff type
-   */
-  private formatStaffType(type: string): string {
-    const typeMap: Record<string, string> = {
-      'doctor': 'Doctor',
-      'nurse': 'Nurse',
-      'physiotherapist': 'Physiotherapist',
-      'caregiver': 'Caregiver',
-      'driver': 'Driver',
-      'lab_technician': 'Lab Technician',
-    };
-    return typeMap[type] || type;
-  }
-
-  /**
-   * Format patient address
-   */
-  private formatAddress(patient: any): string {
-    const parts = [];
-    if (patient.flat_villa_no) parts.push(patient.flat_villa_no);
-    if (patient.building_street) parts.push(patient.building_street);
-    if (patient.area) parts.push(patient.area);
-    if (patient.city) parts.push(patient.city);
-    return parts.length > 0 ? parts.join(', ') : 'Address not provided';
-  }
 }
 
 // Export singleton instance

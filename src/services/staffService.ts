@@ -92,6 +92,14 @@ export class StaffService {
       throw new Error('Staff member not found');
     }
 
+    // Debug logging
+    console.log('🔍 StaffService.updateStaff:', {
+      staffId: id,
+      updates: updates,
+      telegramUserId: updates.telegram_user_id,
+      telegramVerified: updates.telegram_verified
+    });
+
     const { data, error } = await supabase
       .from('staff')
       .update(updates)

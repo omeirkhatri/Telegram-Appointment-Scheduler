@@ -306,16 +306,16 @@ npm run build
 npm start
 
 # Or use Docker
-docker-compose -f docker-compose.production.yml up
+docker-compose -f docker/docker-compose.production.yml up
 ```
 
 ### Docker Development
 ```bash
 # Set up and start all services with Docker
-./scripts/docker-setup.sh setup
+./docker/docker-setup.sh setup
 
 # Or manually:
-docker-compose up -d
+docker-compose -f docker/docker-compose.yml up -d
 ```
 
 ### Docker Service URLs

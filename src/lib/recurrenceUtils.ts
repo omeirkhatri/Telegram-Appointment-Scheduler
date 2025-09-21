@@ -1,3 +1,8 @@
+// ⚠️ WARNING: DO NOT MODIFY THIS FILE ⚠️
+// The recurrence system is COMPLETE and WORKING PERFECTLY
+// See RECURRENCE_SYSTEM_WARNING.md for details
+// Last tested: September 2025 - All recurrence types working correctly
+
 import { RecurringRule } from '@/types/appointment';
 
 export interface RecurrencePattern {

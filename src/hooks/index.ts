@@ -1,5 +1,6 @@
 // Custom hooks for data management
 export { useAppointments } from './useAppointments';
+export { useAppointmentStaff } from './useAppointmentStaff';
 export { usePatients } from './usePatients';
 export { useStaff } from './useStaff';
 
@@ -20,10 +21,10 @@ export {
     createStaffShortcuts, useKeyboardShortcuts
 } from './useKeyboardShortcuts';
 
-// Map and geocoding hooks
+// Map hooks (coordinate-based system - no geocoding)
 export {
-    useGeocoding, useGeocodingWithConfig, useGeocodingWithDefaults
-} from './useGeocoding';
+    useDebouncedMapNavigation, useDebouncedMapNavigationWithDate, useDebouncedMapNavigationWithDefaults
+} from './useDebouncedMapNavigation';
 export {
     useGoogleMaps, useGoogleMapsWithConfig, useGoogleMapsWithDefaults
 } from './useGoogleMaps';
@@ -36,3 +37,8 @@ export {
 export {
     useMapNavigation, useMapNavigationWithDate, useMapNavigationWithDefaults
 } from './useMapNavigation';
+
+// Performance monitoring hooks
+export {
+    useMapPerformanceMonitoring, useMapPerformanceMonitoringMinimal, useMapPerformanceMonitoringWithDefaults
+} from './useMapPerformanceMonitoring';

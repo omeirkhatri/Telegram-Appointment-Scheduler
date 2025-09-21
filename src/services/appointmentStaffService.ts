@@ -361,12 +361,51 @@ export class AppointmentStaffService {
       .from('appointment_staff')
       .select(`
         *,
-        appointment:appointments!inner(id, appointment_type, appointment_date, start_time, duration_minutes, status)
+        appointment:appointments!inner(
+          id,
+          patient_id,
+          appointment_type,
+          appointment_date,
+          start_time,
+          duration_minutes,
+          status,
+          custom_fields,
+          transportation_type,
+          transportation_method,
+          driver_id,
+          notes,
+          mini_notes,
+          full_notes,
+          pickup_instructions,
+          recurring_rule,
+          created_at,
+          updated_at,
+          patient:patients(
+            id,
+            name,
+            phone,
+            flat_villa_no,
+            building_street,
+            area,
+            city,
+            latitude,
+            longitude,
+            google_maps_link
+          )
+        ),
+        staff:staff(
+          id,
+          first_name,
+          last_name,
+          staff_type,
+          specialization,
+          phone,
+          email
+        )
       `)
       .gte('appointment.appointment_date', startDate)
       .lte('appointment.appointment_date', endDate)
-      .order('appointment.appointment_date', { ascending: true })
-      .order('appointment.start_time', { ascending: true });
+      .order('appointment_id', { ascending: true });
 
     if (error) {
       throw new Error(`Failed to fetch appointments with staff for date range: ${error.message}`);

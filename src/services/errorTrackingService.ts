@@ -480,43 +480,12 @@ export class ErrorTrackingService {
 
   /**
    * Create database tables
+   * Note: Tables are now created via database migrations
    */
   private async createTables(): Promise<void> {
-    const tables = [
-      {
-        name: 'error_tracking',
-        sql: `
-          CREATE TABLE IF NOT EXISTS error_tracking (
-            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-            error_id VARCHAR(255) NOT NULL UNIQUE,
-            error_type VARCHAR(100) NOT NULL,
-            message TEXT NOT NULL,
-            stack_trace TEXT,
-            context JSONB,
-            user_id UUID,
-            session_id VARCHAR(255),
-            request_id VARCHAR(255),
-            component VARCHAR(100),
-            severity VARCHAR(20) NOT NULL,
-            resolved BOOLEAN DEFAULT false,
-            resolved_at TIMESTAMPTZ,
-            resolved_by UUID,
-            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-          );
-        `,
-      },
-    ];
-
-    for (const table of tables) {
-      try {
-        const { error } = await this.supabase.rpc('exec_sql', { sql: table.sql });
-        if (error) {
-          console.warn(`⚠️ Could not create table ${table.name}:`, error.message);
-        }
-      } catch (error) {
-        console.warn(`⚠️ Could not create table ${table.name}:`, error);
-      }
-    }
+    // Tables are created via database migrations
+    // This method is kept for compatibility but does nothing
+    console.log('✅ Database tables are managed via migrations');
   }
 }
 

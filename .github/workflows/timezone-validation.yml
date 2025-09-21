@@ -1,0 +1,237 @@
+name: Timezone Validation
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  schedule:
+    # Run daily at 2 AM UTC to check for timezone data updates
+    - cron: '0 2 * * *'
+
+jobs:
+  timezone-data-freshness:
+    name: Timezone Data Freshness Check
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Check timezone data freshness
+      run: |
+        echo "Checking timezone data freshness..."
+        node -e "
+          const { execSync } = require('child_process');
+          const fs = require('fs');
+          const path = require('path');
+          
+          // Check if tzdata is available
+          try {
+            const tzdataVersion = execSync('zdump --version', { encoding: 'utf8' });
+            console.log('Timezone data version:', tzdataVersion.trim());
+          } catch (error) {
+            console.log('Warning: zdump not available, checking Node.js timezone data...');
+          }
+          
+          // Check Node.js timezone data
+          const nodeVersion = process.version;
+          console.log('Node.js version:', nodeVersion);
+          
+          // Test timezone resolution for current year and next year
+          const currentYear = new Date().getFullYear();
+          const nextYear = currentYear + 1;
+          
+          const testTimezones = ['Asia/Dubai', 'Europe/London', 'America/New_York'];
+          const testDates = [
+            \`\${currentYear}-01-01T00:00:00Z\`,
+            \`\${currentYear}-06-21T12:00:00Z\`,
+            \`\${currentYear}-12-31T23:59:59Z\`,
+            \`\${nextYear}-01-01T00:00:00Z\`,
+            \`\${nextYear}-06-21T12:00:00Z\`
+          ];
+          
+          let allTestsPassed = true;
+          
+          testTimezones.forEach(timezone => {
+            console.log(\`Testing timezone: \${timezone}\`);
+            testDates.forEach(dateStr => {
+              try {
+                const date = new Date(dateStr);
+                const localTime = new Date(date.toLocaleString('en-US', { timeZone: timezone }));
+                const utcTime = new Date(localTime.toLocaleString('en-US', { timeZone: 'UTC' }));
+                
+                if (Math.abs(utcTime.getTime() - date.getTime()) > 1000) {
+                  console.error(\`Timezone conversion failed for \${timezone} at \${dateStr}\`);
+                  allTestsPassed = false;
+                }
+              } catch (error) {
+                console.error(\`Error testing \${timezone} at \${dateStr}:\`, error.message);
+                allTestsPassed = false;
+              }
+            });
+          });
+          
+          if (!allTestsPassed) {
+            console.error('Timezone data freshness check failed!');
+            process.exit(1);
+          }
+          
+          console.log('Timezone data freshness check passed!');
+        "
+        
+    - name: Run timezone regression tests
+      run: npm test -- --testPathPattern="timezone-regression" --verbose
+      
+    - name: Check for hard-coded timezone references
+      run: |
+        echo "Checking for hard-coded timezone references..."
+        
+        # Check for hard-coded 'Asia/Dubai' references
+        if grep -r "Asia/Dubai" src/ --exclude-dir=node_modules --exclude="*.test.ts" --exclude="*.spec.ts"; then
+          echo "Error: Found hard-coded 'Asia/Dubai' references. Use timezone resolver instead."
+          exit 1
+        fi
+        
+        # Check for hard-coded timezone offsets
+        if grep -r "GMT+4\|UTC+4\|+04:00" src/ --exclude-dir=node_modules --exclude="*.test.ts" --exclude="*.spec.ts"; then
+          echo "Error: Found hard-coded timezone offsets. Use timezone resolver instead."
+          exit 1
+        fi
+        
+        # Check for hard-coded timezone abbreviations
+        if grep -r "GST\|GST" src/ --exclude-dir=node_modules --exclude="*.test.ts" --exclude="*.spec.ts"; then
+          echo "Error: Found hard-coded timezone abbreviations. Use timezone resolver instead."
+          exit 1
+        fi
+        
+        echo "No hard-coded timezone references found."
+        
+    - name: Run ESLint timezone rules
+      run: npm run lint -- --ext .ts,.tsx,.js,.jsx
+      
+    - name: Check timezone resolver usage
+      run: |
+        echo "Checking timezone resolver usage..."
+        
+        # Check that timezone resolver is being used
+        if ! grep -r "resolveTimezone\|buildTimezoneArtifacts" src/ --exclude-dir=node_modules --exclude="*.test.ts" --exclude="*.spec.ts"; then
+          echo "Warning: No timezone resolver usage found in source code."
+        fi
+        
+        # Check that old timezone helpers are not being used
+        if grep -r "formatInTimezone\|getTimezoneOffset" src/ --exclude-dir=node_modules --exclude="*.test.ts" --exclude="*.spec.ts"; then
+          echo "Warning: Found old timezone helper usage. Consider migrating to timezone resolver."
+        fi
+        
+        echo "Timezone resolver usage check completed."
+
+  static-analysis:
+    name: Static Analysis - Hard-coded Offsets
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Run ESLint with timezone rules
+      run: npm run lint -- --ext .ts,.tsx,.js,.jsx
+      
+    - name: Check for hard-coded timezone patterns
+      run: |
+        echo "Running comprehensive hard-coded timezone pattern check..."
+        
+        # Define patterns to check for
+        declare -a patterns=(
+          "Asia/Dubai"
+          "Europe/London"
+          "America/New_York"
+          "GMT+4"
+          "UTC+4"
+          "+04:00"
+          "GST"
+          "GMT"
+          "BST"
+          "EST"
+          "EDT"
+          "CET"
+          "CEST"
+        )
+        
+        # Check each pattern
+        for pattern in "${patterns[@]}"; do
+          echo "Checking for pattern: $pattern"
+          if grep -r "$pattern" src/ --exclude-dir=node_modules --exclude="*.test.ts" --exclude="*.spec.ts" --exclude="timezone-regression*.test.ts"; then
+            echo "Error: Found hard-coded timezone pattern '$pattern'. Use timezone resolver instead."
+            exit 1
+          fi
+        done
+        
+        echo "No hard-coded timezone patterns found."
+        
+    - name: Validate timezone resolver imports
+      run: |
+        echo "Validating timezone resolver imports..."
+        
+        # Check that timezone resolver is imported where needed
+        if ! grep -r "from '@/utils/timezone'" src/ --exclude-dir=node_modules --exclude="*.test.ts" --exclude="*.spec.ts"; then
+          echo "Warning: No timezone resolver imports found in source code."
+        fi
+        
+        # Check that timezone artifacts are imported where needed
+        if ! grep -r "from '@/lib/timezoneArtifacts'" src/ --exclude-dir=node_modules --exclude="*.test.ts" --exclude="*.spec.ts"; then
+          echo "Warning: No timezone artifacts imports found in source code."
+        fi
+        
+        echo "Timezone resolver import validation completed."
+
+  timezone-regression-tests:
+    name: Timezone Regression Tests
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        timezone: [Asia/Dubai, Europe/London, America/New_York]
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Set timezone environment variable
+      run: echo "TZ=${{ matrix.timezone }}" >> $GITHUB_ENV
+      
+    - name: Run timezone regression tests
+      run: npm test -- --testPathPattern="timezone-regression" --verbose
+      
+    - name: Run timezone cross-timezone tests
+      run: npm test -- --testPathPattern="timezone-cross-timezone" --verbose
+      
+    - name: Run timezone midnight boundary tests
+      run: npm test -- --testPathPattern="timezone-midnight-boundary" --verbose

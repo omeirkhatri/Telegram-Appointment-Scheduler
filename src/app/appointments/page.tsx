@@ -1,17 +1,18 @@
 'use client';
 
-import { AppointmentCalendar } from '@/components/calendar';
-import { AppointmentFilters, type AppointmentFilterState } from '@/components/filters';
+import { AppointmentCalendar } from '@/components/features/appointments/calendar';
+import { AppointmentFilters, type AppointmentFilterState } from '@/components/features/appointments/filters';
 import Header from '@/components/layout/Header';
-import { AppointmentContextMenu, AppointmentDetailsDrawer, AppointmentModal, CopyAppointmentModal, RecurringAppointmentDeleteModal, RecurringAppointmentEditModal } from '@/components/modals';
+import { AppointmentContextMenu, AppointmentDetailsDrawer, AppointmentModal, CopyAppointmentModal, RecurringAppointmentDeleteModal, RecurringAppointmentEditModal } from '@/components/features/appointments';
 import { ErrorMessage, VirtualizedTable, type VirtualizedTableColumn } from '@/components/ui';
 import { useToastContext } from '@/components/ui/ToastContainer';
 import { useAppointmentsForDateRange, useUpdateAppointment } from '@/hooks/useAppointments';
+import { useAppointmentStaffForDateRange } from '@/hooks/useAppointmentStaff';
 import { createAppointmentShortcuts, useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { usePatients } from '@/hooks/usePatients';
 import { useStaff } from '@/hooks/useStaff';
 import type { Appointment } from '@/types';
-import { utcToDateString, utcToTimeString } from '@/utils/timezone';
+import { formatTimeToHHMM, getCurrentDubaiTime } from '@/utils/timezone';
 import {
     Grid3X3,
     List,
@@ -19,7 +20,7 @@ import {
     Plus,
 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { getCurrentDubaiTime } from '@/utils/timezone';
+
 
 export default function AppointmentsPage() {
   const [viewMode, setViewMode] = useState<'calendar' | 'table'>('calendar');
@@ -94,6 +95,17 @@ export default function AppointmentsPage() {
     dateRange?.end || defaultEndDate
   );
 
+  // Fetch staff assignments for the same date range
+  const {
+    staffAssignments,
+    isLoading: isLoadingStaffAssignments,
+    error: staffAssignmentsError,
+    refetch: refetchStaffAssignments,
+  } = useAppointmentStaffForDateRange(
+    dateRange?.start || defaultStartDate,
+    dateRange?.end || defaultEndDate
+  );
+
   // Apply multiselect filters on the client side
   const realAppointments = useMemo(() => {
     let filtered = allAppointments;
@@ -106,13 +118,21 @@ export default function AppointmentsPage() {
 
     // Filter by staff (if any staff selected)
     if (filters.staffIds && filters.staffIds.length > 0) {
-      // Note: This is a simplified filter - in a real app, you'd need to join with appointment_staff table
-      // For now, we'll filter by any staff-related field if it exists
-      filtered = filtered.filter(() => {
-        // This is a placeholder - you'll need to implement proper staff filtering
-        // based on your actual data structure
-        return true; // For now, show all appointments
-      });
+      console.log('Filtering by staff IDs:', filters.staffIds);
+      const beforeCount = filtered.length;
+
+      // Get appointment IDs that have any of the selected staff assigned
+      const appointmentIdsWithSelectedStaff = new Set(
+        staffAssignments
+          .filter(assignment => filters.staffIds!.includes(assignment.staff_id))
+          .map(assignment => assignment.appointment_id)
+      );
+
+      filtered = filtered.filter(appointment =>
+        appointmentIdsWithSelectedStaff.has(appointment.id)
+      );
+
+      console.log(`Staff filter: ${beforeCount} -> ${filtered.length}`);
     }
 
     // Filter by appointment types (if any types selected)
@@ -146,7 +166,7 @@ export default function AppointmentsPage() {
 
     console.log('Final filtered appointments:', filtered.length);
     return filtered;
-  }, [allAppointments, filters]);
+  }, [allAppointments, filters, staffAssignments]);
 
 
   // Fetch patients and staff data for the modal
@@ -179,12 +199,15 @@ export default function AppointmentsPage() {
 
     refetchTimeoutRef.current = setTimeout(async () => {
       try {
-        await refetchAppointments();
+        await Promise.all([
+          refetchAppointments(),
+          refetchStaffAssignments()
+        ]);
       } catch (error) {
         console.error('Failed to refresh appointments:', error);
       }
     }, 300); // 300ms debounce
-  }, [refetchAppointments]);
+  }, [refetchAppointments, refetchStaffAssignments]);
 
   // Drag-and-drop handlers
   const handleEventDrop = async (appointmentId: string, newStart: Date, newEnd: Date) => {
@@ -279,15 +302,23 @@ export default function AppointmentsPage() {
     if (!pendingRecurringUpdate) return;
 
     try {
-      // Extract base appointment ID if this is a recurring occurrence
+      // Extract base appointment ID and occurrence number
       let appointmentId = pendingRecurringUpdate.appointment.id;
+      let occurrenceNumber: number | undefined;
+
       if (appointmentId.includes('_occurrence_')) {
-        appointmentId = appointmentId.split('_occurrence_')[0];
+        // This is a virtual appointment - extract base ID and occurrence number
+        const parts = appointmentId.split('_occurrence_');
+        appointmentId = parts[0];
+        occurrenceNumber = parseInt(parts[1], 10);
+      } else {
+        // This is a real appointment - get occurrence number from custom_fields
+        occurrenceNumber = (pendingRecurringUpdate.appointment.custom_fields as any)?.occurrence_number;
       }
 
       const requestBody: any = {
         updateType,
-        occurrenceNumber: (pendingRecurringUpdate.appointment.custom_fields as any)?.occurrence_number,
+        occurrenceNumber,
         updateData: pendingRecurringUpdate.updateData,
       };
 
@@ -331,22 +362,56 @@ export default function AppointmentsPage() {
   ) => {
     if (!recurringDeleteAppointment) return;
 
+    console.log('Frontend: handleRecurringAppointmentDelete called with:', {
+      appointment: recurringDeleteAppointment,
+      deleteType
+    });
+
     try {
-      // Extract base appointment ID if this is a recurring occurrence
+      // Extract base appointment ID and occurrence number
       let appointmentId = recurringDeleteAppointment.id;
+      let occurrenceNumber: number | undefined;
+
       if (appointmentId.includes('_occurrence_')) {
-        appointmentId = appointmentId.split('_occurrence_')[0];
+        // This is a virtual appointment - extract base ID and occurrence number
+        const parts = appointmentId.split('_occurrence_');
+        if (parts.length !== 2) {
+          throw new Error('Invalid virtual appointment ID format');
+        }
+        appointmentId = parts[0];
+        occurrenceNumber = parseInt(parts[1], 10);
+        
+        // Validate that the occurrence number was parsed correctly
+        if (isNaN(occurrenceNumber)) {
+          throw new Error('Invalid occurrence number in virtual appointment ID');
+        }
+      } else {
+        // This is a real appointment - get occurrence number from custom_fields
+        occurrenceNumber = (recurringDeleteAppointment.custom_fields as any)?.occurrence_number;
+        
       }
+
+      // For "this_occurrence" deletion in multi-row system, we don't need occurrence numbers
+      // Just delete the specific appointment directly
+      if (deleteType === 'this_occurrence') {
+        console.log('This occurrence deletion - setting occurrenceNumber to undefined for multi-row system');
+        occurrenceNumber = undefined; // Always allow deletion without occurrence number
+      }
+
+      const requestBody = {
+        deleteType,
+        occurrenceNumber,
+      };
+
+      console.log('Frontend: Making API request to:', `/api/appointments/${appointmentId}/recurring`);
+      console.log('Frontend: Request body:', requestBody);
 
       const response = await fetch(`/api/appointments/${appointmentId}/recurring`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          deleteType,
-          occurrenceNumber: (recurringDeleteAppointment.custom_fields as any)?.occurrence_number,
-        }),
+        body: JSON.stringify(requestBody),
       });
 
       const data = await response.json();
@@ -396,12 +461,30 @@ export default function AppointmentsPage() {
 
 
   const handleDeleteAppointment = async (appointment: Appointment) => {
+    console.log('Frontend: handleDeleteAppointment called with:', {
+      appointment: {
+        id: appointment.id,
+        recurring_rule: appointment.recurring_rule,
+        custom_fields: appointment.custom_fields
+      }
+    });
+
     // Check if this is a recurring appointment
     const isRecurring = appointment.recurring_rule ||
                        (appointment.custom_fields as any)?.is_recurring_generated ||
-                       (appointment.custom_fields as any)?.is_recurring_occurrence;
+                       (appointment.custom_fields as any)?.is_recurring_occurrence ||
+                       appointment.id.includes('_occurrence_');
+
+    console.log('Frontend: Recurring detection result:', {
+      isRecurring,
+      hasRecurringRule: !!appointment.recurring_rule,
+      isRecurringGenerated: !!(appointment.custom_fields as any)?.is_recurring_generated,
+      isRecurringOccurrence: !!(appointment.custom_fields as any)?.is_recurring_occurrence,
+      hasOccurrenceInId: appointment.id.includes('_occurrence_')
+    });
 
     if (isRecurring) {
+      console.log('Frontend: Setting recurring delete appointment');
       setRecurringDeleteAppointment(appointment);
       setIsRecurringDeleteModalOpen(true);
     } else {
@@ -493,23 +576,35 @@ export default function AppointmentsPage() {
   };
 
   const handleCalendarDateSelect = (start: Date, end: Date) => {
-    // FullCalendar provides local timezone dates
-    // We need to convert them to Asia/Dubai timezone for the appointment form
+    // ⚠️  CRITICAL: DO NOT CHANGE THIS TIMEZONE HANDLING - IT'S WORKING CORRECTLY NOW ⚠️
+    // ⚠️  This code handles the 4-hour timezone offset for new appointments ⚠️
+    // ⚠️  It ensures times before 4 AM stay on the same day ⚠️
+    // ⚠️  CHANGING THIS WILL BREAK APPOINTMENT CREATION - DO NOT TOUCH! ⚠️
+
+    // FullCalendar with timeZone="Asia/Dubai" provides dates in Dubai timezone
+    // Need to subtract 4 hours but keep the same day
+    const adjustedStart = new Date(start.getTime() - (4 * 60 * 60 * 1000)); // Subtract 4 hours
+    const adjustedEnd = new Date(end.getTime() - (4 * 60 * 60 * 1000)); // Subtract 4 hours
+
+    // If the adjusted time is before 4 AM, it means we went to previous day
+    // Add 24 hours to keep it on the same day as the original selection
+    if (adjustedStart.getHours() < 4) {
+      adjustedStart.setTime(adjustedStart.getTime() + (24 * 60 * 60 * 1000));
+      adjustedEnd.setTime(adjustedEnd.getTime() + (24 * 60 * 60 * 1000));
+    }
+
     console.log('Calendar date selection:', {
       startUTC: start.toISOString(),
       endUTC: end.toISOString(),
       startLocal: start.toString(),
       endLocal: end.toString(),
       timezoneOffset: start.getTimezoneOffset(),
-      // Convert local time to Dubai time
-      appointmentDate: utcToDateString(start),
-      startTime: utcToTimeString(start),
-      // Direct formatting for comparison
-      directDate: start.toISOString().split('T')[0],
-      directTime: start.toTimeString().slice(0, 5),
+      // Use adjusted time to fix 4-hour gap
+      appointmentDate: adjustedStart.toISOString().split('T')[0],
+      startTime: adjustedStart.toTimeString().slice(0, 5),
     });
 
-    setSelectedDate({ start, end });
+    setSelectedDate({ start: adjustedStart, end: adjustedEnd });
     setIsAppointmentModalOpen(true);
   };
 
@@ -526,12 +621,22 @@ export default function AppointmentsPage() {
       key: 'time',
       header: 'Time',
       width: 150,
-      render: (appointment) => (
-        <div>
-          <p className="text-sm text-[--foreground] font-medium">{appointment.start_time}</p>
-          <p className="text-xs text-[--muted-foreground]">{appointment.appointment_date}</p>
-        </div>
-      ),
+      render: (appointment) => {
+        // Calculate end time
+        const formattedStartTime = formatTimeToHHMM(appointment.start_time);
+        const [startHours, startMinutes] = formattedStartTime.split(':').map(Number);
+        const endMinutes = startMinutes + appointment.duration_minutes;
+        const endHours = startHours + Math.floor(endMinutes / 60);
+        const finalEndMinutes = endMinutes % 60;
+        const endTimeString = `${endHours.toString().padStart(2, '0')}:${finalEndMinutes.toString().padStart(2, '0')}`;
+
+        return (
+          <div>
+            <p className="text-sm text-[--foreground] font-medium">{formattedStartTime} - {endTimeString}</p>
+            <p className="text-xs text-[--muted-foreground]">{appointment.appointment_date}</p>
+          </div>
+        );
+      },
     },
     {
       key: 'patient',
@@ -615,20 +720,28 @@ export default function AppointmentsPage() {
       {/* Header with Navigation */}
       <Header currentPage="appointments" />
 
+
       {/* Main Content - Full Width */}
-      <main className="px-8 py-8 space-y-8">
+      <main className="px-8 py-8 space-y-4">
         {/* Page Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-[--foreground]">Appointments</h1>
-            <p className="text-[--muted-foreground] text-lg mt-1">Schedule and manage patient appointments</p>
+        <div className="flex items-start justify-between gap-6">
+          {/* Left side - Filters */}
+          <div className="flex-1" style={{ maxWidth: '108rem' }}>
+            <AppointmentFilters
+              filters={filters}
+              onFiltersChange={handleFiltersChange}
+              onClearFilters={handleClearFilters}
+              staffOptions={staffOptions}
+            />
           </div>
-          <div className="flex items-center space-x-3">
+          
+          {/* Right side - View Toggle and New Appointment */}
+          <div className="flex flex-col items-end space-y-3 flex-shrink-0">
             {/* View Toggle */}
-            <div className="flex items-center bg-[--muted] rounded-lg p-1">
+            <div className="flex items-center bg-[--muted] rounded-lg p-1 w-full">
               <button
                 onClick={() => setViewMode('calendar')}
-                className={`flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                className={`flex items-center justify-center px-4 py-2 rounded-md text-sm font-medium transition-colors flex-1 ${
                   viewMode === 'calendar'
                     ? 'bg-[--primary] text-[--primary-foreground]'
                     : 'text-[--muted-foreground] hover:text-[--foreground]'
@@ -639,7 +752,7 @@ export default function AppointmentsPage() {
               </button>
               <button
                 onClick={() => setViewMode('table')}
-                className={`flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                className={`flex items-center justify-center px-4 py-2 rounded-md text-sm font-medium transition-colors flex-1 ${
                   viewMode === 'table'
                     ? 'bg-[--primary] text-[--primary-foreground]'
                     : 'text-[--muted-foreground] hover:text-[--foreground]'
@@ -649,9 +762,11 @@ export default function AppointmentsPage() {
                 Table
               </button>
             </div>
+            
+            {/* New Appointment Button */}
             <button
               onClick={handleOpenAppointmentModal}
-              className="inline-flex items-center px-4 py-2 bg-[--primary] text-[--primary-foreground] rounded-lg hover:bg-[--primary]/90 transition-colors"
+              className="inline-flex items-center justify-center px-4 py-2 bg-[--primary] text-[--primary-foreground] rounded-lg hover:bg-[--primary]/90 transition-colors w-full"
             >
               <Plus className="w-4 h-4 mr-2" />
               New Appointment
@@ -672,20 +787,14 @@ export default function AppointmentsPage() {
         )}
 
 
-        {/* Filters */}
-        <AppointmentFilters
-          filters={filters}
-          onFiltersChange={handleFiltersChange}
-          onClearFilters={handleClearFilters}
-          staffOptions={staffOptions}
-        />
 
         {/* Calendar View */}
         {viewMode === 'calendar' && (
           <div className="bg-[--card] border border-[--border] rounded-xl p-6 shadow-lg">
             <AppointmentCalendar
+              key={`calendar-${viewMode}`}
               initialView="timeGridWeek"
-              height={1000}
+              height="calc(100vh - 300px)"
               appointments={realAppointments}
               isLoading={isLoadingAppointments}
               error={appointmentsError}
@@ -695,7 +804,13 @@ export default function AppointmentsPage() {
               onDateSelect={handleCalendarDateSelect}
               onEventDrop={handleEventDrop}
               onEventResize={handleEventResize}
-              filters={filters}
+              filters={{
+                appointmentType: filters.appointmentTypes?.[0],
+                status: filters.statuses?.[0],
+                dateFrom: filters.dateFrom,
+                dateTo: filters.dateTo,
+                staffId: filters.staffIds?.[0]
+              }}
             />
           </div>
         )}
@@ -703,6 +818,7 @@ export default function AppointmentsPage() {
         {/* Virtualized Appointments Table */}
         {viewMode === 'table' && (
           <VirtualizedTable
+            key={`table-${viewMode}`}
             data={realAppointments}
             columns={appointmentColumns}
             height={600}
@@ -735,8 +851,8 @@ export default function AppointmentsPage() {
           onClose={handleCloseAppointmentModal}
           onSuccess={handleAppointmentModalSuccess}
           initialAppointment={editingAppointment || (selectedDate ? {
-            appointment_date: utcToDateString(selectedDate.start),
-            start_time: utcToTimeString(selectedDate.start),
+            appointment_date: selectedDate.start.toISOString().split('T')[0],
+            start_time: selectedDate.start.toTimeString().slice(0, 5),
             duration_minutes: Math.round((selectedDate.end.getTime() - selectedDate.start.getTime()) / (1000 * 60)),
           } : undefined)}
           patients={patients}

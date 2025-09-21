@@ -4,6 +4,15 @@ import { telegramService, TelegramWebhookUpdate } from '@/services/telegramServi
 import { telegramCommandFormatters } from '@/utils/telegramCommandFormatters';
 import { telegramValidationService } from '@/utils/telegramValidation';
 import { NextRequest, NextResponse } from 'next/server';
+import {
+  addVersionHeaders,
+  buildTimezoneContext,
+  createErrorResponse,
+  formatResponseForVersion,
+  shouldIncludeTimezoneMetadata,
+  validateApiVersion,
+} from '@/lib/apiUtils';
+import { resolveTimezone } from '@/utils/timezone';
 
 export async function POST(request: NextRequest) {
   try {
@@ -29,6 +38,16 @@ export async function POST(request: NextRequest) {
         },
         { status: 401 }
       );
+    }
+
+    const versionValidation = validateApiVersion(request);
+    if (!versionValidation.valid) {
+      const errorResponse = createErrorResponse(
+        versionValidation.error!,
+        { supportedVersions: ['1.0', '1.1'] },
+        request,
+      );
+      return NextResponse.json(errorResponse, { status: 400 });
     }
 
     const update: TelegramWebhookUpdate = await request.json();
@@ -65,16 +84,22 @@ export async function POST(request: NextRequest) {
       await handleCallbackQuery(update.callback_query);
     }
 
-    return NextResponse.json({ success: true });
+    // Build timezone context and resolution for response
+    const timezoneContext = await buildTimezoneContext(request);
+    const timezoneResolution = resolveTimezone(timezoneContext);
+    const includeTimezone = shouldIncludeTimezoneMetadata(request);
+
+    const versionedResponse = formatResponseForVersion({ processed: true }, request, includeTimezone ? timezoneResolution : undefined);
+    const jsonResponse = NextResponse.json(versionedResponse);
+    return await addVersionHeaders(jsonResponse, request);
   } catch (error) {
     console.error('❌ Error processing Telegram webhook:', error);
-    return NextResponse.json(
-      {
-        success: false,
-        error: 'Internal server error',
-      },
-      { status: 500 }
+    const errorResponse = createErrorResponse(
+      'Internal server error',
+      undefined,
+      request
     );
+    return NextResponse.json(errorResponse, { status: 500 });
   }
 }
 
