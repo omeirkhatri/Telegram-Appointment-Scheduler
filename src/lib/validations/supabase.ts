@@ -37,9 +37,30 @@ export const staffInsertSchema = z.object({
   working_hours_start: timeSchema,
   working_hours_end: timeSchema,
   status: z.enum(['active', 'inactive'] as const).default('active'),
+  // Calendar-related fields
+  google_calendar_id: z.string().nullable().optional(),
+  calendar_verification_status: z.enum(['pending', 'verified', 'failed', 'not_required'] as const).default('not_required'),
+  calendar_verification_date: z.string().nullable().optional(),
+  calendar_error_code: z.string().nullable().optional(),
 }).refine(
   (data) => data.working_hours_start < data.working_hours_end,
   { message: 'Working hours start must be before end', path: ['working_hours_end'] },
+).refine(
+  (data) => {
+    if (data.google_calendar_id) {
+      return /^[a-zA-Z0-9._-]+@group\.calendar\.google\.com$/.test(data.google_calendar_id);
+    }
+    return true;
+  },
+  { message: 'Invalid Google Calendar ID format', path: ['google_calendar_id'] },
+).refine(
+  (data) => {
+    if (data.calendar_verification_date) {
+      return !isNaN(Date.parse(data.calendar_verification_date));
+    }
+    return true;
+  },
+  { message: 'Invalid calendar verification date format', path: ['calendar_verification_date'] },
 );
 
 export const staffUpdateSchema = staffInsertSchema.partial();

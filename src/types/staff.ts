@@ -1,6 +1,7 @@
 // Staff types based on database schema
 export type StaffType = 'doctor' | 'nurse' | 'physiotherapist' | 'caregiver' | 'driver' | 'lab_technician';
 export type StaffStatus = 'active' | 'inactive';
+export type CalendarVerificationStatus = 'pending' | 'verified' | 'failed' | 'not_required';
 
 export interface Staff {
   id: string;
@@ -16,6 +17,10 @@ export interface Staff {
   available_days?: number[];
   working_hours_start?: string;
   working_hours_end?: string;
+  google_calendar_id?: string;
+  calendar_verification_status?: CalendarVerificationStatus;
+  calendar_verification_date?: string;
+  calendar_error_code?: string;
   created_at: string;
   updated_at: string;
 }
@@ -32,6 +37,10 @@ export interface CreateStaff {
   available_days?: number[];
   working_hours_start?: string;
   working_hours_end?: string;
+  google_calendar_id?: string;
+  calendar_verification_status?: CalendarVerificationStatus;
+  calendar_verification_date?: string;
+  calendar_error_code?: string;
 }
 
 // Staff update type (all fields optional)
@@ -48,6 +57,10 @@ export interface UpdateStaff {
   available_days?: number[];
   working_hours_start?: string;
   working_hours_end?: string;
+  google_calendar_id?: string;
+  calendar_verification_status?: CalendarVerificationStatus;
+  calendar_verification_date?: string;
+  calendar_error_code?: string;
 }
 
 // Staff search/filter options

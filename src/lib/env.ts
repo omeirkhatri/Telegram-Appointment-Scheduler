@@ -22,6 +22,7 @@ const clientEnvSchema = z.object({
 
   // Optional public variables
   NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: z.string().optional(),
+  NEXT_PUBLIC_GOOGLE_CALENDAR_SYNC_ENABLED: z.string().transform(val => val === 'true').optional(),
 });
 
 // Full environment schema for server-side validation
@@ -48,6 +49,20 @@ const serverEnvSchema = clientEnvSchema.extend({
 
   // Development & Testing
   TEST_DATABASE_URL: z.string().optional(),
+
+  // Google Calendar Service Account Configuration (server-side only)
+  GOOGLE_CALENDAR_SERVICE_ACCOUNT_KEY: z.string().optional(),
+  GOOGLE_CALENDAR_SERVICE_ACCOUNT_EMAIL: z.string().email().optional(),
+  GOOGLE_CALENDAR_API_ENABLED: z.string().transform(val => val === 'true').optional(),
+  GOOGLE_CALENDAR_VERIFICATION_ENABLED: z.string().transform(val => val === 'true').optional(),
+  GOOGLE_CALENDAR_ORGANIZATION_NAME: z.string().default('BestDOC'),
+  GOOGLE_CALENDAR_DEFAULT_TIMEZONE: z.string().default('Asia/Dubai'),
+  GOOGLE_CALENDAR_MAX_RETRIES: z.string().transform(Number).default(3),
+  GOOGLE_CALENDAR_RETRY_DELAY_MS: z.string().transform(Number).default(1000),
+  GOOGLE_CALENDAR_OPERATION_TIMEOUT_MS: z.string().transform(Number).default(30000),
+  GOOGLE_CALENDAR_EMAIL_FROM: z.string().email().optional(),
+  GOOGLE_CALENDAR_EMAIL_FROM_NAME: z.string().optional(),
+  GOOGLE_CALENDAR_SYNC_ENABLED: z.string().transform(val => val === 'true').optional(),
 
   // Deployment Configuration
   PORT: z.string().transform(Number).default(3000),
@@ -76,6 +91,7 @@ function collectEnvForValidation(): Record<string, string | undefined> {
     NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
     NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
     NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY,
+    NEXT_PUBLIC_GOOGLE_CALENDAR_SYNC_ENABLED: process.env.NEXT_PUBLIC_GOOGLE_CALENDAR_SYNC_ENABLED,
   };
 }
 
@@ -199,6 +215,53 @@ function getConfig() {
         },
       },
 
+      // Google Calendar configuration with validation (server-side only)
+      googleCalendar: {
+        serviceAccountKey: 'GOOGLE_CALENDAR_SERVICE_ACCOUNT_KEY' in env ? env.GOOGLE_CALENDAR_SERVICE_ACCOUNT_KEY : undefined,
+        serviceAccountEmail: 'GOOGLE_CALENDAR_SERVICE_ACCOUNT_EMAIL' in env ? env.GOOGLE_CALENDAR_SERVICE_ACCOUNT_EMAIL : undefined,
+        apiEnabled: 'GOOGLE_CALENDAR_API_ENABLED' in env ? env.GOOGLE_CALENDAR_API_ENABLED : false,
+        verificationEnabled: 'GOOGLE_CALENDAR_VERIFICATION_ENABLED' in env ? env.GOOGLE_CALENDAR_VERIFICATION_ENABLED : false,
+        organizationName: 'GOOGLE_CALENDAR_ORGANIZATION_NAME' in env ? env.GOOGLE_CALENDAR_ORGANIZATION_NAME : 'BestDOC',
+        defaultTimezone: 'GOOGLE_CALENDAR_DEFAULT_TIMEZONE' in env ? env.GOOGLE_CALENDAR_DEFAULT_TIMEZONE : 'Asia/Dubai',
+        maxRetries: 'GOOGLE_CALENDAR_MAX_RETRIES' in env ? env.GOOGLE_CALENDAR_MAX_RETRIES : 3,
+        retryDelayMs: 'GOOGLE_CALENDAR_RETRY_DELAY_MS' in env ? env.GOOGLE_CALENDAR_RETRY_DELAY_MS : 1000,
+        operationTimeoutMs: 'GOOGLE_CALENDAR_OPERATION_TIMEOUT_MS' in env ? env.GOOGLE_CALENDAR_OPERATION_TIMEOUT_MS : 30000,
+        emailFrom: 'GOOGLE_CALENDAR_EMAIL_FROM' in env ? env.GOOGLE_CALENDAR_EMAIL_FROM : undefined,
+        emailFromName: 'GOOGLE_CALENDAR_EMAIL_FROM_NAME' in env ? env.GOOGLE_CALENDAR_EMAIL_FROM_NAME : undefined,
+        syncEnabled: 'GOOGLE_CALENDAR_SYNC_ENABLED' in env ? env.GOOGLE_CALENDAR_SYNC_ENABLED : false,
+
+        // Runtime validation helpers
+        isConfigured: () => {
+          return 'GOOGLE_CALENDAR_SERVICE_ACCOUNT_KEY' in env && 
+                 !!env.GOOGLE_CALENDAR_SERVICE_ACCOUNT_KEY &&
+                 'GOOGLE_CALENDAR_SERVICE_ACCOUNT_EMAIL' in env && 
+                 !!env.GOOGLE_CALENDAR_SERVICE_ACCOUNT_EMAIL;
+        },
+
+        validateConfig: () => {
+          if (!('GOOGLE_CALENDAR_SERVICE_ACCOUNT_KEY' in env) || !env.GOOGLE_CALENDAR_SERVICE_ACCOUNT_KEY) {
+            throw new Error('GOOGLE_CALENDAR_SERVICE_ACCOUNT_KEY is required for Google Calendar integration');
+          }
+          if (!('GOOGLE_CALENDAR_SERVICE_ACCOUNT_EMAIL' in env) || !env.GOOGLE_CALENDAR_SERVICE_ACCOUNT_EMAIL) {
+            throw new Error('GOOGLE_CALENDAR_SERVICE_ACCOUNT_EMAIL is required for Google Calendar integration');
+          }
+          return true;
+        },
+
+        // Helper to get service account credentials as JSON
+        getServiceAccountCredentials: () => {
+          if (!('GOOGLE_CALENDAR_SERVICE_ACCOUNT_KEY' in env) || !env.GOOGLE_CALENDAR_SERVICE_ACCOUNT_KEY) {
+            throw new Error('Google Calendar service account key not configured');
+          }
+          try {
+            const keyBuffer = Buffer.from(env.GOOGLE_CALENDAR_SERVICE_ACCOUNT_KEY, 'base64');
+            return JSON.parse(keyBuffer.toString('utf-8'));
+          } catch (error) {
+            throw new Error('Invalid Google Calendar service account key format');
+          }
+        },
+      },
+
       // Security configuration (server-side only)
       security: {
         jwtSecret: 'JWT_SECRET' in env ? env.JWT_SECRET : undefined,
@@ -290,6 +353,11 @@ export function performRuntimeChecks(): void {
     // Validate security configuration
     config.security.validateJWTSecret();
 
+    // Validate Google Calendar configuration (if enabled)
+    if (config.googleCalendar.apiEnabled) {
+      config.googleCalendar.validateConfig();
+    }
+
     // Log configuration status
     console.log('✅ Environment validation passed');
     console.log(`🌍 Environment: ${env.NODE_ENV}`);
@@ -297,6 +365,7 @@ export function performRuntimeChecks(): void {
     console.log(`⏰ Timezone: ${config.app.timezone}`);
     console.log(`🗄️  Supabase: ${config.supabase.isLocal() ? 'Local' : 'Cloud'}`);
     console.log(`📱 Telegram: ${config.telegram.isConfigured() ? 'Configured' : 'Not configured'}`);
+    console.log(`📅 Google Calendar: ${config.googleCalendar.isConfigured() ? 'Configured' : 'Not configured'}`);
     console.log(`🔒 JWT Secret: ${config.security.jwtSecret ? 'Configured' : 'Not configured'}`);
     console.log(`📊 Log Level: ${config.monitoring.logLevel}`);
     console.log(`🔍 Sentry: ${config.monitoring.isSentryConfigured() ? 'Configured' : 'Not configured'}`);

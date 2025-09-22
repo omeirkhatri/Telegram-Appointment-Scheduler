@@ -1,0 +1,104 @@
+## Relevant Files
+
+- `supabase/migrations/20250220000000_add_staff_calendar_fields.sql` - New migration adding staff calendar fields, verification status, and error tracking (Task 1.0).
+- `supabase/migrations/20250220000001_create_calendar_operations_log.sql` - New table for tracking calendar operations and errors (Task 1.0).
+- `supabase/migrations/20250220000002_create_calendar_verification_events.sql` - New table for tracking verification test events (Task 1.0).
+- `src/types/staff.ts` - Update Staff interface with new calendar fields (Task 1.0).
+- `src/types/calendar.ts` - New types for calendar operations, verification status, and error codes (Task 1.0).
+- `src/lib/env.ts` - Add Google Calendar service account configuration and validation (Task 2.0).
+- `config/env.production.template` - Document Google Calendar service account credentials and settings (Task 2.0).
+- `src/services/googleCalendarService.ts` - New service for Google Calendar API operations using service account (Task 3.0).
+- `src/services/calendarVerificationService.ts` - Service for managing calendar verification process (Task 3.0).
+- `src/services/emailService.ts` - Service for sending calendar invite emails (Task 3.0).
+- `src/services/staffService.ts` - Update to trigger calendar creation when staff is added with email (Task 4.0).
+- `src/services/appointmentService.ts` - Update to sync appointments to staff calendars (Task 4.0).
+- `src/services/appointmentStaffService.ts` - Update to handle calendar operations when staff assignments change (Task 4.0).
+- `src/app/api/staff/route.ts` - Update POST endpoint to trigger calendar creation (Task 4.0).
+- `src/app/api/calendar/verify/route.ts` - New endpoint for handling calendar verification (Task 5.0).
+- `src/app/api/calendar/status/route.ts` - New endpoint for checking calendar status and errors (Task 5.0).
+- `src/app/api/calendar/retry/route.ts` - New endpoint for retrying failed calendar operations (Task 5.0).
+- `src/components/features/staff/StaffModal.tsx` - Update to show calendar status and verification state (Task 6.0).
+- `src/components/features/staff/StaffForm.tsx` - Update to display calendar-related fields and status (Task 6.0).
+- `src/app/staff/page.tsx` - Update to show calendar status in staff list (Task 6.0).
+- `src/lib/errorCodes.ts` - Centralized error code definitions and descriptions (Task 7.0).
+- `src/lib/retryUtils.ts` - Utility functions for retrying failed operations with exponential backoff (Task 7.0).
+- `src/tests/services/googleCalendarService.test.ts` - Unit tests for Google Calendar service (Task 8.0).
+- `src/tests/services/calendarVerificationService.test.ts` - Unit tests for calendar verification service (Task 8.0).
+- `src/tests/api/calendar/verify.test.ts` - API tests for calendar verification endpoint (Task 8.0).
+- `src/tests/api/calendar/status.test.ts` - API tests for calendar status endpoint (Task 8.0).
+
+### Notes
+
+- Unit tests should typically be placed alongside the code files they are testing (e.g., `MyComponent.tsx` and `MyComponent.test.tsx` in the same directory).
+- Use `npx jest [optional/path/to/test/file]` to run tests. Running without a path executes all tests found by the Jest configuration.
+- This implementation replaces the existing OAuth-based Google Calendar sync with a service account approach.
+- All calendar operations will be performed under the clinic's Google account for centralized control.
+
+## Tasks
+
+- [ ] 1.0 Database Schema Updates
+  - [ ] 1.1 Create migration to add calendar fields to staff table (google_calendar_id, calendar_verification_status, calendar_verification_date, calendar_error_code)
+  - [ ] 1.2 Create calendar_operations_log table to track all calendar operations and errors
+  - [ ] 1.3 Create calendar_verification_events table to track verification test events
+  - [ ] 1.4 Add indexes for performance on new calendar-related fields
+  - [ ] 1.5 Update Staff TypeScript interface to include new calendar fields
+  - [ ] 1.6 Create calendar-related TypeScript types and enums
+  - [ ] 1.7 Update staff validation schemas to include calendar fields
+- [ ] 2.0 Environment Configuration
+  - [ ] 2.1 Add Google Calendar service account configuration to environment templates
+  - [ ] 2.2 Update env.ts to parse and validate Google Calendar service account credentials
+  - [ ] 2.3 Add error code definitions and descriptions
+  - [ ] 2.4 Document Google Calendar setup process and required permissions
+  - [ ] 2.5 Add feature flags for calendar functionality
+- [ ] 3.0 Core Calendar Services
+  - [ ] 3.1 Create GoogleCalendarService for calendar CRUD operations using service account
+  - [ ] 3.2 Implement calendar creation with proper naming format "Staff Name - Staff Type - BestDOC"
+  - [ ] 3.3 Implement calendar sharing with read-only permissions for staff
+  - [ ] 3.4 Create CalendarVerificationService for managing verification process
+  - [ ] 3.5 Implement test event creation and RSVP tracking for verification
+  - [ ] 3.6 Create EmailService for sending calendar invites and verification emails
+  - [ ] 3.7 Add retry logic and error handling for Google Calendar API calls
+  - [ ] 3.8 Implement calendar event creation, updating, and deletion for appointments
+- [ ] 4.0 Integration with Existing Services
+  - [ ] 4.1 Update StaffService.createStaff to trigger calendar creation when email is provided
+  - [ ] 4.2 Update StaffService.updateStaff to handle calendar operations during staff updates
+  - [ ] 4.3 Update StaffService.deleteStaff to handle calendar cleanup during staff deletion
+  - [ ] 4.4 Update AppointmentService.createAppointment to sync events to staff calendars
+  - [ ] 4.5 Update AppointmentService.updateAppointment to sync event updates to calendars
+  - [ ] 4.6 Update AppointmentService.deleteAppointment to remove events from calendars
+  - [ ] 4.7 Update AppointmentStaffService to handle calendar operations when staff assignments change
+  - [ ] 4.8 Update staff API POST endpoint to trigger calendar creation
+- [ ] 5.0 API Endpoints
+  - [ ] 5.1 Create /api/calendar/verify endpoint for handling calendar verification
+  - [ ] 5.2 Create /api/calendar/status endpoint for checking calendar status and errors
+  - [ ] 5.3 Create /api/calendar/retry endpoint for retrying failed calendar operations
+  - [ ] 5.4 Add calendar status to existing staff API responses
+  - [ ] 5.5 Implement proper error handling and response formatting for all calendar endpoints
+  - [ ] 5.6 Add API documentation for new calendar endpoints
+- [ ] 6.0 UI Updates
+  - [ ] 6.1 Update StaffModal to display calendar status and verification state
+  - [ ] 6.2 Update StaffForm to show calendar-related fields and status indicators
+  - [ ] 6.3 Update staff list page to show calendar status badges
+  - [ ] 6.4 Add calendar verification status indicators to staff cards
+  - [ ] 6.5 Add retry button for failed calendar operations in admin interface
+  - [ ] 6.6 Update staff detail views to show calendar error information
+  - [ ] 6.7 Add calendar status filtering options to staff list
+- [ ] 7.0 Error Handling and Utilities
+  - [ ] 7.1 Create centralized error code definitions and descriptions
+  - [ ] 7.2 Implement retry utilities with exponential backoff for failed operations
+  - [ ] 7.3 Add comprehensive error logging for all calendar operations
+  - [ ] 7.4 Implement error notification system for admins
+  - [ ] 7.5 Create error recovery mechanisms for common failure scenarios
+  - [ ] 7.6 Add monitoring and alerting for calendar operation failures
+  - [ ] 7.7 Implement graceful degradation when Google Calendar API is unavailable
+- [ ] 8.0 Testing
+  - [ ] 8.1 Write unit tests for GoogleCalendarService
+  - [ ] 8.2 Write unit tests for CalendarVerificationService
+  - [ ] 8.3 Write unit tests for EmailService
+  - [ ] 8.4 Write API tests for calendar verification endpoint
+  - [ ] 8.5 Write API tests for calendar status endpoint
+  - [ ] 8.6 Write API tests for calendar retry endpoint
+  - [ ] 8.7 Write integration tests for staff creation with calendar setup
+  - [ ] 8.8 Write integration tests for appointment creation with calendar sync
+  - [ ] 8.9 Write UI tests for calendar status display in staff interface
+  - [ ] 8.10 Write end-to-end tests for complete calendar workflow

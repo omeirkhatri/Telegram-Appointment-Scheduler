@@ -55,6 +55,33 @@ export const staffFormSchema = z.object({
   status: z.enum(['active', 'inactive']),
 
   telegram_verified: z.boolean().default(false),
+
+  // Calendar-related fields
+  google_calendar_id: z
+    .string()
+    .optional()
+    .refine((val) => !val || val === '' || /^[a-zA-Z0-9._-]+@group\.calendar\.google\.com$/.test(val), {
+      message: 'Invalid Google Calendar ID format'
+    }),
+
+  calendar_verification_status: z
+    .enum(['pending', 'verified', 'failed', 'not_required'])
+    .optional()
+    .default('not_required'),
+
+  calendar_verification_date: z
+    .string()
+    .optional()
+    .refine((val) => !val || val === '' || !isNaN(Date.parse(val)), {
+      message: 'Invalid calendar verification date format'
+    }),
+
+  calendar_error_code: z
+    .string()
+    .optional()
+    .refine((val) => !val || val === '' || val.length <= 50, {
+      message: 'Calendar error code must be less than 50 characters'
+    }),
 });
 
 // Staff update form schema (all fields optional)
