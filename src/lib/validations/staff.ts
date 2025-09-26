@@ -45,12 +45,14 @@ export const staffFormSchema = z.object({
   telegram_user_id: z
     .string()
     .optional()
-    .refine((val) => !val || val === '' || /^\d+$/.test(val), {
+    .transform((val) => val && val.trim() !== '' ? val : undefined)
+    .refine((val) => !val || /^\d+$/.test(val), {
       message: 'Telegram user ID must be numeric'
     })
-    .refine((val) => !val || val === '' || val.length <= 20, {
+    .refine((val) => !val || val.length <= 20, {
       message: 'Telegram user ID must be less than 20 characters'
-    }),
+    })
+    .optional(),
 
   status: z.enum(['active', 'inactive']),
 

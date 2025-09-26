@@ -1,7 +1,7 @@
 // Calendar-related types and enums for Google Calendar integration
 
 // Calendar operation types
-export type CalendarOperationType = 
+export type CalendarOperationType =
   | 'create_calendar'
   | 'share_calendar'
   | 'create_event'
@@ -9,24 +9,28 @@ export type CalendarOperationType =
   | 'delete_event'
   | 'verify_calendar'
   | 'send_invite'
-  | 'cleanup_calendar';
+  | 'cleanup_calendar'
+  | 'status_check'
+  | 'bulk_status_check'
+  | 'unknown';
 
 // Calendar operation status
-export type CalendarOperationStatus = 
+export type CalendarOperationStatus =
   | 'pending'
   | 'success'
   | 'failed'
-  | 'retrying';
+  | 'retrying'
+  | 'unknown';
 
 // Calendar verification status
-export type CalendarVerificationStatus = 
+export type CalendarVerificationStatus =
   | 'pending'
   | 'verified'
   | 'failed'
   | 'not_required';
 
 // Verification event status
-export type VerificationEventStatus = 
+export type VerificationEventStatus =
   | 'created'
   | 'sent'
   | 'accepted'
@@ -36,7 +40,7 @@ export type VerificationEventStatus =
   | 'failed';
 
 // Calendar error codes
-export type CalendarErrorCode = 
+export type CalendarErrorCode =
   | 'CALENDAR_CREATION_FAILED'
   | 'EMAIL_INVALID'
   | 'EMAIL_BOUNCE'
@@ -54,6 +58,9 @@ export type CalendarErrorCode =
   | 'VERIFICATION_EVENT_CREATION_FAILED'
   | 'RSVP_CHECK_FAILED'
   | 'CALENDAR_CLEANUP_FAILED'
+  | 'CALENDAR_EVENT_CREATION_FAILED'
+  | 'CALENDAR_DELETION_FAILED'
+  | 'INTERNAL_ERROR'
   | 'UNKNOWN_ERROR';
 
 // Calendar operations log interface
@@ -196,6 +203,9 @@ export const CALENDAR_ERROR_DESCRIPTIONS: Record<CalendarErrorCode, string> = {
   VERIFICATION_EVENT_CREATION_FAILED: 'Failed to create verification test event',
   RSVP_CHECK_FAILED: 'Failed to check RSVP response for verification',
   CALENDAR_CLEANUP_FAILED: 'Failed to clean up calendar during staff deletion',
+  CALENDAR_EVENT_CREATION_FAILED: 'Failed to create calendar event',
+  CALENDAR_DELETION_FAILED: 'Failed to delete calendar',
+  INTERNAL_ERROR: 'An internal error occurred during calendar operation',
   UNKNOWN_ERROR: 'An unknown error occurred during calendar operation'
 };
 
@@ -216,7 +226,7 @@ export function isRetryableError(errorCode: CalendarErrorCode): boolean {
     'RSVP_CHECK_FAILED',
     'CALENDAR_SHARE_FAILED'
   ];
-  
+
   return retryableErrors.includes(errorCode);
 }
 
@@ -229,7 +239,7 @@ export function requiresAdminIntervention(errorCode: CalendarErrorCode): boolean
     'EMAIL_INVALID',
     'EMAIL_BOUNCE'
   ];
-  
+
   return adminInterventionErrors.includes(errorCode);
 }
 

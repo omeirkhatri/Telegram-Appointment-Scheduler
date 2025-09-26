@@ -1,20 +1,25 @@
 'use client';
 
-import Header from '@/components/layout/Header';
 import { StaffModal } from '@/components/features/staff';
+import Header from '@/components/layout/Header';
 import { VirtualizedTable, type VirtualizedTableColumn } from '@/components/ui';
 import { useToastContext } from '@/components/ui/ToastContainer';
 import { useStaff } from '@/hooks';
 import { createStaffShortcuts, useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import type { Staff } from '@/types';
+import type { CalendarVerificationStatus } from '@/types/calendar';
 import {
+    AlertCircle,
+    Calendar,
+    CheckCircle,
+    Clock,
     Filter,
     MoreHorizontal,
     Phone,
     Plus,
     Search,
-    UserCheck,
     Users,
+    XCircle
 } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
@@ -22,9 +27,11 @@ export default function StaffPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedStaff, setSelectedStaff] = useState<Staff | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [calendarStatusFilter, setCalendarStatusFilter] = useState<CalendarVerificationStatus | 'all'>('all');
   const [isClient, setIsClient] = useState(false);
   const { showToast } = useToastContext();
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const verificationCheckInterval = useRef<NodeJS.Timeout | null>(null);
 
   // Focus search input function
   const focusSearch = useCallback(() => {
@@ -87,20 +94,117 @@ export default function StaffPage() {
     }
   }, [error, showToast]);
 
-  // Filter staff based on search term
-  const filteredStaff = staff.filter(member =>
-    searchTerm === '' ||
-    `${member.first_name} ${member.last_name}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    member.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    member.staff_type.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Check verification status for pending staff members
+  useEffect(() => {
+    const checkVerificationStatus = async () => {
+      const pendingStaff = staff.filter(s => s.calendar_verification_status === 'pending');
+
+      if (pendingStaff.length === 0) {
+        return;
+      }
+
+      let hasUpdates = false;
+
+      for (const staffMember of pendingStaff) {
+        try {
+          const response = await fetch(`/api/calendar/verify?staff_id=${staffMember.id}`);
+          const data = await response.json();
+
+          if (data.success && data.verification_status === 'verified') {
+            hasUpdates = true;
+            showToast({
+              type: 'success',
+              title: 'Calendar Verified',
+              message: `${staffMember.first_name} ${staffMember.last_name}'s calendar has been verified!`,
+            });
+          }
+        } catch (error) {
+          console.warn(`Failed to check verification status for ${staffMember.id}:`, error);
+        }
+      }
+
+      if (hasUpdates) {
+        refresh();
+      }
+    };
+
+    // Check every 10 seconds if there are pending verifications
+    if (staff.some(s => s.calendar_verification_status === 'pending')) {
+      verificationCheckInterval.current = setInterval(checkVerificationStatus, 10000);
+    }
+
+    return () => {
+      if (verificationCheckInterval.current) {
+        clearInterval(verificationCheckInterval.current);
+      }
+    };
+  }, [staff, refresh, showToast]);
+
+  // Calendar status helpers
+  const getCalendarStatusIcon = (status: CalendarVerificationStatus | undefined) => {
+    switch (status) {
+      case 'verified':
+        return <CheckCircle className="w-4 h-4 text-green-600" />;
+      case 'failed':
+        return <XCircle className="w-4 h-4 text-red-600" />;
+      case 'pending':
+        return <Clock className="w-4 h-4 text-yellow-600" />;
+      case 'not_required':
+        return <Calendar className="w-4 h-4 text-gray-400" />;
+      default:
+        return <AlertCircle className="w-4 h-4 text-gray-400" />;
+    }
+  };
+
+  const getCalendarStatusText = (status: CalendarVerificationStatus | undefined) => {
+    switch (status) {
+      case 'verified':
+        return 'Verified';
+      case 'failed':
+        return 'Failed';
+      case 'pending':
+        return 'Pending';
+      case 'not_required':
+        return 'Not Required';
+      default:
+        return 'Unknown';
+    }
+  };
+
+  const getCalendarStatusColor = (status: CalendarVerificationStatus | undefined) => {
+    switch (status) {
+      case 'verified':
+        return 'bg-green-100 text-green-800';
+      case 'failed':
+        return 'bg-red-100 text-red-800';
+      case 'pending':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'not_required':
+        return 'bg-gray-100 text-gray-600';
+      default:
+        return 'bg-gray-100 text-gray-600';
+    }
+  };
+
+  // Filter staff based on search term and calendar status
+  const filteredStaff = staff.filter(member => {
+    const matchesSearch = searchTerm === '' ||
+      `${member.first_name} ${member.last_name}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      member.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      member.staff_type.toLowerCase().includes(searchTerm.toLowerCase());
+
+    const matchesCalendarStatus = calendarStatusFilter === 'all' ||
+      member.calendar_verification_status === calendarStatusFilter;
+
+    return matchesSearch && matchesCalendarStatus;
+  });
 
   // Define columns for virtualized table
   const columns: VirtualizedTableColumn<Staff>[] = [
     {
       key: 'staff',
       header: 'Staff Member',
-      width: 400,
+      width: 300,
       minWidth: 200,
       render: (member) => (
         <div className="flex items-center space-x-3">
@@ -168,22 +272,36 @@ export default function StaffPage() {
       ),
     },
     {
-      key: 'email',
-      header: 'Email',
-      width: 300,
+      key: 'telegram_status',
+      header: 'Telegram Status',
+      width: 200,
       minWidth: 150,
       render: (member) => (
-        <div className="flex items-center space-x-2 min-w-0">
-          <span className="text-sm text-[--foreground] truncate">{member.email}</span>
+        <div className="flex items-center space-x-2">
           {member.telegram_verified ? (
-            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 flex-shrink-0">
-              ✅ Telegram Verified
-            </span>
+            <CheckCircle className="w-4 h-4 text-green-600" />
           ) : (
-            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 flex-shrink-0">
-              ⚠️ Not Verified
-            </span>
+            <XCircle className="w-4 h-4 text-red-600" />
           )}
+          <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${
+            member.telegram_verified ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+          }`}>
+            {member.telegram_verified ? 'Verified' : 'Not Verified'}
+          </span>
+        </div>
+      ),
+    },
+    {
+      key: 'calendar_status',
+      header: 'Calendar Status',
+      width: 200,
+      minWidth: 120,
+      render: (member) => (
+        <div className="flex items-center space-x-2">
+          {getCalendarStatusIcon(member.calendar_verification_status)}
+          <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${getCalendarStatusColor(member.calendar_verification_status)}`}>
+            {getCalendarStatusText(member.calendar_verification_status)}
+          </span>
         </div>
       ),
     },
@@ -230,7 +348,7 @@ export default function StaffPage() {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <div className="bg-[--card] border border-[--border] rounded-xl p-6 shadow-lg">
             <div className="flex items-center justify-between">
               <div>
@@ -243,35 +361,35 @@ export default function StaffPage() {
           <div className="bg-[--card] border border-[--border] rounded-xl p-6 shadow-lg">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-[--muted-foreground]">Doctors</p>
-                <p className="text-3xl font-bold text-[--foreground]">{isClient ? staff.filter(s => s.staff_type === 'doctor').length : 0}</p>
+                <p className="text-sm text-[--muted-foreground]">Calendar Verified</p>
+                <p className="text-3xl font-bold text-[--foreground]">{isClient ? staff.filter(s => s.calendar_verification_status === 'verified').length : 0}</p>
               </div>
-              <UserCheck className="w-8 h-8 text-[--success]" />
+              <CheckCircle className="w-8 h-8 text-green-600" />
             </div>
           </div>
           <div className="bg-[--card] border border-[--border] rounded-xl p-6 shadow-lg">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-[--muted-foreground]">Nurses</p>
-                <p className="text-3xl font-bold text-[--foreground]">{isClient ? staff.filter(s => s.staff_type === 'nurse').length : 0}</p>
+                <p className="text-sm text-[--muted-foreground]">Calendar Pending</p>
+                <p className="text-3xl font-bold text-[--foreground]">{isClient ? staff.filter(s => s.calendar_verification_status === 'pending').length : 0}</p>
               </div>
-              <Plus className="w-8 h-8 text-[--warning]" />
+              <Clock className="w-8 h-8 text-yellow-600" />
             </div>
           </div>
           <div className="bg-[--card] border border-[--border] rounded-xl p-6 shadow-lg">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-[--muted-foreground]">Support Staff</p>
-                <p className="text-3xl font-bold text-[--foreground]">{isClient ? staff.filter(s => !['doctor', 'nurse'].includes(s.staff_type)).length : 0}</p>
+                <p className="text-sm text-[--muted-foreground]">Calendar Failed</p>
+                <p className="text-3xl font-bold text-[--foreground]">{isClient ? staff.filter(s => s.calendar_verification_status === 'failed').length : 0}</p>
               </div>
-              <UserCheck className="w-8 h-8 text-[--error]" />
+              <XCircle className="w-8 h-8 text-red-600" />
             </div>
           </div>
         </div>
 
         {/* Search and filters */}
         <div className="bg-[--card] border border-[--border] rounded-xl p-6 shadow-lg">
-          <div className="flex flex-col sm:flex-row gap-4">
+          <div className="flex flex-col lg:flex-row gap-4">
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[--muted-foreground]" />
               <input
@@ -284,10 +402,32 @@ export default function StaffPage() {
                 className="w-full pl-10 pr-4 py-3 border border-[--border] rounded-lg bg-[--muted] text-[--foreground] placeholder-[--muted-foreground] focus:outline-none focus:ring-2 focus:ring-[--ring] focus:border-transparent"
               />
             </div>
-            <button className="inline-flex items-center px-4 py-3 border border-[--border] rounded-lg hover:bg-[--accent] transition-colors text-[--muted-foreground] hover:text-[--foreground]">
-              <Filter className="w-4 h-4 mr-2" />
-              Filter
-            </button>
+            <div className="flex flex-col sm:flex-row gap-4">
+              <div className="relative">
+                <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[--muted-foreground]" />
+                <select
+                  value={calendarStatusFilter}
+                  onChange={(e) => setCalendarStatusFilter(e.target.value as CalendarVerificationStatus | 'all')}
+                  className="pl-10 pr-8 py-3 border border-[--border] rounded-lg bg-[--muted] text-[--foreground] focus:outline-none focus:ring-2 focus:ring-[--ring] focus:border-transparent appearance-none"
+                >
+                  <option value="all">All Calendar Status</option>
+                  <option value="verified">Verified</option>
+                  <option value="pending">Pending</option>
+                  <option value="failed">Failed</option>
+                  <option value="not_required">Not Required</option>
+                </select>
+              </div>
+              <button
+                onClick={() => {
+                  setSearchTerm('');
+                  setCalendarStatusFilter('all');
+                }}
+                className="inline-flex items-center px-4 py-3 border border-[--border] rounded-lg hover:bg-[--accent] transition-colors text-[--muted-foreground] hover:text-[--foreground]"
+              >
+                <Filter className="w-4 h-4 mr-2" />
+                Clear Filters
+              </button>
+            </div>
           </div>
         </div>
 

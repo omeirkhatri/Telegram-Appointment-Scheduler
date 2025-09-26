@@ -38,6 +38,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       success: false,
       error: error instanceof Error ? error.message : 'Failed to fetch staff assignments',
+      details: error instanceof Error ? error.stack : undefined,
     }, { status: 500 });
   }
 }

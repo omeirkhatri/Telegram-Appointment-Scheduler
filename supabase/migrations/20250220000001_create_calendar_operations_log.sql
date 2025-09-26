@@ -4,7 +4,7 @@
 -- Create operation_type enum
 CREATE TYPE calendar_operation_type_enum AS ENUM (
   'create_calendar',
-  'share_calendar', 
+  'share_calendar',
   'create_event',
   'update_event',
   'delete_event',

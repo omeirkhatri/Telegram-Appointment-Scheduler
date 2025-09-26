@@ -188,8 +188,12 @@ export async function DELETE(
       );
     }
 
-    // Get staff assignments before deleting
+    // Get staff assignments before deleting for notifications
     const staffAssignments = await appointmentStaffService.getStaffForAppointment(id);
+
+    // IMPORTANT: Delete appointment first (this will trigger calendar cleanup via unified service)
+    // The unified service needs the staff assignments to still exist to find the calendar events
+    await appointmentService.deleteAppointment(id);
 
     // Send cancellation notifications to all assigned staff members
     if (staffAssignments && staffAssignments.length > 0) {
@@ -197,11 +201,8 @@ export async function DELETE(
       await sendTelegramNotifications(appointment, staffAssignments, undefined, 'cancelled');
     }
 
-    // Remove all staff assignments
+    // Remove all staff assignments (after calendar cleanup is done)
     await appointmentStaffService.removeAllStaffFromAppointment(id);
-
-    // Delete appointment
-    await appointmentService.deleteAppointment(id);
 
     return NextResponse.json({
       success: true,
@@ -238,9 +239,9 @@ function validateAppointmentUpdateData(data: Partial<UpdateAppointment>): string
   }
 
   if (data.start_time !== undefined) {
-    const timeRegex = /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/;
+    const timeRegex = /^([01]?[0-9]|2[0-3]):[0-5][0-9](:[0-5][0-9])?$/;
     if (!timeRegex.test(data.start_time)) {
-      errors.push('Invalid start time format (HH:MM)');
+      errors.push('Invalid start time format (HH:MM or HH:MM:SS)');
     }
   }
 

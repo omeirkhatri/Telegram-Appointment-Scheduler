@@ -1,12 +1,13 @@
 'use client';
 
-import { StaffForm } from './StaffForm';
 import { DeleteConfirmationModal } from '@/components/shared/modals/DeleteConfirmationModal';
 import { ErrorMessage } from '@/components/ui';
 import { useToastContext } from '@/components/ui/ToastContainer';
 import type { Staff } from '@/types';
 import { X } from 'lucide-react';
 import { useState } from 'react';
+import { CalendarStatusDisplay } from './CalendarStatusDisplay';
+import { StaffForm } from './StaffForm';
 
 interface StaffModalProps {
   isOpen: boolean;
@@ -28,6 +29,8 @@ export function StaffModal({
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [showCloseConfirmation, setShowCloseConfirmation] = useState(false);
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
+  const [isRetryingCalendar, setIsRetryingCalendar] = useState(false);
+  const [isVerifyingCalendar, setIsVerifyingCalendar] = useState(false);
   const { showToast } = useToastContext();
 
   const handleSubmit = async (data: any) => {
@@ -54,6 +57,19 @@ export function StaffModal({
 
       // Mark changes as saved
       setHasUnsavedChanges(false);
+
+      // Update the initialStaff with the new data so calendar verification can work
+      const updatedStaff = { ...initialStaff, ...data, id: result.data?.id || initialStaff?.id };
+
+      // If this is a new staff member with email, automatically start calendar verification
+      if (!initialStaff?.id && data.email && data.email.trim() !== '') {
+        try {
+          await handleCalendarVerify(updatedStaff.id);
+        } catch (verifyError) {
+          console.warn('Calendar verification failed after staff creation:', verifyError);
+          // Don't fail the entire operation if verification fails
+        }
+      }
 
       // Close modal and trigger success callback
       onClose();
@@ -148,6 +164,160 @@ export function StaffModal({
     setShowDeleteConfirmation(false);
   };
 
+  const handleCalendarRetry = async (staffId: string) => {
+    setIsRetryingCalendar(true);
+    try {
+      const response = await fetch('/api/calendar/retry', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ staff_id: staffId }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || 'Failed to retry calendar operation');
+      }
+
+      showToast({
+        type: 'success',
+        title: 'Success',
+        message: 'Calendar operation retry initiated successfully',
+      });
+
+      // Refresh the staff data to show updated status
+      onSuccess();
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to retry calendar operation';
+      showToast({
+        type: 'error',
+        title: 'Error',
+        message: errorMessage,
+      });
+    } finally {
+      setIsRetryingCalendar(false);
+    }
+  };
+
+  const handleCalendarVerify = async (staffId: string) => {
+    setIsVerifyingCalendar(true);
+    try {
+      // Get staff data to send required fields
+      const staffData = initialStaff;
+      if (!staffData?.email) {
+        throw new Error('Staff email is required for verification');
+      }
+
+      const response = await fetch('/api/calendar/verify', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          staff_id: staffId,
+          google_calendar_id: staffData.google_calendar_id || 'pending-calendar-creation',
+          staff_email: staffData.email
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || 'Failed to start calendar verification');
+      }
+
+      showToast({
+        type: 'success',
+        title: 'Success',
+        message: 'Calendar verification process started successfully',
+      });
+
+      // Refresh the staff data to show updated status
+      onSuccess();
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to start calendar verification';
+      showToast({
+        type: 'error',
+        title: 'Error',
+        message: errorMessage,
+      });
+    } finally {
+      setIsVerifyingCalendar(false);
+    }
+  };
+
+  const handleManualVerify = async (staffId: string, action: 'send_email_again' | 'mark_verified' | 'change_email', newEmail?: string) => {
+    try {
+      const response = await fetch('/api/calendar/manual-verify', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          staff_id: staffId,
+          action,
+          new_email: newEmail,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || 'Failed to perform manual verification action');
+      }
+
+      // Show success message based on action
+      let title = '';
+      let message = '';
+
+      switch (action) {
+        case 'send_email_again':
+          title = 'Email Sent';
+          message = 'Verification email has been sent again.';
+          break;
+        case 'mark_verified':
+          title = 'Marked as Verified';
+          message = 'Staff member has been manually marked as verified.';
+          break;
+        case 'change_email':
+          title = 'Email Updated';
+          message = 'Email address has been updated. Calendar verification will need to be restarted.';
+          break;
+      }
+
+      showToast({
+        type: 'success',
+        title,
+        message,
+      });
+
+      // Update the staff data to reflect the changes
+      if (initialStaff) {
+        if (action === 'mark_verified') {
+          initialStaff.calendar_verification_status = 'verified';
+          initialStaff.calendar_verification_date = new Date().toISOString();
+        } else if (action === 'change_email' && newEmail) {
+          initialStaff.email = newEmail;
+          initialStaff.calendar_verification_status = 'not_required';
+          initialStaff.calendar_verification_date = null;
+          initialStaff.calendar_error_code = null;
+        }
+      }
+
+      // Refresh the staff data to show updated status
+      onSuccess();
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to perform manual verification action';
+      showToast({
+        type: 'error',
+        title: 'Action Failed',
+        message: errorMessage,
+      });
+    }
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -188,6 +358,20 @@ export function StaffModal({
             />
           )}
 
+          {/* Calendar Status - Only show for existing staff with email */}
+          {initialStaff?.id && initialStaff?.email && (
+            <div className="mb-6">
+              <CalendarStatusDisplay
+                staff={initialStaff}
+                onRetry={handleCalendarRetry}
+                onVerify={handleCalendarVerify}
+                onManualVerify={handleManualVerify}
+                isRetrying={isRetryingCalendar}
+                isVerifying={isVerifyingCalendar}
+              />
+            </div>
+          )}
+
           {/* Form */}
           <StaffForm
             staff={initialStaff as Staff}
@@ -196,7 +380,11 @@ export function StaffModal({
             onDelete={handleDeleteClick}
             onFormChange={handleFormChange}
             onVerificationSuccess={onVerificationSuccess}
+            onCalendarRetry={handleCalendarRetry}
+            onCalendarVerify={handleCalendarVerify}
             isLoading={isSubmitting}
+            isRetryingCalendar={isRetryingCalendar}
+            isVerifyingCalendar={isVerifyingCalendar}
           />
         </div>
       </div>

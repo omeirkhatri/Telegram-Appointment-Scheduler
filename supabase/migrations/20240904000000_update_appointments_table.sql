@@ -54,9 +54,7 @@ ALTER TABLE appointments
     ADD CONSTRAINT appointments_duration_minutes_check
     CHECK (duration_minutes > 0 AND duration_minutes <= 1440); -- Max 24 hours
 
-ALTER TABLE appointments
-    ADD CONSTRAINT appointments_date_check
-    CHECK (appointment_date >= CURRENT_DATE);
+-- Note: appointments_date_check constraint will be added later after soft delete is implemented
 
 ALTER TABLE appointments
     ADD CONSTRAINT appointments_transportation_check

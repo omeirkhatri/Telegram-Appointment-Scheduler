@@ -1,3 +1,4 @@
+import { supabase } from '@/lib/supabase';
 import { appointmentService } from '@/services/appointmentService';
 import { appointmentStaffService } from '@/services/appointmentStaffService';
 import { telegramNotificationService } from '@/services/telegramNotificationService';
@@ -131,6 +132,48 @@ export async function DELETE(
       );
     }
 
+    // Get staff assignments before deleting for immediate calendar cleanup
+    // For recurring appointments, we need to get staff assignments for all related appointments
+    let staffAssignments = await appointmentStaffService.getStaffForAppointment(id);
+
+    // If this is a recurring appointment, also get staff assignments for all generated occurrences
+    const appointment = await appointmentService.getAppointment(id);
+    if (appointment?.recurring_rule || appointment?.is_recurring_base) {
+      // This is a base recurring appointment, get all generated occurrences
+      const { data: generatedAppointments } = await supabase
+        .from('appointments')
+        .select('id')
+        .eq('custom_fields->>base_appointment_id', id);
+
+      if (generatedAppointments && generatedAppointments.length > 0) {
+        const generatedIds = generatedAppointments.map(apt => apt.id);
+        const { data: generatedStaffAssignments } = await supabase
+          .from('appointment_staff')
+          .select(`
+            id,
+            appointment_id,
+            staff_id,
+            role,
+            is_primary,
+            google_event_id,
+            staff:staff_id (
+              id,
+              first_name,
+              last_name,
+              email,
+              phone,
+              google_calendar_id,
+              staff_type
+            )
+          `)
+          .in('appointment_id', generatedIds);
+
+        if (generatedStaffAssignments) {
+          staffAssignments = [...staffAssignments, ...generatedStaffAssignments];
+        }
+      }
+    }
+
     if (deleteType === 'this_occurrence') {
       // In multi-row system, we can delete appointments directly without occurrence numbers
       if (occurrenceNumber === undefined) {
@@ -177,9 +220,11 @@ export async function DELETE(
       );
     }
 
+    // Calendar cleanup is now handled by the unified calendar sync service in appointmentService
+    // The deleteAppointment and related methods will trigger the unified sync automatically
+
     // Send cancellation notifications for recurring appointment deletions
     try {
-      const staffAssignments = await appointmentStaffService.getStaffForAppointment(id);
       if (staffAssignments && staffAssignments.length > 0) {
         // Get the base appointment for notification context
         const baseAppointment = await appointmentService.getAppointment(id);

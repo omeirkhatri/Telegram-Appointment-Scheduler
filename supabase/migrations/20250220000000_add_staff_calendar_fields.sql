@@ -4,13 +4,14 @@
 -- Create calendar_verification_status enum
 CREATE TYPE calendar_verification_status_enum AS ENUM (
   'pending',
-  'verified', 
+  'verified',
   'failed',
   'not_required'
 );
 
 -- Add new calendar-related columns to staff table
-ALTER TABLE staff 
+ALTER TABLE staff
+ADD COLUMN google_calendar_id TEXT,
 ADD COLUMN calendar_verification_status calendar_verification_status_enum DEFAULT 'not_required',
 ADD COLUMN calendar_verification_date TIMESTAMPTZ,
 ADD COLUMN calendar_error_code TEXT;

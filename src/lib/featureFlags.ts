@@ -1,0 +1,547 @@
+/**
+ * Feature flags for Google Calendar functionality
+ *
+ * This module provides centralized feature flag management for calendar-related features,
+ * allowing for gradual rollout and easy feature toggling without code changes.
+ */
+
+import { config } from './env';
+
+// =============================================================================
+// FEATURE FLAG DEFINITIONS
+// =============================================================================
+
+export interface FeatureFlag {
+  key: string;
+  name: string;
+  description: string;
+  enabled: boolean;
+  category: 'calendar' | 'verification' | 'sync' | 'ui' | 'api';
+  environment: 'development' | 'staging' | 'production' | 'all';
+  dependencies?: string[];
+  experimental?: boolean;
+}
+
+export const FEATURE_FLAGS: Record<string, FeatureFlag> = {
+  // Core Calendar Features
+  GOOGLE_CALENDAR_ENABLED: {
+    key: 'GOOGLE_CALENDAR_ENABLED',
+    name: 'Google Calendar Integration',
+    description: 'Enable Google Calendar integration for staff calendar management',
+    enabled: true, // Always enabled if service account is configured
+    category: 'calendar',
+    environment: 'all',
+  },
+
+  CALENDAR_CREATION: {
+    key: 'CALENDAR_CREATION',
+    name: 'Calendar Creation',
+    description: 'Allow creation of new calendars for staff members',
+    enabled: true,
+    category: 'calendar',
+    environment: 'all',
+    dependencies: ['GOOGLE_CALENDAR_ENABLED'],
+  },
+
+  CALENDAR_SHARING: {
+    key: 'CALENDAR_SHARING',
+    name: 'Calendar Sharing',
+    description: 'Enable sharing of calendars with staff members',
+    enabled: true,
+    category: 'calendar',
+    environment: 'all',
+    dependencies: ['GOOGLE_CALENDAR_ENABLED', 'CALENDAR_CREATION'],
+  },
+
+  CALENDAR_DELETION: {
+    key: 'CALENDAR_DELETION',
+    name: 'Calendar Deletion',
+    description: 'Allow deletion of staff calendars when staff is removed',
+    enabled: true,
+    category: 'calendar',
+    environment: 'all',
+    dependencies: ['GOOGLE_CALENDAR_ENABLED'],
+  },
+
+  // Verification Features
+  CALENDAR_VERIFICATION: {
+    key: 'CALENDAR_VERIFICATION',
+    name: 'Calendar Verification',
+    description: 'Enable calendar verification process for new staff calendars',
+    enabled: config.googleCalendar?.verificationEnabled ?? false,
+    category: 'verification',
+    environment: 'all',
+    dependencies: ['GOOGLE_CALENDAR_ENABLED', 'CALENDAR_CREATION'],
+  },
+
+  VERIFICATION_EMAIL: {
+    key: 'VERIFICATION_EMAIL',
+    name: 'Verification Email',
+    description: 'Send verification emails to staff members for calendar setup',
+    enabled: config.googleCalendar?.verificationEnabled ?? false,
+    category: 'verification',
+    environment: 'all',
+    dependencies: ['CALENDAR_VERIFICATION'],
+  },
+
+  VERIFICATION_TEST_EVENT: {
+    key: 'VERIFICATION_TEST_EVENT',
+    name: 'Verification Test Event',
+    description: 'Create test events during calendar verification process',
+    enabled: config.googleCalendar?.verificationEnabled ?? false,
+    category: 'verification',
+    environment: 'all',
+    dependencies: ['CALENDAR_VERIFICATION'],
+  },
+
+  // Sync Features
+  APPOINTMENT_SYNC: {
+    key: 'APPOINTMENT_SYNC',
+    name: 'Appointment Sync',
+    description: 'Sync appointments to staff calendars automatically',
+    enabled: config.googleCalendar?.syncEnabled ?? false,
+    category: 'sync',
+    environment: 'all',
+    dependencies: ['GOOGLE_CALENDAR_ENABLED', 'CALENDAR_SHARING'],
+  },
+
+  APPOINTMENT_UPDATE_SYNC: {
+    key: 'APPOINTMENT_UPDATE_SYNC',
+    name: 'Appointment Update Sync',
+    description: 'Sync appointment updates to staff calendars',
+    enabled: config.googleCalendar?.syncEnabled ?? false,
+    category: 'sync',
+    environment: 'all',
+    dependencies: ['APPOINTMENT_SYNC'],
+  },
+
+  APPOINTMENT_DELETE_SYNC: {
+    key: 'APPOINTMENT_DELETE_SYNC',
+    name: 'Appointment Delete Sync',
+    description: 'Remove appointments from staff calendars when deleted',
+    enabled: config.googleCalendar?.syncEnabled ?? false,
+    category: 'sync',
+    environment: 'all',
+    dependencies: ['APPOINTMENT_SYNC'],
+  },
+
+  BULK_SYNC: {
+    key: 'BULK_SYNC',
+    name: 'Bulk Sync',
+    description: 'Enable bulk synchronization of multiple appointments',
+    enabled: config.googleCalendar?.syncEnabled ?? false,
+    category: 'sync',
+    environment: 'all',
+    dependencies: ['APPOINTMENT_SYNC'],
+  },
+
+  // UI Features
+  CALENDAR_STATUS_UI: {
+    key: 'CALENDAR_STATUS_UI',
+    name: 'Calendar Status UI',
+    description: 'Show calendar status and verification state in staff interface',
+    enabled: true,
+    category: 'ui',
+    environment: 'all',
+    dependencies: ['GOOGLE_CALENDAR_ENABLED'],
+  },
+
+  CALENDAR_RETRY_UI: {
+    key: 'CALENDAR_RETRY_UI',
+    name: 'Calendar Retry UI',
+    description: 'Show retry buttons for failed calendar operations',
+    enabled: true,
+    category: 'ui',
+    environment: 'all',
+    dependencies: ['CALENDAR_STATUS_UI'],
+  },
+
+  CALENDAR_FILTERS: {
+    key: 'CALENDAR_FILTERS',
+    name: 'Calendar Filters',
+    description: 'Enable filtering staff by calendar status',
+    enabled: true,
+    category: 'ui',
+    environment: 'all',
+    dependencies: ['CALENDAR_STATUS_UI'],
+  },
+
+  CALENDAR_ERROR_DISPLAY: {
+    key: 'CALENDAR_ERROR_DISPLAY',
+    name: 'Calendar Error Display',
+    description: 'Show detailed error information for calendar operations',
+    enabled: true,
+    category: 'ui',
+    environment: 'all',
+    dependencies: ['CALENDAR_STATUS_UI'],
+  },
+
+  // API Features
+  CALENDAR_API_ENDPOINTS: {
+    key: 'CALENDAR_API_ENDPOINTS',
+    name: 'Calendar API Endpoints',
+    description: 'Enable calendar-related API endpoints',
+    enabled: true,
+    category: 'api',
+    environment: 'all',
+    dependencies: ['GOOGLE_CALENDAR_ENABLED'],
+  },
+
+  CALENDAR_WEBHOOKS: {
+    key: 'CALENDAR_WEBHOOKS',
+    name: 'Calendar Webhooks',
+    description: 'Enable webhook notifications for calendar events',
+    enabled: true,
+    category: 'api',
+    environment: 'all',
+    dependencies: ['CALENDAR_API_ENDPOINTS'],
+    experimental: true,
+  },
+
+  CALENDAR_ANALYTICS: {
+    key: 'CALENDAR_ANALYTICS',
+    name: 'Calendar Analytics',
+    description: 'Track calendar usage and performance metrics',
+    enabled: true,
+    category: 'api',
+    environment: 'all',
+    dependencies: ['CALENDAR_API_ENDPOINTS'],
+    experimental: true,
+  },
+
+  // Advanced Features
+  CALENDAR_TEMPLATES: {
+    key: 'CALENDAR_TEMPLATES',
+    name: 'Calendar Templates',
+    description: 'Use predefined templates for calendar creation',
+    enabled: true,
+    category: 'calendar',
+    environment: 'all',
+    dependencies: ['CALENDAR_CREATION'],
+    experimental: true,
+  },
+
+  CALENDAR_BACKUP: {
+    key: 'CALENDAR_BACKUP',
+    name: 'Calendar Backup',
+    description: 'Automatically backup calendar data',
+    enabled: true,
+    category: 'calendar',
+    environment: 'all',
+    dependencies: ['GOOGLE_CALENDAR_ENABLED'],
+    experimental: true,
+  },
+
+  CALENDAR_MIGRATION: {
+    key: 'CALENDAR_MIGRATION',
+    name: 'Calendar Migration',
+    description: 'Migrate existing calendars to new format',
+    enabled: true,
+    category: 'calendar',
+    environment: 'all',
+    dependencies: ['GOOGLE_CALENDAR_ENABLED'],
+    experimental: true,
+  },
+};
+
+// =============================================================================
+// FEATURE FLAG UTILITIES
+// =============================================================================
+
+/**
+ * Check if a feature flag is enabled
+ */
+export function isFeatureEnabled(flagKey: string): boolean {
+  const flag = FEATURE_FLAGS[flagKey];
+  if (!flag) {
+    console.warn(`Feature flag '${flagKey}' not found`);
+    return false;
+  }
+
+  // Check dependencies first
+  if (flag.dependencies) {
+    for (const dependency of flag.dependencies) {
+      if (!isFeatureEnabled(dependency)) {
+        return false;
+      }
+    }
+  }
+
+  return flag.enabled;
+}
+
+/**
+ * Check if a feature flag is enabled for a specific environment
+ */
+export function isFeatureEnabledForEnvironment(flagKey: string, environment: string): boolean {
+  const flag = FEATURE_FLAGS[flagKey];
+  if (!flag) {
+    return false;
+  }
+
+  if (flag.environment !== 'all' && flag.environment !== environment) {
+    return false;
+  }
+
+  return isFeatureEnabled(flagKey);
+}
+
+/**
+ * Get all enabled feature flags
+ */
+export function getEnabledFeatures(): FeatureFlag[] {
+  return Object.values(FEATURE_FLAGS).filter(flag => isFeatureEnabled(flag.key));
+}
+
+/**
+ * Get all feature flags by category
+ */
+export function getFeaturesByCategory(category: string): FeatureFlag[] {
+  return Object.values(FEATURE_FLAGS).filter(flag => flag.category === category);
+}
+
+/**
+ * Get all experimental features
+ */
+export function getExperimentalFeatures(): FeatureFlag[] {
+  return Object.values(FEATURE_FLAGS).filter(flag => flag.experimental === true);
+}
+
+/**
+ * Get feature flag information
+ */
+export function getFeatureFlag(flagKey: string): FeatureFlag | undefined {
+  return FEATURE_FLAGS[flagKey];
+}
+
+/**
+ * Check if a feature is experimental
+ */
+export function isExperimentalFeature(flagKey: string): boolean {
+  const flag = FEATURE_FLAGS[flagKey];
+  return flag?.experimental === true;
+}
+
+/**
+ * Get all dependencies for a feature flag
+ */
+export function getFeatureDependencies(flagKey: string): string[] {
+  const flag = FEATURE_FLAGS[flagKey];
+  return flag?.dependencies ?? [];
+}
+
+/**
+ * Check if all dependencies are satisfied for a feature flag
+ */
+export function areDependenciesSatisfied(flagKey: string): boolean {
+  const dependencies = getFeatureDependencies(flagKey);
+  return dependencies.every(dep => isFeatureEnabled(dep));
+}
+
+/**
+ * Get feature flags that depend on a specific flag
+ */
+export function getDependentFeatures(flagKey: string): FeatureFlag[] {
+  return Object.values(FEATURE_FLAGS).filter(flag =>
+    flag.dependencies?.includes(flagKey)
+  );
+}
+
+/**
+ * Validate feature flag configuration
+ */
+export function validateFeatureFlags(): { valid: boolean; errors: string[] } {
+  const errors: string[] = [];
+
+  for (const [key, flag] of Object.entries(FEATURE_FLAGS)) {
+    // Check for circular dependencies
+    if (hasCircularDependency(key, new Set())) {
+      errors.push(`Circular dependency detected for feature flag: ${key}`);
+    }
+
+    // Check if dependencies exist
+    if (flag.dependencies) {
+      for (const dep of flag.dependencies) {
+        if (!FEATURE_FLAGS[dep]) {
+          errors.push(`Feature flag '${key}' depends on non-existent flag: ${dep}`);
+        }
+      }
+    }
+  }
+
+  return {
+    valid: errors.length === 0,
+    errors
+  };
+}
+
+/**
+ * Check for circular dependencies in feature flags
+ */
+function hasCircularDependency(flagKey: string, visited: Set<string>): boolean {
+  if (visited.has(flagKey)) {
+    return true;
+  }
+
+  visited.add(flagKey);
+  const flag = FEATURE_FLAGS[flagKey];
+
+  if (flag?.dependencies) {
+    for (const dep of flag.dependencies) {
+      if (hasCircularDependency(dep, new Set(visited))) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
+
+/**
+ * Get feature flag status summary
+ */
+export function getFeatureFlagSummary(): {
+  total: number;
+  enabled: number;
+  disabled: number;
+  experimental: number;
+  byCategory: Record<string, { total: number; enabled: number; disabled: number; }>;
+} {
+  const flags = Object.values(FEATURE_FLAGS);
+  const enabled = flags.filter(flag => isFeatureEnabled(flag.key));
+  const experimental = flags.filter(flag => flag.experimental === true);
+
+  const byCategory: Record<string, { total: number; enabled: number; disabled: number; }> = {};
+
+  for (const flag of flags) {
+    if (!byCategory[flag.category]) {
+      byCategory[flag.category] = { total: 0, enabled: 0, disabled: 0 };
+    }
+
+    byCategory[flag.category].total++;
+    if (isFeatureEnabled(flag.key)) {
+      byCategory[flag.category].enabled++;
+    } else {
+      byCategory[flag.category].disabled++;
+    }
+  }
+
+  return {
+    total: flags.length,
+    enabled: enabled.length,
+    disabled: flags.length - enabled.length,
+    experimental: experimental.length,
+    byCategory
+  };
+}
+
+/**
+ * Runtime feature flag check with fallback
+ */
+export function withFeatureFlag<T>(
+  flagKey: string,
+  enabledCallback: () => T,
+  disabledCallback?: () => T
+): T {
+  if (isFeatureEnabled(flagKey)) {
+    return enabledCallback();
+  }
+
+  if (disabledCallback) {
+    return disabledCallback();
+  }
+
+  throw new Error(`Feature '${flagKey}' is disabled and no fallback provided`);
+}
+
+/**
+ * Conditional feature flag execution
+ */
+export function ifFeatureEnabled(flagKey: string, callback: () => void): void {
+  if (isFeatureEnabled(flagKey)) {
+    callback();
+  }
+}
+
+// =============================================================================
+// CALENDAR-SPECIFIC FEATURE FLAGS
+// =============================================================================
+
+/**
+ * Check if Google Calendar integration is enabled
+ */
+export function isGoogleCalendarEnabled(): boolean {
+  return isFeatureEnabled('GOOGLE_CALENDAR_ENABLED');
+}
+
+/**
+ * Check if calendar creation is enabled
+ */
+export function isCalendarCreationEnabled(): boolean {
+  return isFeatureEnabled('CALENDAR_CREATION');
+}
+
+/**
+ * Check if calendar sharing is enabled
+ */
+export function isCalendarSharingEnabled(): boolean {
+  return isFeatureEnabled('CALENDAR_SHARING');
+}
+
+/**
+ * Check if calendar verification is enabled
+ */
+export function isCalendarVerificationEnabled(): boolean {
+  return isFeatureEnabled('CALENDAR_VERIFICATION');
+}
+
+/**
+ * Check if appointment sync is enabled
+ */
+export function isAppointmentSyncEnabled(): boolean {
+  return isFeatureEnabled('APPOINTMENT_SYNC');
+}
+
+/**
+ * Check if calendar status UI is enabled
+ */
+export function isCalendarStatusUIEnabled(): boolean {
+  return isFeatureEnabled('CALENDAR_STATUS_UI');
+}
+
+/**
+ * Check if calendar API endpoints are enabled
+ */
+export function areCalendarAPIEndpointsEnabled(): boolean {
+  return isFeatureEnabled('CALENDAR_API_ENDPOINTS');
+}
+
+// =============================================================================
+// FEATURE FLAG VALIDATION ON STARTUP
+// =============================================================================
+
+/**
+ * Validate feature flags on application startup
+ */
+export function validateFeatureFlagsOnStartup(): void {
+  const validation = validateFeatureFlags();
+
+  if (!validation.valid) {
+    console.error('❌ Feature flag validation failed:');
+    validation.errors.forEach(error => console.error(`  - ${error}`));
+    throw new Error('Feature flag configuration is invalid');
+  }
+
+  const summary = getFeatureFlagSummary();
+  console.log('✅ Feature flags validated successfully');
+  console.log(`📊 Feature flags summary: ${summary.enabled}/${summary.total} enabled`);
+  console.log(`🧪 Experimental features: ${summary.experimental}`);
+
+  // Log enabled features by category
+  Object.entries(summary.byCategory).forEach(([category, stats]) => {
+    console.log(`  ${category}: ${stats.enabled}/${stats.total} enabled`);
+  });
+}
+
+// Export feature flag definitions for external use
+export { FEATURE_FLAGS as CALENDAR_FEATURE_FLAGS };

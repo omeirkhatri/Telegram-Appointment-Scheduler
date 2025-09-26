@@ -14,3 +14,27 @@ export { storageService } from './storage';
 export { telegramNotificationService } from './telegramNotificationService';
 export { telegramService } from './telegramService';
 export { timezoneMonitoringService } from './timezoneMonitoringService';
+
+// Calendar Services
+export {
+    default as CalendarVerificationService,
+    getCalendarVerificationService,
+    resetCalendarVerificationService
+} from './calendarVerificationService';
+export {
+    default as EmailService,
+    getEmailService,
+    resetEmailService
+} from './emailService';
+export {
+    default as GoogleCalendarService,
+    getGoogleCalendarService,
+    resetGoogleCalendarService
+} from './googleCalendarService';
+
+// Error Handling and Monitoring Services
+export { errorLoggingService } from './errorLoggingService';
+export { errorNotificationService } from './errorNotificationService';
+export { errorRecoveryService } from './errorRecoveryService';
+export { gracefulDegradationService } from './gracefulDegradationService';
+export { monitoringService } from './monitoringService';

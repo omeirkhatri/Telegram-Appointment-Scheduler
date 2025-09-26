@@ -1,5 +1,5 @@
 // Staff types based on database schema
-export type StaffType = 'doctor' | 'nurse' | 'physiotherapist' | 'caregiver' | 'driver' | 'lab_technician';
+export type StaffType = 'doctor' | 'nurse' | 'physiotherapist' | 'caregiver' | 'os_caregiver' | 'driver';
 export type StaffStatus = 'active' | 'inactive';
 export type CalendarVerificationStatus = 'pending' | 'verified' | 'failed' | 'not_required';
 
@@ -34,6 +34,8 @@ export interface CreateStaff {
   phone: string;
   email: string;
   status?: StaffStatus;
+  telegram_user_id?: string;
+  telegram_verified?: boolean;
   available_days?: number[];
   working_hours_start?: string;
   working_hours_end?: string;

@@ -1,7 +1,7 @@
 import { supabase } from '@/lib/supabase';
 import { buildTimezoneArtifacts, formatLocalDate, getCurrentLocalTime, type TimezoneArtifacts } from '@/lib/timezoneArtifacts';
-import type { TimezoneContext } from '@/types/timezone';
 import { staffService } from '@/services/staffService';
+import type { TimezoneContext } from '@/types/timezone';
 import { telegramCommandFormatters } from '@/utils/telegramCommandFormatters';
 import { telegramValidationService } from '@/utils/telegramValidation';
 import { addDays, endOfWeek, format, startOfWeek } from 'date-fns';
@@ -522,6 +522,7 @@ export class TelegramCommandService {
   ): Promise<ScheduleAppointment[]> {
     const dateString = formatLocalDate(timezone, date, 'yyyy-MM-dd');
 
+    // Get appointments from appointment_staff table
     const { data: appointmentStaff, error } = await supabase
       .from('appointment_staff')
       .select(`
@@ -559,17 +560,53 @@ export class TelegramCommandService {
       `)
       .eq('staff_id', staffId)
       .eq('appointments.appointment_date', dateString)
-      .eq('appointments.status', 'scheduled');
+      .eq('appointments.status', 'scheduled')
+      .neq('appointments.status', 'deleted'); // Exclude deleted appointments
+
+    // Also get appointments where staff is assigned as driver via driver_id
+    const { data: driverAppointments, error: driverError } = await supabase
+      .from('appointments')
+      .select(`
+        id,
+        appointment_type,
+        appointment_date,
+        start_time,
+        duration_minutes,
+        status,
+        mini_notes,
+        full_notes,
+        pickup_instructions,
+        patients (
+          id,
+          name,
+          phone,
+          flat_villa_no,
+          building_street,
+          area,
+          city,
+          latitude,
+          longitude,
+          google_maps_link
+        )
+      `)
+      .eq('driver_id', staffId)
+      .eq('appointment_date', dateString)
+      .eq('status', 'scheduled')
+      .neq('status', 'deleted');
 
     if (error) {
       console.error('Error fetching staff appointments:', error);
       return [];
     }
 
-    // Transform the data to match our interface
-    const appointments: ScheduleAppointment[] = (appointmentStaff || []).map(item => ({
+    if (driverError) {
+      console.error('Error fetching driver appointments:', driverError);
+    }
+
+    // Transform appointment_staff data
+    const staffAppointments: ScheduleAppointment[] = (appointmentStaff || []).map(item => ({
       ...item.appointments,
-      patient: item.appointments.patients, // Fix: use patients property and rename to patient
+      patient: item.appointments.patients,
       staff_assignments: [{
         staff_id: item.staff.id,
         role: item.role,
@@ -582,7 +619,31 @@ export class TelegramCommandService {
       }]
     }));
 
-    return appointments;
+    // Transform driver appointments
+    const driverAppointmentsList: ScheduleAppointment[] = (driverAppointments || []).map(appointment => ({
+      ...appointment,
+      patient: appointment.patients,
+      staff_assignments: [{
+        staff_id: staffId,
+        role: 'driver',
+        staff: {
+          id: staffId,
+          first_name: 'Driver',
+          last_name: '',
+          staff_type: 'driver'
+        }
+      }]
+    }));
+
+    // Combine both lists, avoiding duplicates
+    const allAppointments = [...staffAppointments];
+    for (const driverApp of driverAppointmentsList) {
+      if (!allAppointments.find(app => app.id === driverApp.id)) {
+        allAppointments.push(driverApp);
+      }
+    }
+
+    return allAppointments;
   }
 
   /**
@@ -635,7 +696,8 @@ export class TelegramCommandService {
       .eq('staff_id', staffId)
       .gte('appointments.appointment_date', startDateString)
       .lte('appointments.appointment_date', endDateString)
-      .eq('appointments.status', 'scheduled');
+      .eq('appointments.status', 'scheduled')
+      .neq('appointments.status', 'deleted'); // Exclude deleted appointments
 
     if (error) {
       console.error('Error fetching staff appointments for date range:', error);

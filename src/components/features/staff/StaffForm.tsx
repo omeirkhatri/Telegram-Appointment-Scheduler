@@ -2,8 +2,10 @@
 
 import { staffFormSchema, type StaffFormData } from '@/lib/validations/staff';
 import type { Staff } from '@/types';
+import type { CalendarErrorCode, CalendarVerificationStatus } from '@/types/calendar';
+import { getCalendarErrorDescription, isRetryableError, requiresAdminIntervention } from '@/types/calendar';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { AlertCircle, CheckCircle, Trash2, XCircle } from 'lucide-react';
+import { AlertCircle, AlertTriangle, Calendar, CheckCircle, RefreshCw, Trash2, XCircle } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 
@@ -14,7 +16,11 @@ interface StaffFormProps {
   onDelete?: (staffId: string) => Promise<void>;
   onFormChange?: () => void;
   onVerificationSuccess?: () => void;
+  onCalendarRetry?: (staffId: string) => void;
+  onCalendarVerify?: (staffId: string) => void;
   isLoading?: boolean;
+  isRetryingCalendar?: boolean;
+  isVerifyingCalendar?: boolean;
 }
 
 const STAFF_TYPES = [
@@ -22,11 +28,23 @@ const STAFF_TYPES = [
   { value: 'nurse', label: 'Nurse' },
   { value: 'physiotherapist', label: 'Physiotherapist' },
   { value: 'caregiver', label: 'Caregiver' },
+  { value: 'os_caregiver', label: 'OS Caregiver' },
   { value: 'driver', label: 'Driver' },
-  { value: 'lab_technician', label: 'Lab Technician' },
 ] as const;
 
-export function StaffForm({ staff, onSubmit, onCancel, onDelete, onFormChange, onVerificationSuccess, isLoading = false }: StaffFormProps) {
+export function StaffForm({
+  staff,
+  onSubmit,
+  onCancel,
+  onDelete,
+  onFormChange,
+  onVerificationSuccess,
+  onCalendarRetry,
+  onCalendarVerify,
+  isLoading = false,
+  isRetryingCalendar = false,
+  isVerifyingCalendar = false
+}: StaffFormProps) {
   const [isVerifying, setIsVerifying] = useState(false);
   const [isEditingTelegramId, setIsEditingTelegramId] = useState(false);
   const [verificationStatus, setVerificationStatus] = useState<{
@@ -179,10 +197,14 @@ export function StaffForm({ staff, onSubmit, onCancel, onDelete, onFormChange, o
 
   const handleFormSubmit = async (data: StaffFormData) => {
     try {
-      // Ensure telegram_user_id is always included, even when field is disabled
+      // Ensure telegram_user_id is properly handled - convert empty strings to undefined
       const formData = {
         ...data,
-        telegram_user_id: data.telegram_user_id || staff?.telegram_user_id || '',
+        telegram_user_id: data.telegram_user_id && data.telegram_user_id.trim() !== ''
+          ? data.telegram_user_id
+          : (staff?.telegram_user_id && staff.telegram_user_id.trim() !== ''
+              ? staff.telegram_user_id
+              : undefined),
       };
 
       // Debug logging
@@ -207,6 +229,64 @@ export function StaffForm({ staff, onSubmit, onCancel, onDelete, onFormChange, o
       } catch (error) {
         console.error('Error deleting staff:', error);
       }
+    }
+  };
+
+  // Calendar status helpers
+  const getCalendarStatusIcon = (status: CalendarVerificationStatus | undefined) => {
+    switch (status) {
+      case 'verified':
+        return <CheckCircle className="w-4 h-4 text-green-600" />;
+      case 'failed':
+        return <XCircle className="w-4 h-4 text-red-600" />;
+      case 'pending':
+        return <AlertCircle className="w-4 h-4 text-yellow-600" />;
+      case 'not_required':
+        return <Calendar className="w-4 h-4 text-gray-400" />;
+      default:
+        return <AlertCircle className="w-4 h-4 text-gray-400" />;
+    }
+  };
+
+  const getCalendarStatusText = (status: CalendarVerificationStatus | undefined) => {
+    switch (status) {
+      case 'verified':
+        return 'Calendar Verified';
+      case 'failed':
+        return 'Calendar Setup Failed';
+      case 'pending':
+        return 'Calendar Pending';
+      case 'not_required':
+        return 'Calendar Not Required';
+      default:
+        return 'Calendar Status Unknown';
+    }
+  };
+
+  const getCalendarStatusColor = (status: CalendarVerificationStatus | undefined) => {
+    switch (status) {
+      case 'verified':
+        return 'bg-green-50 border-green-200 text-green-800';
+      case 'failed':
+        return 'bg-red-50 border-red-200 text-red-800';
+      case 'pending':
+        return 'bg-yellow-50 border-yellow-200 text-yellow-800';
+      case 'not_required':
+        return 'bg-gray-50 border-gray-200 text-gray-600';
+      default:
+        return 'bg-gray-50 border-gray-200 text-gray-600';
+    }
+  };
+
+  const handleCalendarRetry = () => {
+    if (staff?.id && onCalendarRetry) {
+      onCalendarRetry(staff.id);
+    }
+  };
+
+  const handleCalendarVerify = () => {
+    if (staff?.id && onCalendarVerify) {
+      onCalendarVerify(staff.id);
     }
   };
 
@@ -306,16 +386,46 @@ export function StaffForm({ staff, onSubmit, onCancel, onDelete, onFormChange, o
         <div>
           <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
             Email
+            {staff?.calendar_verification_status === 'verified' && (
+              <span className="ml-2 inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                Verified
+              </span>
+            )}
+            {staff?.calendar_verification_status === 'pending' && (
+              <span className="ml-2 inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                Pending Verification
+              </span>
+            )}
           </label>
           <input
             type="email"
             id="email"
             {...register('email')}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            disabled={staff?.calendar_verification_status === 'verified'}
+            className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+              staff?.calendar_verification_status === 'verified'
+                ? 'bg-gray-100 border-gray-300 text-gray-500 cursor-not-allowed'
+                : 'border-gray-300'
+            }`}
             placeholder="Enter email address (optional)"
           />
           {errors.email && (
             <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>
+          )}
+          {staff?.calendar_verification_status === 'verified' && (
+            <p className="mt-1 text-sm text-green-600">
+              ✓ Email is verified and cannot be changed. Use "Change Email" in manual controls if needed.
+            </p>
+          )}
+          {staff?.calendar_verification_status === 'pending' && (
+            <p className="mt-1 text-sm text-yellow-600">
+              ⏳ Email verification is pending. You can change the email if needed.
+            </p>
+          )}
+          {(!staff?.calendar_verification_status || staff?.calendar_verification_status === 'not_required' || staff?.calendar_verification_status === 'failed') && (
+            <p className="mt-1 text-sm text-gray-500">
+              Email is required for calendar integration. Staff will receive calendar invites at this address.
+            </p>
           )}
         </div>
 
@@ -479,6 +589,81 @@ export function StaffForm({ staff, onSubmit, onCancel, onDelete, onFormChange, o
           </div>
         </div>
 
+        {/* Calendar Status - Only show for existing staff with email */}
+        {staff?.id && staff?.email && (
+          <div className="md:col-span-2">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Calendar Status
+            </label>
+            <div className={`p-4 rounded-lg border ${getCalendarStatusColor(staff.calendar_verification_status)}`}>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  {getCalendarStatusIcon(staff.calendar_verification_status)}
+                  <div>
+                    <h4 className="font-medium">{getCalendarStatusText(staff.calendar_verification_status)}</h4>
+                    {staff.calendar_verification_date && staff.calendar_verification_status === 'verified' && (
+                      <p className="text-sm opacity-75">
+                        Verified {new Date(staff.calendar_verification_date).toLocaleDateString()}
+                      </p>
+                    )}
+                    {staff.calendar_error_code && staff.calendar_verification_status === 'failed' && (
+                      <p className="text-sm opacity-75">
+                        Error: {getCalendarErrorDescription(staff.calendar_error_code as CalendarErrorCode)}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex items-center space-x-2">
+                  {staff.calendar_verification_status === 'failed' &&
+                   staff.calendar_error_code &&
+                   isRetryableError(staff.calendar_error_code as CalendarErrorCode) && (
+                    <button
+                      type="button"
+                      onClick={handleCalendarRetry}
+                      disabled={isRetryingCalendar}
+                      className="inline-flex items-center space-x-1 px-3 py-1 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-md hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <RefreshCw className={`w-4 h-4 ${isRetryingCalendar ? 'animate-spin' : ''}`} />
+                      <span>{isRetryingCalendar ? 'Retrying...' : 'Retry'}</span>
+                    </button>
+                  )}
+
+                  {(staff.calendar_verification_status === 'pending' || staff.calendar_verification_status === 'failed') && (
+                    <button
+                      type="button"
+                      onClick={handleCalendarVerify}
+                      disabled={isVerifyingCalendar}
+                      className="inline-flex items-center space-x-1 px-3 py-1 text-sm font-medium text-green-600 bg-green-50 border border-green-200 rounded-md hover:bg-green-100 focus:outline-none focus:ring-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <CheckCircle className="w-4 h-4" />
+                      <span>{isVerifyingCalendar ? 'Verifying...' : 'Verify'}</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Error Details */}
+              {staff.calendar_verification_status === 'failed' &&
+               staff.calendar_error_code &&
+               requiresAdminIntervention(staff.calendar_error_code as CalendarErrorCode) && (
+                <div className="mt-3 p-3 bg-red-100 border border-red-200 rounded-md">
+                  <div className="flex items-start space-x-2">
+                    <AlertTriangle className="w-4 h-4 text-red-600 mt-0.5 flex-shrink-0" />
+                    <div className="text-sm">
+                      <p className="font-medium text-red-800">Admin Intervention Required</p>
+                      <p className="text-red-700 mt-1">
+                        This error requires admin intervention to resolve. Please check the error details and contact support if needed.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Status */}
         <div>
           <label htmlFor="status" className="block text-sm font-medium text-gray-700 mb-1">
@@ -523,6 +708,19 @@ export function StaffForm({ staff, onSubmit, onCancel, onDelete, onFormChange, o
           >
             Cancel
           </button>
+
+          {/* Calendar Verify Button - Only show for existing staff with email */}
+          {staff?.id && staff?.email && staff.email.trim() !== '' &&
+           (staff.calendar_verification_status === 'pending' || staff.calendar_verification_status === 'failed') && (
+            <button
+              type="button"
+              onClick={handleCalendarVerify}
+              disabled={isVerifyingCalendar || isLoading}
+              className="px-4 py-2 text-sm font-medium text-green-600 bg-green-50 border border-green-200 rounded-md hover:bg-green-100 focus:outline-none focus:ring-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isVerifyingCalendar ? 'Verifying...' : 'Verify Calendar'}
+            </button>
+          )}
 
           <button
             type="submit"

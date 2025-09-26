@@ -274,6 +274,7 @@ export class StaffAggregationService {
   ): Promise<AppointmentWithDetails[]> {
     const dateString = formatInResolvedTimezone(date, 'yyyy-MM-dd', artifacts.context);
 
+    // Get appointments from appointment_staff table
     const { data: appointmentStaff, error: staffError } = await supabase
       .from('appointment_staff')
       .select(`
@@ -307,13 +308,53 @@ export class StaffAggregationService {
       `)
       .eq('staff_id', staffId)
       .eq('appointments.appointment_date', dateString)
-      .eq('appointments.status', 'scheduled');
+      .eq('appointments.status', 'scheduled')
+      .neq('appointments.status', 'deleted'); // Exclude deleted appointments
+
+    // Also get appointments where staff is assigned as driver via driver_id
+    const { data: driverAppointments, error: driverError } = await supabase
+      .from('appointments')
+      .select(`
+        id,
+        patient_id,
+        appointment_type,
+        appointment_date,
+        start_time,
+        duration_minutes,
+        status,
+        custom_fields,
+        transportation_type,
+        transportation_method,
+        driver_id,
+        notes,
+        patients (
+          id,
+          name,
+          phone,
+          flat_villa_no,
+          building_street,
+          area,
+          city,
+          latitude,
+          longitude,
+          google_maps_link
+        )
+      `)
+      .eq('driver_id', staffId)
+      .eq('appointment_date', dateString)
+      .eq('status', 'scheduled')
+      .neq('status', 'deleted');
 
     if (staffError) {
       throw new Error(`Failed to fetch staff appointments: ${staffError.message}`);
     }
 
-    const appointmentsWithDrivers = await Promise.all(
+    if (driverError) {
+      console.error('Error fetching driver appointments:', driverError);
+    }
+
+    // Process appointment_staff data
+    const staffAppointments = await Promise.all(
       (appointmentStaff || []).map(async (item) => {
         const appointment = item.appointments;
         let driver = null;
@@ -334,7 +375,36 @@ export class StaffAggregationService {
       }),
     );
 
-    return appointmentsWithDrivers;
+    // Process driver appointments
+    const driverAppointmentsList = await Promise.all(
+      (driverAppointments || []).map(async (appointment) => {
+        let driver = null;
+
+        if (appointment.driver_id) {
+          const { data: driverData } = await supabase
+            .from('staff')
+            .select('id, first_name, last_name')
+            .eq('id', appointment.driver_id)
+            .single();
+          driver = driverData;
+        }
+
+        return {
+          ...appointment,
+          driver,
+        } as AppointmentWithDetails;
+      }),
+    );
+
+    // Combine both lists, avoiding duplicates
+    const allAppointments = [...staffAppointments];
+    for (const driverApp of driverAppointmentsList) {
+      if (!allAppointments.find(app => app.id === driverApp.id)) {
+        allAppointments.push(driverApp);
+      }
+    }
+
+    return allAppointments;
   }
 
   /**

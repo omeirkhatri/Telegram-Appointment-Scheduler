@@ -3,12 +3,10 @@
 
 import { useAppointmentsForMapDateRange } from '@/hooks/useAppointmentsForMap';
 import { useMapNavigation } from '@/hooks/useMapNavigation';
+import { buildTimezoneArtifacts, getCurrentLocalTime } from '@/lib/timezoneArtifacts';
 import type { Appointment } from '@/types';
 import { getAppointmentTypeDisplayName } from '@/types/appointment';
 import { getAppointmentTypeColor } from '@/utils/appointmentTypes';
-import { formatInResolvedTimezone, toLocalTime, toUTC } from '@/utils/timezone';
-import { buildTimezoneArtifacts, getCurrentLocalTime } from '@/lib/timezoneArtifacts';
-import { TimezoneBadge } from '@/components/ui/TimezoneBadge';
 import type { DateSelectArg, EventClickArg, EventDropArg, EventResizeArg } from '@fullcalendar/core';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import interactionPlugin from '@fullcalendar/interaction';
@@ -38,26 +36,33 @@ function getServiceAbbreviation(appointmentType: string): string {
 function AppointmentStaffInfo({ appointment }: { appointment: Appointment }) {
   // Use pre-processed staff data from appointment object instead of making API calls
   const serviceAbbr = getServiceAbbreviation(appointment.appointment_type);
-  
+
   // Get staff information from the appointment object (already processed by appointmentService)
   const primaryStaffName = appointment.staff_name || 'NAN';
   const allStaffNames = appointment.all_staff_names || 'NAN';
-  
+
   // Extract driver from appointment_staff data if available
   const driver = appointment.appointment_staff?.find(staff => staff.role === 'driver');
   const driverName = driver ? `${driver.staff?.first_name} ${driver.staff?.last_name}` : undefined;
-  
+
+  // Also check for driver_id field in appointment data
+  const hasDriverId = appointment.driver_id && !driverName;
+
   // Build staff text based on available data
   let staffText = '';
-  
+
   if (primaryStaffName && primaryStaffName !== 'Staff not assigned' && primaryStaffName !== 'NAN') {
     if (driverName) {
       staffText = `${serviceAbbr}, ${primaryStaffName}, ${driverName}`;
+    } else if (hasDriverId) {
+      staffText = `${serviceAbbr}, ${primaryStaffName}, Driver`;
     } else {
       staffText = `${serviceAbbr}, ${primaryStaffName}, Self`;
     }
   } else if (driverName) {
     staffText = `${serviceAbbr}, NAN, ${driverName}`;
+  } else if (hasDriverId) {
+    staffText = `${serviceAbbr}, NAN, Driver`;
   } else {
     staffText = `${serviceAbbr}, NAN, Self`;
   }
@@ -452,7 +457,7 @@ export function AppointmentCalendar({
     const adjustedEnd = event.end
       ? adjustByHours(event.end, -4)
       : new Date(adjustedStart.getTime() + 60 * 60 * 1000);
-    
+
     try {
       if (onEventDrop) {
         await onEventDrop(appointmentId, adjustedStart, adjustedEnd);
@@ -479,7 +484,7 @@ export function AppointmentCalendar({
 
     const adjustedStart = adjustByHours(rawStart, -4);
     const adjustedEnd = adjustByHours(rawEnd, -4);
-    
+
     try {
       if (onEventResize) {
         await onEventResize(appointmentId, adjustedStart, adjustedEnd);
@@ -808,15 +813,15 @@ export function AppointmentCalendar({
                 })}
               </div>
               <div className={`px-3 py-1 rounded-full text-sm font-medium ${
-                isCurrentDateToday 
-                  ? 'bg-[#ff5c00] text-white' 
+                isCurrentDateToday
+                  ? 'bg-[#ff5c00] text-white'
                   : 'bg-[--accent] text-[--accent-foreground]'
               }`}>
                 {appointments.length} appointment{appointments.length !== 1 ? 's' : ''}
               </div>
             </div>
           )}
-          
+
         </div>
 
         <div className="flex items-center space-x-1">

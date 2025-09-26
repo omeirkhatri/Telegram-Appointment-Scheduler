@@ -1,20 +1,20 @@
+import {
+    addVersionHeaders,
+    buildTimezoneContext,
+    createErrorResponse,
+    enhanceAppointmentWithTimezone,
+    formatResponseForVersion,
+    getApiVersion,
+    shouldIncludeTimezoneMetadata,
+    shouldUseLegacyFormat,
+    validateApiVersion
+} from '@/lib/apiUtils';
 import { appointmentService } from '@/services/appointmentService';
 import { appointmentStaffService } from '@/services/appointmentStaffService';
 import { telegramNotificationService } from '@/services/telegramNotificationService';
 import type { AppointmentFilters, CreateAppointment, StaffAssignment } from '@/types';
-import { NextRequest, NextResponse } from 'next/server';
-import { 
-  createErrorResponse, 
-  buildTimezoneContext, 
-  shouldIncludeTimezoneMetadata,
-  enhanceAppointmentWithTimezone,
-  shouldUseLegacyFormat,
-  getApiVersion,
-  validateApiVersion,
-  formatResponseForVersion,
-  addVersionHeaders
-} from '@/lib/apiUtils';
 import { resolveTimezone } from '@/utils/timezone';
+import { NextRequest, NextResponse } from 'next/server';
 
 // GET /api/appointments - Get all appointments with optional filtering
 export async function GET(request: NextRequest) {
@@ -83,7 +83,7 @@ export async function GET(request: NextRequest) {
     // Enhance appointments with timezone metadata if requested
     let enhancedAppointments = appointments;
     if (includeTimezone && !useLegacyFormat) {
-      enhancedAppointments = appointments.map(appointment => 
+      enhancedAppointments = appointments.map(appointment =>
         enhanceAppointmentWithTimezone(appointment, timezoneResolution)
       );
     }
@@ -165,18 +165,33 @@ export async function POST(request: NextRequest) {
     });
 
     // Handle staff assignments if provided (no validation)
-    const staffAssignments: StaffAssignment[] = body.staff_assignments || [];
+    let staffAssignments: StaffAssignment[] = body.staff_assignments || [];
     let assignedStaff = [];
 
+    // If staff_id is provided but no staff_assignments, create a staff assignment
+    if (body.staff_id && (!staffAssignments || staffAssignments.length === 0)) {
+      console.log('Creating staff assignment from staff_id:', body.staff_id);
+      staffAssignments = [{
+        staff_id: body.staff_id,
+        role: 'primary',
+        is_primary: true
+      }];
+    }
+
     if (staffAssignments && staffAssignments.length > 0) {
+      console.log('Assigning staff to appointment:', staffAssignments);
       // Assign staff to appointment without validation
       assignedStaff = await appointmentStaffService.assignStaffToAppointment(
         appointment.id,
         staffAssignments,
       );
 
+      console.log('Staff assigned successfully:', assignedStaff);
+
       // Send Telegram notifications to assigned staff (only for same-day appointments)
       await sendTelegramNotifications(appointment, assignedStaff);
+    } else {
+      console.log('No staff assignments provided for appointment');
     }
 
     // Generate recurring appointments if recurring rule is provided
@@ -373,7 +388,7 @@ export async function POST(request: NextRequest) {
 
     const response = formatResponseForVersion(responseData, request, includeTimezone ? timezoneResolution : undefined);
     response.message = `Appointment created successfully${recurringAppointments.length > 0 ? ` with ${recurringAppointments.length} recurring instances` : ''}`;
-    
+
     const jsonResponse = NextResponse.json(response, { status: 201 });
     return await addVersionHeaders(jsonResponse, request);
   } catch (error) {

@@ -198,7 +198,8 @@ export function isValidAppointmentDate(date: string): boolean {
 
 // Helper function to validate appointment time
 export function isValidAppointmentTime(time: string): boolean {
-  const timeRegex = /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/;
+  // Accept both HH:MM and HH:MM:SS formats
+  const timeRegex = /^([01]?[0-9]|2[0-3]):[0-5][0-9](:[0-5][0-9])?$/;
   return timeRegex.test(time);
 }
 

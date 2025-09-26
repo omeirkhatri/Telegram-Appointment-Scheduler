@@ -1,5 +1,6 @@
 'use client';
 
+import { PatientCombobox } from '@/components/ui/PatientCombobox';
 import { TimePicker } from '@/components/ui/TimePicker';
 import { appointmentFormSchema, type AppointmentFormData } from '@/lib/validations/appointment';
 import type { Appointment, Patient, Staff, StaffAssignment } from '@/types';
@@ -111,6 +112,7 @@ export function AppointmentForm({
     formState: { errors, isSubmitting },
     watch,
     setValue,
+    trigger,
     reset,
   } = useForm<AppointmentFormData>({
     resolver: zodResolver(appointmentFormSchema),
@@ -255,23 +257,16 @@ export function AppointmentForm({
             <label htmlFor="patient_id" className="block text-sm font-medium text-gray-700 mb-1">
               Patient *
             </label>
-            <select
-              {...register('patient_id')}
-              id="patient_id"
-              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-900 font-medium ${
-                errors.patient_id ? 'border-red-500' : 'border-gray-300'
-              }`}
-            >
-              <option value="">Select a patient</option>
-              {patients.map((patient) => (
-                <option key={patient.id} value={patient.id}>
-                  {patient.name} - {patient.phone}
-                </option>
-              ))}
-            </select>
-            {errors.patient_id && (
-              <p className="mt-1 text-sm text-red-600">{errors.patient_id.message}</p>
-            )}
+            <PatientCombobox
+              patients={patients}
+              selectedPatient={patients.find(p => p.id === watch('patient_id')) || null}
+              onPatientSelect={(patient) => {
+                setValue('patient_id', patient?.id || '');
+                trigger('patient_id');
+              }}
+              placeholder="Search patients by name..."
+              error={errors.patient_id?.message}
+            />
           </div>
 
           <div>

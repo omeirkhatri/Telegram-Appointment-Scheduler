@@ -103,6 +103,36 @@ export function AppointmentDetailsDrawer({
     }
   }, [appointment?.id]);
 
+  // Fetch driver information if driver_id is present but not in staff assignments
+  useEffect(() => {
+    if (appointment?.driver_id && !appointmentStaff.find(s => s.role === 'driver')) {
+      fetch(`/api/staff/${appointment.driver_id}`)
+        .then(res => {
+          if (!res.ok) {
+            throw new Error(`HTTP error! status: ${res.status}`);
+          }
+          return res.json();
+        })
+        .then(data => {
+          if (data.success && data.data) {
+            // Add driver to staff assignments
+            const driverStaff = {
+              id: `driver-${appointment.driver_id}`,
+              appointment_id: appointment.id,
+              staff_id: appointment.driver_id,
+              role: 'driver',
+              is_primary: false,
+              staff: data.data
+            };
+            setAppointmentStaff(prev => [...prev, driverStaff]);
+          }
+        })
+        .catch(err => {
+          console.error('Error fetching driver information:', err);
+        });
+    }
+  }, [appointment?.driver_id, appointment?.id, appointmentStaff]);
+
   const handleClose = () => {
     setIsClosing(true);
     setTimeout(() => {
@@ -122,8 +152,19 @@ export function AppointmentDetailsDrawer({
   // Get primary staff and driver from appointment staff assignments
   const staffArray = Array.isArray(appointmentStaff) ? appointmentStaff : [];
   const primaryStaff = staffArray.find(s => s.is_primary);
-  const driver = staffArray.find(s => s.role === 'driver');
+  const driverFromStaff = staffArray.find(s => s.role === 'driver');
   const otherStaff = staffArray.filter(s => !s.is_primary && s.role !== 'driver');
+
+  // Check for driver in both appointment_staff table and appointments.driver_id field
+  const driver = driverFromStaff || (appointment.driver_id ? {
+    staff: {
+      id: appointment.driver_id,
+      first_name: 'Loading...',
+      last_name: '',
+      phone: '',
+      email: ''
+    }
+  } : null);
 
   // Get appointment end time
   const formattedStartTime = formatTimeToHHMM(appointment.start_time);

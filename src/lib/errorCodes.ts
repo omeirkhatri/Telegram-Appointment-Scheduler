@@ -1,8 +1,10 @@
 /**
  * Centralized error code definitions and descriptions for the application
- * 
+ *
  * This file provides a comprehensive set of error codes for different parts of the system,
  * with detailed descriptions and suggested actions for each error type.
+ *
+ * This is the central hub for all error handling in the calendar system.
  */
 
 // =============================================================================

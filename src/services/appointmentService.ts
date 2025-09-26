@@ -3,6 +3,9 @@ import {
 } from '@/lib/recurrenceUtils';
 import { supabase } from '@/lib/supabase';
 // No longer using custom UUID utilities - using standard UUIDs
+import { logCalendarOperation } from '@/lib/calendarOperations';
+import { isFeatureEnabled } from '@/lib/featureFlags';
+import { buildTimezoneArtifacts } from '@/lib/timezoneArtifacts';
 import type {
     Appointment,
     AppointmentFilters,
@@ -17,8 +20,9 @@ import {
     validateAppointmentData,
 } from '@/types/appointment';
 import { appointmentStaffService } from './appointmentStaffService';
+import { getCompatibleUnifiedCalendarSyncService } from './compatibleUnifiedCalendarSyncService';
+import { getGoogleCalendarService } from './googleCalendarService';
 import { telegramNotificationService } from './telegramNotificationService';
-import { buildTimezoneArtifacts } from '@/lib/timezoneArtifacts';
 
 export class AppointmentService {
   // Helper method to send notifications for appointment changes
@@ -63,7 +67,7 @@ export class AppointmentService {
     }
   }
 
-  // Get all appointments with optional filtering
+  // Get all appointments with optional filtering (excludes deleted appointments by default)
   async getAppointments(filters?: AppointmentFilters): Promise<Appointment[]> {
     // Try to get appointments with staff data, fallback to basic query if it fails
     let query = supabase
@@ -78,6 +82,7 @@ export class AppointmentService {
           staff:staff(id, first_name, last_name, staff_type, specialization, phone, email)
         )
       `)
+      .neq('status', 'deleted') // Exclude deleted appointments by default
       .order('appointment_date', { ascending: true })
       .order('start_time', { ascending: true });
 
@@ -129,12 +134,13 @@ export class AppointmentService {
 
       // Fallback to basic query without staff data
       console.log('Falling back to basic appointments query...');
-      const fallbackQuery = supabase
+      let fallbackQuery = supabase
         .from('appointments')
         .select(`
           *,
           patient:patients(id, name, phone, flat_villa_no, building_street, area, city, latitude, longitude, google_maps_link)
         `)
+        .neq('status', 'deleted') // Exclude deleted appointments by default
         .order('appointment_date', { ascending: true })
         .order('start_time', { ascending: true });
 
@@ -303,7 +309,7 @@ export class AppointmentService {
     // Prepare appointment data with new recurring fields
     const appointmentInsertData = {
       ...appointmentData,
-      is_recurring_base: false, // Don't use database trigger, handle in application logic
+      is_recurring_base: !!appointmentData.recurring_rule, // Mark as base if it has a recurring rule
       recurring_group_id: null, // Will be set by the base appointment
       recurring_occurrence_number: null // Will be set by the base appointment
     };
@@ -320,6 +326,25 @@ export class AppointmentService {
 
     // Send same-day appointment notifications if applicable
     await this.sendAppointmentNotifications(data, 'created');
+
+    // Sync appointment to staff calendars if calendar feature is enabled
+    console.log('🔧 Checking if calendar sync is enabled...');
+    const isCalendarEnabled = isFeatureEnabled('GOOGLE_CALENDAR_ENABLED');
+    console.log('🔧 Calendar enabled:', isCalendarEnabled);
+
+    if (isCalendarEnabled) {
+      try {
+        console.log('🔧 Starting calendar sync for appointment:', data.id);
+        await this.syncAppointmentToCalendars(data);
+        console.log('✅ Calendar sync completed for appointment:', data.id);
+      } catch (calendarError) {
+        console.error(`❌ Failed to sync appointment ${data.id} to staff calendars:`, calendarError);
+        // Don't throw error as calendar sync failure shouldn't break appointment creation
+        // The error will be logged and can be retried later
+      }
+    } else {
+      console.log('⚠️ Calendar sync is disabled, skipping');
+    }
 
     return data;
   }
@@ -356,10 +381,22 @@ export class AppointmentService {
 
     // Note: Reschedule notifications are handled by the API route to avoid duplicates
 
+    // Update calendar events using unified service
+    if (isFeatureEnabled('GOOGLE_CALENDAR_ENABLED')) {
+      try {
+        const unifiedSyncService = getCompatibleUnifiedCalendarSyncService();
+        await unifiedSyncService.syncAppointmentUpdate(data.id);
+        console.log(`✅ [UNIFIED] Appointment ${data.id} queued for calendar update`);
+      } catch (calendarError) {
+        console.error(`❌ [UNIFIED] Failed to update calendar events for appointment ${data.id}:`, calendarError);
+        // Don't throw error as calendar sync failure shouldn't break appointment update
+      }
+    }
+
     return data;
   }
 
-  // Delete an appointment
+  // Soft delete an appointment (mark as deleted instead of removing from database)
   async deleteAppointment(id: string): Promise<void> {
     // Get appointment data before deletion for notifications
     const appointment = await this.getAppointment(id);
@@ -367,23 +404,26 @@ export class AppointmentService {
       throw new Error('Appointment not found');
     }
 
-    // If it's a recurring base appointment, delete all related occurrences first
-    if (appointment.is_recurring_base) {
-      const { error: deleteOccurrencesError } = await supabase
-        .from('appointments')
-        .delete()
-        .eq('recurring_group_id', id);
-
-      if (deleteOccurrencesError) {
-        throw new Error(`Failed to delete recurring appointment occurrences: ${deleteOccurrencesError.message}`);
-      }
+    // Check if already deleted
+    if (appointment.status === 'deleted') {
+      throw new Error('Appointment is already deleted');
     }
 
-    // Delete the main appointment
-    const { error } = await supabase
-      .from('appointments')
-      .delete()
-      .eq('id', id);
+    // IMPORTANT: Delete Google Calendar events BEFORE soft delete
+    // The unified sync service needs to find the staff assignments while the appointment is still active
+    try {
+      const unifiedSyncService = getCompatibleUnifiedCalendarSyncService();
+      await unifiedSyncService.syncAppointmentDelete(appointment.id);
+      console.log(`✅ [UNIFIED] Calendar events deleted for appointment ${appointment.id}`);
+    } catch (error) {
+      console.error(`❌ [UNIFIED] Failed to delete calendar events for appointment ${appointment.id}:`, error);
+      // Don't throw error - deletion will be retried by daemon
+    }
+
+    // Use the database function for soft delete (handles recurring appointments)
+    const { error } = await supabase.rpc('soft_delete_appointment', {
+      appointment_id: id
+    });
 
     if (error) {
       throw new Error(`Failed to delete appointment: ${error.message}`);
@@ -391,14 +431,53 @@ export class AppointmentService {
 
     // Send cancellation notifications
     await this.sendAppointmentNotifications(appointment, 'cancelled');
+
+    console.log(`📅 Appointment ${id} marked as deleted and Google Calendar events cleaned up.`);
   }
 
-  // Get appointments by patient
+  // Hard delete an appointment (permanently remove from database)
+  // This should only be used by the daemon after calendar cleanup is complete
+  async hardDeleteAppointment(id: string): Promise<void> {
+    const { error } = await supabase
+      .from('appointments')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      throw new Error(`Failed to hard delete appointment: ${error.message}`);
+    }
+  }
+
+  // Restore a soft deleted appointment
+  async restoreAppointment(id: string, newStatus: 'scheduled' | 'confirmed' = 'scheduled'): Promise<void> {
+    const { error } = await supabase.rpc('restore_appointment', {
+      appointment_id: id,
+      new_status: newStatus
+    });
+
+    if (error) {
+      throw new Error(`Failed to restore appointment: ${error.message}`);
+    }
+  }
+
+  // Get appointments including deleted ones (for admin purposes)
+  async getAllAppointmentsIncludingDeleted(): Promise<Appointment[]> {
+    const { data, error } = await supabase.rpc('get_all_appointments_including_deleted');
+
+    if (error) {
+      throw new Error(`Failed to fetch all appointments: ${error.message}`);
+    }
+
+    return data || [];
+  }
+
+  // Get appointments by patient (excludes deleted appointments)
   async getAppointmentsByPatient(patientId: string): Promise<Appointment[]> {
     const { data, error } = await supabase
       .from('appointments')
       .select('*')
       .eq('patient_id', patientId)
+      .neq('status', 'deleted') // Exclude deleted appointments
       .order('appointment_date', { ascending: true })
       .order('start_time', { ascending: true });
 
@@ -409,13 +488,14 @@ export class AppointmentService {
     return data || [];
   }
 
-  // Get appointments by date range
+  // Get appointments by date range (excludes deleted appointments)
   async getAppointmentsByDateRange(startDate: string, endDate: string): Promise<Appointment[]> {
     const { data, error } = await supabase
       .from('appointments')
       .select('*')
       .gte('appointment_date', startDate)
       .lte('appointment_date', endDate)
+      .neq('status', 'deleted') // Exclude deleted appointments
       .order('appointment_date', { ascending: true })
       .order('start_time', { ascending: true });
 
@@ -426,12 +506,13 @@ export class AppointmentService {
     return data || [];
   }
 
-  // Get appointments by type
+  // Get appointments by type (excludes deleted appointments)
   async getAppointmentsByType(appointmentType: string): Promise<Appointment[]> {
     const { data, error } = await supabase
       .from('appointments')
       .select('*')
       .eq('appointment_type', appointmentType)
+      .neq('status', 'deleted') // Exclude deleted appointments
       .order('appointment_date', { ascending: true })
       .order('start_time', { ascending: true });
 
@@ -442,7 +523,7 @@ export class AppointmentService {
     return data || [];
   }
 
-  // Get appointments by status
+  // Get appointments by status (includes deleted appointments if status is 'deleted')
   async getAppointmentsByStatus(status: string): Promise<Appointment[]> {
     const { data, error } = await supabase
       .from('appointments')
@@ -878,16 +959,17 @@ export class AppointmentService {
     }
   }
 
-  // Delete future recurring occurrences for a base appointment
+  // Soft delete future recurring occurrences for a base appointment
   private async deleteFutureRecurringOccurrences(baseAppointmentId: string): Promise<void> {
     const { error } = await supabase
       .from('appointments')
-      .delete()
+      .update({ status: 'deleted', updated_at: new Date().toISOString() })
       .eq('custom_fields->base_appointment_id', baseAppointmentId)
-      .eq('custom_fields->is_recurring_generated', true);
+      .eq('custom_fields->is_recurring_generated', true)
+      .neq('status', 'deleted'); // Only update if not already deleted
 
     if (error) {
-      console.error('Error deleting future recurring occurrences:', error);
+      console.error('Error soft deleting future recurring occurrences:', error);
     }
   }
 
@@ -936,9 +1018,9 @@ export class AppointmentService {
         }
 
         const customFields = appointment.custom_fields as any;
-        
+
         // Check if this is a recurring appointment in the new multi-row system
-        const isRecurringAppointment = customFields?.is_recurring_generated || 
+        const isRecurringAppointment = customFields?.is_recurring_generated ||
                                      customFields?.is_recurring_occurrence ||
                                      appointment.recurring_rule ||
                                      customFields?.base_appointment_id;
@@ -1040,7 +1122,8 @@ export class AppointmentService {
 
       // Check if this is a recurring appointment in the new multi-row system
       const customFields = baseAppointment.custom_fields as any;
-      const isRecurringAppointment = baseAppointment.recurring_rule || 
+      const isRecurringAppointment = baseAppointment.recurring_rule ||
+                                   baseAppointment.is_recurring_base ||
                                    customFields?.is_recurring_generated ||
                                    customFields?.is_recurring_occurrence ||
                                    customFields?.base_appointment_id;
@@ -1054,11 +1137,10 @@ export class AppointmentService {
         // This is a recurring occurrence, delete all FUTURE occurrences with the same base_appointment_id
         console.log('Deleting all FUTURE occurrences with base_appointment_id:', customFields.base_appointment_id);
         await this.deleteAllFutureOccurrencesByBaseId(customFields.base_appointment_id, baseAppointment.appointment_date, baseAppointment.start_time);
-      } else if (baseAppointment.recurring_rule) {
-        // This is the base appointment, delete it and all future occurrences
+      } else if (baseAppointment.recurring_rule || baseAppointment.is_recurring_base) {
+        // This is the base appointment, delete all future occurrences including the base appointment itself
         console.log('Deleting base appointment and all future occurrences');
-        await this.deleteAppointment(baseAppointmentId);
-        await this.deleteFutureRecurringOccurrences(baseAppointmentId);
+        await this.deleteAllFutureOccurrencesByBaseId(baseAppointmentId, baseAppointment.appointment_date, baseAppointment.start_time, true);
       } else {
         // This is a recurring appointment in the new system, delete it directly
         console.log('Deleting recurring appointment (new multi-row system)');
@@ -1074,10 +1156,10 @@ export class AppointmentService {
   private async deleteAllOccurrencesByBaseId(baseAppointmentId: string): Promise<void> {
     try {
       console.log('Deleting all occurrences with base_appointment_id:', baseAppointmentId);
-      
+
       // Try to find all appointments with this base_appointment_id
       let occurrences: any[] = [];
-      
+
       try {
         // First try the JSON query
         const { data, error } = await supabase
@@ -1089,11 +1171,11 @@ export class AppointmentService {
           console.warn('JSON query failed, trying alternative approach:', error.message);
           throw error;
         }
-        
+
         occurrences = data || [];
       } catch (jsonError) {
         console.log('JSON query failed, fetching all appointments and filtering client-side');
-        
+
         // Fallback: Get all appointments and filter client-side
         const { data: allAppointments, error: fetchError } = await supabase
           .from('appointments')
@@ -1129,13 +1211,19 @@ export class AppointmentService {
   }
 
   // Delete all FUTURE occurrences with the same base_appointment_id (not past ones)
-  private async deleteAllFutureOccurrencesByBaseId(baseAppointmentId: string, currentDate: string, currentTime: string): Promise<void> {
+  private async deleteAllFutureOccurrencesByBaseId(baseAppointmentId: string, currentDate: string, currentTime: string, includeBaseAppointment: boolean = false): Promise<void> {
     try {
       console.log('Deleting all FUTURE occurrences with base_appointment_id:', baseAppointmentId, 'from date:', currentDate, 'time:', currentTime);
-      
+
+      // If we need to include the base appointment, delete it first
+      if (includeBaseAppointment) {
+        console.log('Deleting base appointment first:', baseAppointmentId);
+        await this.deleteAppointment(baseAppointmentId);
+      }
+
       // Try to find all appointments with this base_appointment_id
       let occurrences: any[] = [];
-      
+
       try {
         // First try the JSON query
         const { data, error } = await supabase
@@ -1147,11 +1235,11 @@ export class AppointmentService {
           console.warn('JSON query failed, trying alternative approach:', error.message);
           throw error;
         }
-        
+
         occurrences = data || [];
       } catch (jsonError) {
         console.log('JSON query failed, fetching all appointments and filtering client-side');
-        
+
         // Fallback: Get all appointments and filter client-side
         const { data: allAppointments, error: fetchError } = await supabase
           .from('appointments')
@@ -1169,26 +1257,20 @@ export class AppointmentService {
       }
 
       // Filter to only include FUTURE occurrences (same date with later time, or later dates)
-      // Also exclude the base appointment itself from deletion
       const futureOccurrences = occurrences.filter(occurrence => {
-        // Don't delete the base appointment itself
-        if (occurrence.id === baseAppointmentId) {
-          return false;
-        }
-        
         const occurrenceDate = occurrence.appointment_date;
         const occurrenceTime = occurrence.start_time;
-        
+
         // If the date is later, it's definitely future
         if (occurrenceDate > currentDate) {
           return true;
         }
-        
+
         // If the date is the same, check the time
         if (occurrenceDate === currentDate) {
           return occurrenceTime >= currentTime;
         }
-        
+
         // If the date is earlier, it's past
         return false;
       });
@@ -1206,9 +1288,12 @@ export class AppointmentService {
         }
       }
 
-      // Don't delete the base appointment when deleting future occurrences
-      // The base appointment should remain as it represents the original recurring rule
-      console.log('Keeping base appointment intact (not deleting it)');
+      // Log whether base appointment is being deleted or kept
+      if (includeBaseAppointment) {
+        console.log('Base appointment and all future occurrences deleted');
+      } else {
+        console.log('Keeping base appointment intact (not deleting it)');
+      }
     } catch (error) {
       console.error('Error deleting all future occurrences by base ID:', error);
       throw error;
@@ -1251,6 +1336,481 @@ export class AppointmentService {
       byStatus,
       byType,
     };
+  }
+
+  // =============================================================================
+  // CALENDAR OPERATIONS
+  // =============================================================================
+
+  /**
+   * Sync appointment to staff calendars using unified service
+   */
+  private async syncAppointmentToCalendars(appointment: Appointment): Promise<void> {
+    try {
+      console.log(`📅 [UNIFIED] Syncing appointment ${appointment.id} to staff calendars`);
+
+      const unifiedSyncService = getCompatibleUnifiedCalendarSyncService();
+      await unifiedSyncService.syncAppointmentCreate(appointment.id);
+
+      console.log(`✅ [UNIFIED] Appointment ${appointment.id} queued for calendar sync`);
+
+    } catch (error) {
+      console.error(`❌ [UNIFIED] Failed to sync appointment ${appointment.id} to calendars:`, error);
+      // Don't throw error - sync will be retried by daemon
+      console.log(`📅 [UNIFIED] Appointment will be retried by daemon`);
+    }
+  }
+
+  /**
+   * Create calendar event using simple API endpoint (fallback method)
+   */
+  private async createSimpleCalendarEvent(
+    appointment: Appointment,
+    staff: { id: string; first_name: string; last_name: string; google_calendar_id: string },
+    role: string
+  ): Promise<void> {
+    try {
+      console.log(`📅 Creating simple calendar event for staff ${staff.first_name} ${staff.last_name} (${role})`);
+
+      // Calculate event times
+      const startDateTime = new Date(`${appointment.appointment_date}T${appointment.start_time}`);
+      const endDateTime = new Date(startDateTime.getTime() + (appointment.duration_minutes || 60) * 60000);
+
+      // Create event title based on role
+      const eventTitle = this.buildEventTitle(appointment, role);
+      const eventDescription = this.buildEventDescription(appointment, staff, role);
+
+      // Create calendar event using simple API
+      const response = await fetch('http://localhost:3000/api/calendar/create-simple', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          staff_id: staff.id,
+          google_calendar_id: staff.google_calendar_id,
+          event_title: eventTitle,
+          event_description: eventDescription,
+          start_time: startDateTime.toISOString(),
+          end_time: endDateTime.toISOString()
+        })
+      });
+
+      const result = await response.json();
+
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to create calendar event');
+      }
+
+      console.log(`✅ Simple calendar event created successfully: ${result.data.eventId}`);
+
+      // Update the staff assignment with the Google event ID
+      await appointmentStaffService.updateStaffAssignment(appointment.id, staff.id, {
+        google_event_id: result.data.eventId
+      });
+
+      console.log(`✅ Updated staff assignment with Google event ID`);
+
+    } catch (error) {
+      console.error(`❌ Failed to create simple calendar event for staff ${staff.id}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Create calendar event for a specific staff member
+   */
+  private async createCalendarEventForStaff(
+    appointment: Appointment,
+    staff: { id: string; first_name: string; last_name: string; google_calendar_id: string },
+    role: string
+  ): Promise<void> {
+    try {
+      console.log(`📅 Creating calendar event for staff ${staff.first_name} ${staff.last_name} (${role})`);
+
+      // Log calendar event creation start
+      await logCalendarOperation({
+        staffId: staff.id,
+        operationType: 'create_event',
+        operationStatus: 'pending',
+        googleCalendarId: staff.google_calendar_id
+      });
+
+      const googleCalendarService = getGoogleCalendarService();
+
+      // Calculate event times
+      const startDateTime = new Date(`${appointment.appointment_date}T${appointment.start_time}:00`);
+      const endDateTime = new Date(startDateTime.getTime() + (appointment.duration_minutes || 60) * 60000);
+
+      // Create event title based on role
+      const eventTitle = this.buildEventTitle(appointment, role);
+      const eventDescription = this.buildEventDescription(appointment, staff, role);
+
+      // Create calendar event
+      const eventResult = await googleCalendarService.createEvent({
+        staff_id: staff.id,
+        google_calendar_id: staff.google_calendar_id,
+        event_title: eventTitle,
+        event_description: eventDescription,
+        start_time: startDateTime.toISOString(),
+        end_time: endDateTime.toISOString(),
+        location: appointment.patient?.address || '',
+        attendees: [staff.google_calendar_id] // Add staff as attendee
+      });
+
+      if (!eventResult.success) {
+        throw new Error(eventResult.errorMessage || 'Failed to create calendar event');
+      }
+
+      // Log successful event creation
+      await logCalendarOperation({
+        staffId: staff.id,
+        operationType: 'create_event',
+        operationStatus: 'success',
+        googleCalendarId: staff.google_calendar_id,
+        googleEventId: eventResult.eventId
+      });
+
+      // Store the Google Event ID in the appointment's google_event_ids
+      await this.storeGoogleEventId(appointment.id, staff.id, eventResult.eventId!);
+
+      console.log(`✅ Successfully created calendar event for staff ${staff.first_name} ${staff.last_name}`);
+
+    } catch (error) {
+      console.error(`❌ Failed to create calendar event for staff ${staff.id}:`, error);
+
+      // Log event creation failure
+      await logCalendarOperation({
+        staffId: staff.id,
+        operationType: 'create_event',
+        operationStatus: 'failed',
+        errorCode: 'CALENDAR_EVENT_CREATION_FAILED',
+        errorMessage: error instanceof Error ? error.message : 'Unknown error',
+        googleCalendarId: staff.google_calendar_id
+      });
+
+      throw error;
+    }
+  }
+
+  /**
+   * Delete Google Calendar events for an appointment
+   */
+  private async deleteGoogleCalendarEvents(appointment: Appointment): Promise<void> {
+    try {
+      // Check if Google Calendar is enabled
+      if (!isFeatureEnabled('GOOGLE_CALENDAR_ENABLED')) {
+        console.log('📅 Google Calendar integration disabled, skipping event deletion');
+        return;
+      }
+
+      console.log(`🗑️ Deleting Google Calendar events for appointment ${appointment.id}`);
+
+      const googleCalendarService = getGoogleCalendarService();
+      if (!googleCalendarService.isInitialized) {
+        console.log('⚠️ Google Calendar service not initialized, skipping event deletion');
+        return;
+      }
+
+      // Get all staff assigned to this appointment
+      const { data: appointmentStaff, error: staffError } = await supabase
+        .from('appointment_staff')
+        .select('staff_id, staff:staff_id(google_calendar_id, first_name, last_name)')
+        .eq('appointment_id', appointment.id);
+
+      if (staffError) {
+        console.error('❌ Error fetching appointment staff:', staffError);
+        return;
+      }
+
+      if (!appointmentStaff || appointmentStaff.length === 0) {
+        console.log('📅 No staff assigned to appointment, skipping deletion');
+        return;
+      }
+
+      console.log(`📅 Found ${appointmentStaff.length} staff members assigned to appointment`);
+
+      // Delete events for each staff member
+      for (const record of appointmentStaff) {
+        const staff = record.staff;
+        if (!staff?.google_calendar_id) {
+          console.log(`⚠️ Staff ${record.staff_id} has no Google Calendar, skipping`);
+          continue;
+        }
+
+        try {
+          console.log(`  📅 Deleting events for ${staff.first_name} ${staff.last_name}...`);
+
+          // Get all events for this staff member's calendar on the appointment date
+          const events = await googleCalendarService.listEvents(staff.google_calendar_id, {
+            timeMin: new Date(`${appointment.appointment_date}T00:00:00`).toISOString(),
+            timeMax: new Date(`${appointment.appointment_date}T23:59:59`).toISOString(),
+            maxResults: 50
+          });
+
+          console.log(`  📅 Found ${events.length} events on ${appointment.appointment_date}`);
+
+          // Delete ALL events on this date (simpler approach)
+          for (const event of events) {
+            try {
+              const deleteResult = await googleCalendarService.deleteEvent(
+                staff.google_calendar_id,
+                event.id
+              );
+
+              if (deleteResult.success) {
+                console.log(`    ✅ Deleted event: ${event.summary}`);
+              } else {
+                console.log(`    ❌ Failed to delete event: ${deleteResult.errorMessage}`);
+              }
+            } catch (error) {
+              console.log(`    ❌ Error deleting event: ${error.message}`);
+            }
+          }
+
+        } catch (error) {
+          console.error(`❌ Error processing staff ${record.staff_id}:`, error);
+        }
+      }
+
+      console.log(`✅ Google Calendar events cleanup completed for appointment ${appointment.id}`);
+
+    } catch (error) {
+      console.error('❌ Error deleting Google Calendar events:', error);
+    }
+  }
+
+  /**
+   * Store Google Event ID in the appointment's google_event_ids field
+   */
+  private async storeGoogleEventId(appointmentId: string, staffId: string, googleEventId: string): Promise<void> {
+    try {
+      // Get current google_event_ids
+      const { data: appointment, error: fetchError } = await supabase
+        .from('appointments')
+        .select('google_event_ids')
+        .eq('id', appointmentId)
+        .single();
+
+      if (fetchError) {
+        console.error('❌ Failed to fetch appointment for google_event_ids update:', fetchError);
+        return;
+      }
+
+      // Update google_event_ids with new event ID
+      const currentEventIds = appointment.google_event_ids || {};
+      const updatedEventIds = {
+        ...currentEventIds,
+        [staffId]: googleEventId
+      };
+
+      const { error: updateError } = await supabase
+        .from('appointments')
+        .update({ google_event_ids: updatedEventIds })
+        .eq('id', appointmentId);
+
+      if (updateError) {
+        console.error('❌ Failed to update google_event_ids:', updateError);
+      } else {
+        console.log(`✅ Stored Google Event ID ${googleEventId} for staff ${staffId} in appointment ${appointmentId}`);
+      }
+    } catch (error) {
+      console.error('❌ Error storing Google Event ID:', error);
+    }
+  }
+
+  /**
+   * Update calendar events when appointment is updated
+   */
+  private async updateCalendarEventsForAppointment(appointment: Appointment): Promise<void> {
+    try {
+      console.log(`📅 Updating calendar events for appointment ${appointment.id}`);
+
+      // Get staff assignments for this appointment
+      const staffAssignments = await appointmentStaffService.getStaffForAppointment(appointment.id);
+
+      if (!staffAssignments || staffAssignments.length === 0) {
+        console.log(`📅 No staff assignments found for appointment ${appointment.id}, skipping calendar update`);
+        return;
+      }
+
+      const googleCalendarService = getGoogleCalendarService();
+
+      // Update events for each staff member
+      for (const assignment of staffAssignments) {
+        if (!assignment.staff?.google_calendar_id) {
+          continue;
+        }
+
+        try {
+          // For now, we'll delete and recreate the event
+          // In a more sophisticated implementation, we'd track event IDs and update them directly
+          await this.deleteCalendarEventsForStaff(appointment.id, assignment.staff.id);
+          await this.createCalendarEventForStaff(appointment, assignment.staff, assignment.role);
+        } catch (error) {
+          console.error(`❌ Failed to update calendar event for staff ${assignment.staff.id}:`, error);
+          // Continue with other staff members even if one fails
+        }
+      }
+
+    } catch (error) {
+      console.error(`❌ Failed to update calendar events for appointment ${appointment.id}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Delete calendar events when appointment is deleted
+   */
+  private async deleteCalendarEventsForAppointment(appointment: Appointment): Promise<void> {
+    try {
+      console.log(`📅 Deleting calendar events for appointment ${appointment.id}`);
+
+      // Get staff assignments for this appointment
+      const staffAssignments = await appointmentStaffService.getStaffForAppointment(appointment.id);
+
+      if (!staffAssignments || staffAssignments.length === 0) {
+        console.log(`📅 No staff assignments found for appointment ${appointment.id}, skipping calendar deletion`);
+        return;
+      }
+
+      // Delete events for each staff member
+      for (const assignment of staffAssignments) {
+        if (!assignment.staff?.google_calendar_id) {
+          continue;
+        }
+
+        try {
+          await this.deleteCalendarEventsForStaff(appointment.id, assignment.staff.id);
+        } catch (error) {
+          console.error(`❌ Failed to delete calendar event for staff ${assignment.staff.id}:`, error);
+          // Continue with other staff members even if one fails
+        }
+      }
+
+    } catch (error) {
+      console.error(`❌ Failed to delete calendar events for appointment ${appointment.id}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Delete calendar events for a specific staff member
+   */
+  private async deleteCalendarEventsForStaff(appointmentId: string, staffId: string): Promise<void> {
+    try {
+      console.log(`📅 Deleting calendar events for appointment ${appointmentId} and staff ${staffId}`);
+
+      // Get the staff assignment to find the Google event ID
+      const staffAssignments = await appointmentStaffService.getStaffForAppointment(appointmentId);
+      const assignment = staffAssignments?.find(a => a.staff_id === staffId);
+
+      if (!assignment || !assignment.google_event_id) {
+        console.log(`📅 No Google event ID found for staff ${staffId} in appointment ${appointmentId}, skipping deletion`);
+        return;
+      }
+
+      // Get staff details to access calendar ID
+      const staff = assignment.staff;
+      if (!staff || !staff.google_calendar_id) {
+        console.log(`📅 No Google calendar ID found for staff ${staffId}, skipping deletion`);
+        return;
+      }
+
+      // Delete the event from Google Calendar using the simple API
+      const response = await fetch('http://localhost:3000/api/calendar/delete-event', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          staff_id: staffId,
+          google_calendar_id: staff.google_calendar_id,
+          google_event_id: assignment.google_event_id
+        })
+      });
+
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || 'Failed to delete calendar event');
+      }
+
+      console.log(`✅ Successfully deleted calendar event ${assignment.google_event_id} for staff ${staffId}`);
+
+      // Clear the google_event_id from the appointment_staff record
+      await appointmentStaffService.updateStaffAssignment(appointmentId, staffId, {
+        google_event_id: null
+      });
+
+      console.log(`✅ Cleared google_event_id from appointment_staff record`);
+
+      // Log calendar event deletion
+      await logCalendarOperation({
+        staffId,
+        operationType: 'delete_event',
+        operationStatus: 'success',
+        googleEventId: assignment.google_event_id
+      });
+
+    } catch (error) {
+      console.error(`❌ Failed to delete calendar events for staff ${staffId}:`, error);
+
+      // Log the failure
+      await logCalendarOperation({
+        staffId,
+        operationType: 'delete_event',
+        operationStatus: 'failed',
+        errorCode: 'EVENT_DELETION_FAILED',
+        errorMessage: error instanceof Error ? error.message : String(error)
+      });
+
+      throw error;
+    }
+  }
+
+  /**
+   * Build event title for calendar
+   */
+  private buildEventTitle(appointment: Appointment, role: string): string {
+    const patientName = appointment.patient?.name || 'Unknown Patient';
+    const appointmentType = appointment.appointment_type || 'Appointment';
+
+    if (role === 'primary') {
+      return `${appointmentType} - ${patientName}`;
+    } else {
+      return `${appointmentType} - ${patientName} (${role})`;
+    }
+  }
+
+  /**
+   * Build event description for calendar
+   */
+  private buildEventDescription(
+    appointment: Appointment,
+    staff: { first_name: string; last_name: string },
+    role: string
+  ): string {
+    const parts = [];
+
+    parts.push(`Patient: ${appointment.patient?.name || 'Unknown Patient'}`);
+    parts.push(`Phone: ${appointment.patient?.phone || 'Not provided'}`);
+
+    if (appointment.patient?.address) {
+      parts.push(`Address: ${appointment.patient.address}`);
+    }
+
+    parts.push(`Staff: ${staff.first_name} ${staff.last_name} (${role})`);
+
+    if (appointment.notes) {
+      parts.push(`Notes: ${appointment.notes}`);
+    }
+
+    if (appointment.mini_notes) {
+      parts.push(`Mini Notes: ${appointment.mini_notes}`);
+    }
+
+    return parts.join('\n');
   }
 
 }

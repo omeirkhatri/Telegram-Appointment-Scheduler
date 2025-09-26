@@ -4,7 +4,7 @@ import { z } from 'zod';
 export const uuidSchema = z.string().uuid();
 export const emailSchema = z.string().email();
 export const phoneSchema = z.string().regex(/^[+]?[0-9\s\-\(\)]+$/, 'Invalid phone number format');
-export const timeSchema = z.string().regex(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/, 'Invalid time format (HH:MM)');
+export const timeSchema = z.string().regex(/^([01]?[0-9]|2[0-3]):[0-5][0-9](:[0-5][0-9])?$/, 'Invalid time format (HH:MM or HH:MM:SS)');
 export const dateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Invalid date format (YYYY-MM-DD)');
 
 // Patient validation schemas

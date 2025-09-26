@@ -1,6 +1,6 @@
 import type { Appointment, Patient, Staff } from '@/types';
 
-export type StaffType = 'doctor' | 'nurse' | 'physiotherapist' | 'caregiver' | 'driver' | 'lab_technician';
+export type StaffType = 'doctor' | 'nurse' | 'physiotherapist' | 'caregiver' | 'os_caregiver' | 'driver';
 export type NotificationType = 'same_day_created' | 'rescheduled' | 'one_hour_reminder' | 'cancelled';
 export type ChangeType = 'created' | 'updated' | 'cancelled';
 

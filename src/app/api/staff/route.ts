@@ -1,5 +1,9 @@
+import { getErrorDescription } from '@/lib/errorCodes';
+import { getCalendarVerificationService } from '@/services/calendarVerificationService';
+import { getGoogleCalendarService } from '@/services/googleCalendarService';
 import { staffService } from '@/services/staffService';
 import type { CreateStaff, StaffFilters } from '@/types';
+import { CalendarStatusResponse } from '@/types/calendar';
 import { NextRequest, NextResponse } from 'next/server';
 
 // GET /api/staff - Get all staff with optional filtering
@@ -35,9 +39,20 @@ export async function GET(
 
     const staff = await staffService.getStaff(filters);
 
+    // Add calendar status to each staff member
+    const staffWithCalendarStatus = await Promise.all(
+      staff.map(async (staffMember) => {
+        const calendarStatus = await getStaffCalendarStatus(staffMember.id);
+        return {
+          ...staffMember,
+          calendar_status: calendarStatus
+        };
+      })
+    );
+
     return NextResponse.json({
       success: true,
-      data: staff,
+      data: staffWithCalendarStatus,
     });
   } catch (error) {
     console.error('Error fetching staff:', error);
@@ -64,7 +79,7 @@ export async function POST(request: NextRequest) {
       specialization: body.specialization,
       phone: body.phone,
       email: body.email?.trim() || 'no-email@bestdoc.com',
-      telegram_user_id: body.telegram_user_id || null,
+      telegram_user_id: body.telegram_user_id && body.telegram_user_id.trim() !== '' ? body.telegram_user_id : undefined,
       available_days: body.available_days || [1, 2, 3, 4, 5], // Default to Mon-Fri
       working_hours_start: body.working_hours_start || '09:00',
       working_hours_end: body.working_hours_end || '17:00',
@@ -89,9 +104,16 @@ export async function POST(request: NextRequest) {
     // Create staff member
     const staff = await staffService.createStaff(staffData);
 
+    // Add calendar status to the response
+    const calendarStatus = await getStaffCalendarStatus(staff.id);
+    const staffWithCalendarStatus = {
+      ...staff,
+      calendar_status: calendarStatus
+    };
+
     return NextResponse.json({
       success: true,
-      data: staff,
+      data: staffWithCalendarStatus,
       message: 'Staff member created successfully',
     }, { status: 201 });
   } catch (error) {
@@ -150,5 +172,100 @@ function validateStaffData(data: CreateStaff): string[] {
     }
   }
 
+  // Validate Telegram User ID if provided
+  if (data.telegram_user_id !== undefined && data.telegram_user_id !== null) {
+    if (data.telegram_user_id.trim() !== '' && !/^\d+$/.test(data.telegram_user_id)) {
+      errors.push('Telegram User ID must be numeric');
+    }
+  }
+
   return errors;
+}
+
+/**
+ * Get calendar status for a staff member
+ */
+async function getStaffCalendarStatus(staffId: string): Promise<CalendarStatusResponse> {
+  try {
+    // Get staff information from database
+    const staff = await staffService.getStaffMember(staffId);
+
+    if (!staff) {
+      return {
+        staff_id: staffId,
+        verification_status: 'not_required',
+        error_code: 'STAFF_NOT_FOUND',
+        error_message: 'Staff member not found',
+        last_operation: 'status_check',
+        last_operation_status: 'failed',
+        last_operation_date: new Date().toISOString()
+      };
+    }
+
+    // Initialize response
+    const status: CalendarStatusResponse = {
+      staff_id: staffId,
+      google_calendar_id: staff.google_calendar_id,
+      verification_status: staff.calendar_verification_status || 'not_required',
+      verification_date: staff.calendar_verification_date,
+      error_code: staff.calendar_error_code,
+      error_message: staff.calendar_error_code ? getErrorDescription(staff.calendar_error_code)?.description : undefined,
+      last_operation: 'unknown',
+      last_operation_status: 'unknown',
+      last_operation_date: staff.updated_at
+    };
+
+    // Check calendar health if calendar ID exists
+    if (staff.google_calendar_id) {
+      try {
+        const googleCalendarService = getGoogleCalendarService();
+        const calendarExists = await googleCalendarService.calendarExists(staff.google_calendar_id);
+
+        if (!calendarExists) {
+          status.error_code = 'CALENDAR_NOT_FOUND';
+          status.error_message = 'Calendar not found or not accessible';
+          status.last_operation_status = 'failed';
+        } else {
+          status.last_operation_status = 'success';
+        }
+      } catch (error) {
+        status.error_code = 'GOOGLE_API_UNAVAILABLE';
+        status.error_message = 'Failed to check calendar health';
+        status.last_operation_status = 'failed';
+      }
+    }
+
+    // Get verification status if enabled and staff has email
+    if (staff.google_calendar_id && staff.email && staff.email !== 'no-email@bestdoc.com') {
+      try {
+        const verificationService = getCalendarVerificationService();
+        const verificationStatus = await verificationService.checkVerificationStatus(staffId);
+
+        status.verification_status = verificationStatus.verificationStatus;
+        status.verification_date = verificationStatus.verificationDate;
+
+        if (verificationStatus.errorCode) {
+          status.error_code = verificationStatus.errorCode;
+          status.error_message = verificationStatus.errorMessage;
+        }
+      } catch (error) {
+        console.warn(`Failed to check verification status for staff ${staffId}:`, error);
+      }
+    }
+
+    return status;
+
+  } catch (error) {
+    console.error(`❌ Failed to get calendar status for staff ${staffId}:`, error);
+
+    return {
+      staff_id: staffId,
+      verification_status: 'failed',
+      error_code: 'INTERNAL_ERROR',
+      error_message: error instanceof Error ? error.message : 'Unknown error',
+      last_operation: 'status_check',
+      last_operation_status: 'failed',
+      last_operation_date: new Date().toISOString()
+    };
+  }
 }

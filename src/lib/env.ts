@@ -106,7 +106,7 @@ function validateEnvironment(): z.infer<typeof envSchema> {
     console.error('❌ Environment validation failed:');
     console.error('Field errors:', errors.fieldErrors);
     console.error('Form errors:', errors.formErrors);
-    
+
     // Debug: Log the actual environment variables that are causing issues
     console.error('🔍 Debug - Environment variables:');
     const isServer = typeof window === 'undefined';
@@ -193,7 +193,7 @@ function getConfig() {
 
         isLocal: () => env.NEXT_PUBLIC_SUPABASE_URL.includes('127.0.0.1') ||
                         env.NEXT_PUBLIC_SUPABASE_URL.includes('localhost'),
-        
+
         hasServiceRoleKey: () => 'SUPABASE_SERVICE_ROLE_KEY' in env && !!env.SUPABASE_SERVICE_ROLE_KEY,
       },
 
@@ -219,8 +219,8 @@ function getConfig() {
       googleCalendar: {
         serviceAccountKey: 'GOOGLE_CALENDAR_SERVICE_ACCOUNT_KEY' in env ? env.GOOGLE_CALENDAR_SERVICE_ACCOUNT_KEY : undefined,
         serviceAccountEmail: 'GOOGLE_CALENDAR_SERVICE_ACCOUNT_EMAIL' in env ? env.GOOGLE_CALENDAR_SERVICE_ACCOUNT_EMAIL : undefined,
-        apiEnabled: 'GOOGLE_CALENDAR_API_ENABLED' in env ? env.GOOGLE_CALENDAR_API_ENABLED : false,
-        verificationEnabled: 'GOOGLE_CALENDAR_VERIFICATION_ENABLED' in env ? env.GOOGLE_CALENDAR_VERIFICATION_ENABLED : false,
+        apiEnabled: env.GOOGLE_CALENDAR_API_ENABLED ?? false,
+        verificationEnabled: env.GOOGLE_CALENDAR_VERIFICATION_ENABLED ?? false,
         organizationName: 'GOOGLE_CALENDAR_ORGANIZATION_NAME' in env ? env.GOOGLE_CALENDAR_ORGANIZATION_NAME : 'BestDOC',
         defaultTimezone: 'GOOGLE_CALENDAR_DEFAULT_TIMEZONE' in env ? env.GOOGLE_CALENDAR_DEFAULT_TIMEZONE : 'Asia/Dubai',
         maxRetries: 'GOOGLE_CALENDAR_MAX_RETRIES' in env ? env.GOOGLE_CALENDAR_MAX_RETRIES : 3,
@@ -228,13 +228,13 @@ function getConfig() {
         operationTimeoutMs: 'GOOGLE_CALENDAR_OPERATION_TIMEOUT_MS' in env ? env.GOOGLE_CALENDAR_OPERATION_TIMEOUT_MS : 30000,
         emailFrom: 'GOOGLE_CALENDAR_EMAIL_FROM' in env ? env.GOOGLE_CALENDAR_EMAIL_FROM : undefined,
         emailFromName: 'GOOGLE_CALENDAR_EMAIL_FROM_NAME' in env ? env.GOOGLE_CALENDAR_EMAIL_FROM_NAME : undefined,
-        syncEnabled: 'GOOGLE_CALENDAR_SYNC_ENABLED' in env ? env.GOOGLE_CALENDAR_SYNC_ENABLED : false,
+        syncEnabled: 'GOOGLE_CALENDAR_SYNC_ENABLED' in env ? env.GOOGLE_CALENDAR_SYNC_ENABLED === 'true' : false,
 
         // Runtime validation helpers
         isConfigured: () => {
-          return 'GOOGLE_CALENDAR_SERVICE_ACCOUNT_KEY' in env && 
+          return 'GOOGLE_CALENDAR_SERVICE_ACCOUNT_KEY' in env &&
                  !!env.GOOGLE_CALENDAR_SERVICE_ACCOUNT_KEY &&
-                 'GOOGLE_CALENDAR_SERVICE_ACCOUNT_EMAIL' in env && 
+                 'GOOGLE_CALENDAR_SERVICE_ACCOUNT_EMAIL' in env &&
                  !!env.GOOGLE_CALENDAR_SERVICE_ACCOUNT_EMAIL;
         },
 

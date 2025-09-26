@@ -13,7 +13,7 @@ CREATE INDEX idx_staff_calendar_pending ON staff(calendar_verification_status) W
 CREATE INDEX idx_staff_calendar_failed ON staff(calendar_verification_status) WHERE calendar_verification_status = 'failed';
 
 -- Add partial indexes for active staff with calendar issues
-CREATE INDEX idx_staff_active_calendar_issues ON staff(status, calendar_verification_status, calendar_error_code) 
+CREATE INDEX idx_staff_active_calendar_issues ON staff(status, calendar_verification_status, calendar_error_code)
 WHERE status = 'active' AND (calendar_verification_status = 'failed' OR calendar_error_code IS NOT NULL);
 
 -- Add index for staff with Google Calendar IDs (for quick lookups)

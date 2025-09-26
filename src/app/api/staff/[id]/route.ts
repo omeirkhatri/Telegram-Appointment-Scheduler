@@ -54,7 +54,7 @@ export async function PUT(
       specialization: body.specialization,
       phone: body.phone,
       email: body.email,
-      telegram_user_id: body.telegram_user_id,
+      telegram_user_id: body.telegram_user_id && body.telegram_user_id.trim() !== '' ? body.telegram_user_id : undefined,
       available_days: body.available_days,
       working_hours_start: body.working_hours_start,
       working_hours_end: body.working_hours_end,
@@ -202,6 +202,13 @@ function validateStaffUpdateData(data: Partial<UpdateStaff>): string[] {
       if (startTime >= endTime) {
         errors.push('Working hours start must be before end time');
       }
+    }
+  }
+
+  // Validate Telegram User ID if provided
+  if (data.telegram_user_id !== undefined && data.telegram_user_id !== null) {
+    if (data.telegram_user_id.trim() !== '' && !/^\d+$/.test(data.telegram_user_id)) {
+      errors.push('Telegram User ID must be numeric');
     }
   }
 
