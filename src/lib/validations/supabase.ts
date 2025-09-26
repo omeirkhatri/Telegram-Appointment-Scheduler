@@ -2,14 +2,17 @@ import { z } from 'zod';
 
 // Base validation schemas
 export const uuidSchema = z.string().uuid();
-export const emailSchema = z.string().email();
+export const emailSchema = z.string().email('Invalid email');
 export const phoneSchema = z.string().regex(/^[+]?[0-9\s\-\(\)]+$/, 'Invalid phone number format');
 export const timeSchema = z.string().regex(/^([01]?[0-9]|2[0-3]):[0-5][0-9](:[0-5][0-9])?$/, 'Invalid time format (HH:MM or HH:MM:SS)');
 export const dateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Invalid date format (YYYY-MM-DD)');
 
 // Patient validation schemas
 export const patientInsertSchema = z.object({
-  name: z.string().min(1, 'Name is required').max(255, 'Name too long'),
+  name: z
+    .string({ required_error: 'Name is required', invalid_type_error: 'Name is required' })
+    .min(1, 'Name is required')
+    .max(255, 'Name too long'),
   phone: phoneSchema,
   id_document_url: z.string().url().nullable().optional(),
   id_document_filename: z.string().nullable().optional(),
@@ -71,7 +74,11 @@ export const appointmentInsertSchema = z.object({
   appointment_type: z.enum(['doctor_on_call', 'lab_test', 'teleconsultation', 'physiotherapy', 'caregiver', 'iv_therapy'] as const),
   appointment_date: dateSchema,
   start_time: timeSchema,
-  duration_minutes: z.number().int().min(1).max(1440, 'Duration must be between 1 minute and 24 hours'),
+  duration_minutes: z
+    .number()
+    .int()
+    .min(1, 'Duration must be between 1 minute and 24 hours')
+    .max(1440, 'Duration must be between 1 minute and 24 hours'),
   status: z.enum(['scheduled', 'confirmed', 'completed', 'cancelled'] as const).default('scheduled'),
   custom_fields: z.record(z.string(), z.unknown()).default({}),
   transportation_type: z.enum(['driver', 'self_transport'] as const).nullable().optional(),
@@ -111,6 +118,120 @@ export const appointmentStaffInsertSchema = z.object({
 });
 
 export const appointmentStaffUpdateSchema = appointmentStaffInsertSchema.partial();
+
+// Transportation segment validation schemas
+const transportationSegmentTypeEnum = z.enum([
+  'pickup',
+  'dropoff',
+  'stay_with_staff',
+  'metro_assist',
+  'custom',
+] as const);
+
+const transportationSegmentStatusEnum = z.enum([
+  'draft',
+  'scheduled',
+  'in_progress',
+  'completed',
+  'cancelled',
+] as const);
+
+const transportationSegmentTimestampSchema = z
+  .string()
+  .min(1, 'Timestamp cannot be empty')
+  .refine((value) => !Number.isNaN(Date.parse(value)), 'Invalid timestamp format');
+
+const transportationSegmentLocationSchema = z.object({
+  lat: z.number().min(-90, 'Latitude must be >= -90').max(90, 'Latitude must be <= 90'),
+  lng: z.number().min(-180, 'Longitude must be >= -180').max(180, 'Longitude must be <= 180'),
+  address: z.string().max(255, 'Address too long').nullable().optional(),
+  landmark: z.string().max(255, 'Landmark too long').nullable().optional(),
+});
+
+const transportationSegmentBaseFields = {
+  title: z.string().max(120, 'Title too long').nullable().optional(),
+  planned_start: transportationSegmentTimestampSchema.nullable().optional(),
+  planned_end: transportationSegmentTimestampSchema.nullable().optional(),
+  driver_id: uuidSchema.nullable().optional(),
+  travel_mode: z.string().max(40, 'Travel mode too long').nullable().optional(),
+  origin: transportationSegmentLocationSchema.nullable().optional(),
+  destination: transportationSegmentLocationSchema.nullable().optional(),
+  estimated_travel_minutes: z
+    .number()
+    .int('Travel minutes must be an integer')
+    .min(0, 'Travel minutes cannot be negative')
+    .max(1440, 'Travel minutes cannot exceed 24 hours')
+    .nullable()
+    .optional(),
+  estimated_distance_km: z
+    .number()
+    .min(0, 'Distance cannot be negative')
+    .max(10000, 'Distance appears too large')
+    .nullable()
+    .optional(),
+  buffer_minutes: z
+    .number()
+    .int('Buffer minutes must be an integer')
+    .min(0, 'Buffer cannot be negative')
+    .max(360, 'Buffer minutes cannot exceed 6 hours')
+    .nullable()
+    .optional(),
+  instructions: z.string().max(2000, 'Instructions too long').nullable().optional(),
+  requires_follow_up: z.boolean().nullable().optional(),
+  status: transportationSegmentStatusEnum.optional(),
+  manual_override: z.boolean().nullable().optional(),
+} as const;
+
+const withTransportationSegmentRefinements = <Schema extends z.ZodTypeAny>(schema: Schema) =>
+  schema.superRefine((data, ctx) => {
+    if (data.planned_start && data.planned_end) {
+      const start = Date.parse(data.planned_start);
+      const end = Date.parse(data.planned_end);
+
+      if (!Number.isNaN(start) && !Number.isNaN(end) && end < start) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'Planned end must be after planned start',
+          path: ['planned_end'],
+        });
+      }
+    }
+
+    if (typeof data.title === 'string' && data.title.trim().length === 0) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Title cannot be empty',
+        path: ['title'],
+      });
+    }
+
+    if (typeof data.travel_mode === 'string' && data.travel_mode.trim().length === 0) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Travel mode cannot be empty',
+        path: ['travel_mode'],
+      });
+    }
+  });
+
+export const transportationSegmentInsertSchema = withTransportationSegmentRefinements(
+  z.object({
+    ...transportationSegmentBaseFields,
+    appointment_id: uuidSchema,
+    segment_type: transportationSegmentTypeEnum,
+    status: transportationSegmentStatusEnum.default('draft'),
+    requires_follow_up: z.boolean().default(false).nullable().optional(),
+  }),
+);
+
+export const transportationSegmentUpdateSchema = withTransportationSegmentRefinements(
+  z.object({
+    ...transportationSegmentBaseFields,
+    id: uuidSchema,
+    appointment_id: uuidSchema.optional(),
+    segment_type: transportationSegmentTypeEnum.optional(),
+  }),
+);
 
 // Query validation schemas
 export const paginationSchema = z.object({
@@ -177,6 +298,7 @@ export const schemas = {
   patient: { insert: patientInsertSchema, update: patientUpdateSchema },
   staff: { insert: staffInsertSchema, update: staffUpdateSchema },
   appointment: { insert: appointmentInsertSchema, update: appointmentUpdateSchema },
+  transportationSegment: { insert: transportationSegmentInsertSchema, update: transportationSegmentUpdateSchema },
   appointmentStaff: { insert: appointmentStaffInsertSchema, update: appointmentStaffUpdateSchema },
   query: { pagination: paginationSchema, search: searchSchema, dateRange: dateRangeSchema },
   filters: { appointment: appointmentFiltersSchema, staff: staffFiltersSchema, patient: patientFiltersSchema },

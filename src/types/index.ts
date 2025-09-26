@@ -21,6 +21,8 @@ export * from './staff';
 export * from './appointment';
 // Export appointment staff types from dedicated file
 export * from './appointmentStaff';
+// Export transportation segment types from dedicated file
+export * from './transportationSegment';
 // Email types removed - no longer needed
 // Export job types from dedicated file
 export * from './job';

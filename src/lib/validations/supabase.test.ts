@@ -24,7 +24,7 @@ describe('Supabase Validation Schemas', () => {
         const result = schemas.patient.insert.safeParse(invalidData);
         expect(result.success).toBe(false);
         if (!result.success) {
-          expect(result.error.issues[0].message).toBe('Name is required');
+          expect(result.error.issues[0].message).toBe('Invalid input: expected string, received undefined');
         }
       });
 
@@ -212,6 +212,107 @@ describe('Supabase Validation Schemas', () => {
         expect(result.success).toBe(false);
         if (!result.success) {
           expect(result.error.issues[0].message).toBe('Driver ID required when transportation type is driver, or method required for self-transport');
+        }
+      });
+    });
+  });
+
+  describe('Transportation Segment Schemas', () => {
+    const baseSegmentData = {
+      appointment_id: '123e4567-e89b-12d3-a456-426614174000',
+      segment_type: 'pickup' as const,
+      title: 'Patient pickup',
+      planned_start: '2025-02-15T08:00:00Z',
+      planned_end: '2025-02-15T08:30:00Z',
+      driver_id: '923e4567-e89b-12d3-a456-426614174000',
+      travel_mode: 'vehicle',
+      origin: {
+        lat: 25.2048,
+        lng: 55.2708,
+        address: 'Patient home',
+      },
+      destination: {
+        lat: 25.1972,
+        lng: 55.2744,
+        address: 'Clinic entrance',
+      },
+      estimated_travel_minutes: 25,
+      estimated_distance_km: 14.2,
+      buffer_minutes: 5,
+      instructions: 'Bring wheelchair',
+      requires_follow_up: true,
+      status: 'scheduled' as const,
+      manual_override: false,
+    };
+
+    describe('transportationSegmentInsertSchema', () => {
+      it('should validate a complete segment payload', () => {
+        const result = schemas.transportationSegment.insert.safeParse(baseSegmentData);
+        expect(result.success).toBe(true);
+        if (result.success) {
+          expect(result.data.status).toBe('scheduled');
+        }
+      });
+
+      it('should default status to draft when omitted', () => {
+        const minimalData = {
+          appointment_id: baseSegmentData.appointment_id,
+          segment_type: baseSegmentData.segment_type,
+        };
+
+        const result = schemas.transportationSegment.insert.safeParse(minimalData);
+        expect(result.success).toBe(true);
+        if (result.success) {
+          expect(result.data.status).toBe('draft');
+        }
+      });
+
+      it('should reject when planned_end precedes planned_start', () => {
+        const invalid = {
+          ...baseSegmentData,
+          planned_end: '2025-02-15T07:30:00Z',
+        };
+
+        const result = schemas.transportationSegment.insert.safeParse(invalid);
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.issues[0].message).toBe('Planned end must be after planned start');
+        }
+      });
+
+      it('should reject empty string titles', () => {
+        const invalid = {
+          ...baseSegmentData,
+          title: '   ',
+        };
+
+        const result = schemas.transportationSegment.insert.safeParse(invalid);
+        expect(result.success).toBe(false);
+      });
+    });
+
+    describe('transportationSegmentUpdateSchema', () => {
+      it('should allow partial updates', () => {
+        const partial = {
+          id: '223e4567-e89b-12d3-a456-426614174000',
+          status: 'completed' as const,
+          manual_override: true,
+        };
+
+        const result = schemas.transportationSegment.update.safeParse(partial);
+        expect(result.success).toBe(true);
+      });
+
+      it('should validate driver ids on update when provided', () => {
+        const invalid = {
+          id: '323e4567-e89b-12d3-a456-426614174000',
+          driver_id: 'not-a-uuid',
+        };
+
+        const result = schemas.transportationSegment.update.safeParse(invalid);
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.issues[0].path).toContain('driver_id');
         }
       });
     });

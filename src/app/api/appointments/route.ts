@@ -9,9 +9,11 @@ import {
     shouldUseLegacyFormat,
     validateApiVersion
 } from '@/lib/apiUtils';
+import { isFeatureEnabled } from '@/lib/featureFlags';
 import { appointmentService } from '@/services/appointmentService';
 import { appointmentStaffService } from '@/services/appointmentStaffService';
 import { telegramNotificationService } from '@/services/telegramNotificationService';
+import { transportationSegmentService } from '@/services/transportationSegmentService';
 import type { AppointmentFilters, CreateAppointment, StaffAssignment } from '@/types';
 import { resolveTimezone } from '@/utils/timezone';
 import { NextRequest, NextResponse } from 'next/server';
@@ -88,6 +90,28 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // Include transportation segments if feature is enabled
+    if (isFeatureEnabled('TRANSPORTATION_SEGMENTS_ENABLED')) {
+      try {
+        // Fetch segments for all appointments
+        const segmentsByAppointment: Record<string, any[]> = {};
+        for (const appointment of enhancedAppointments) {
+          const segments = await transportationSegmentService.getSegmentsForAppointment(appointment.id);
+          segmentsByAppointment[appointment.id] = segments;
+        }
+
+        // Add segments to each appointment
+        enhancedAppointments = enhancedAppointments.map(appointment => ({
+          ...appointment,
+          transportation_segments: segmentsByAppointment[appointment.id] || []
+        }));
+      } catch (error) {
+        console.error('Error fetching transportation segments:', error);
+        // Don't fail the entire request if segments fail to load
+        // Just log the error and continue without segments
+      }
+    }
+
     const response = formatResponseForVersion(enhancedAppointments, request, includeTimezone ? timezoneResolution : undefined);
     const jsonResponse = NextResponse.json(response);
     return await addVersionHeaders(jsonResponse, request);
@@ -139,6 +163,11 @@ export async function POST(request: NextRequest) {
       recurring_rule: body.recurring_rule,
     };
 
+    // Extract transportation segments if feature is enabled
+    const transportationSegments = isFeatureEnabled('TRANSPORTATION_SEGMENTS_ENABLED')
+      ? body.transportation_segments || []
+      : [];
+
     // Validate required fields
     console.log('Validating appointment data:', appointmentData);
     const validationErrors = validateAppointmentData(appointmentData);
@@ -163,6 +192,26 @@ export async function POST(request: NextRequest) {
       time: appointment.start_time,
       duration: appointment.duration_minutes
     });
+
+    // Create transportation segments if provided and feature is enabled
+    let createdSegments: any[] = [];
+    if (isFeatureEnabled('TRANSPORTATION_SEGMENTS_ENABLED') && transportationSegments.length > 0) {
+      try {
+        console.log('Creating transportation segments:', transportationSegments);
+        for (const segmentData of transportationSegments) {
+          const segment = await transportationSegmentService.createTransportationSegment({
+            ...segmentData,
+            appointment_id: appointment.id
+          });
+          createdSegments.push(segment);
+        }
+        console.log(`Created ${createdSegments.length} transportation segments`);
+      } catch (error) {
+        console.error('Error creating transportation segments:', error);
+        // Don't fail the entire request if segments fail to create
+        // Just log the error and continue
+      }
+    }
 
     // Handle staff assignments if provided (no validation)
     let staffAssignments: StaffAssignment[] = body.staff_assignments || [];
@@ -384,6 +433,9 @@ export async function POST(request: NextRequest) {
       appointment: enhancedAppointment,
       staff_assignments: staffForAppointment,
       recurring_appointments: recurringAppointments,
+      ...(isFeatureEnabled('TRANSPORTATION_SEGMENTS_ENABLED') && {
+        transportation_segments: createdSegments
+      })
     };
 
     const response = formatResponseForVersion(responseData, request, includeTimezone ? timezoneResolution : undefined);

@@ -1,3 +1,5 @@
+import type { TransportationSegment } from './transportationSegment';
+
 // Appointment types based on database schema
 export type AppointmentType = 'doctor_on_call' | 'lab_test' | 'teleconsultation' | 'physiotherapy' | 'caregiver' | 'iv_therapy';
 export type AppointmentStatus = 'scheduled' | 'confirmed' | 'completed' | 'cancelled';
@@ -54,6 +56,9 @@ export interface Appointment {
       email: string;
     };
   }>;
+  // Transportation segments embedded when feature flag enabled
+  transportation_segments?: TransportationSegment[];
+  transportationSegments?: TransportationSegment[];
   // Pre-processed staff information (added by appointmentService)
   staff_name?: string;
   all_staff_names?: string;

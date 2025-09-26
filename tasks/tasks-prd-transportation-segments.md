@@ -7,6 +7,7 @@
 - `src/types/appointment.ts` - Extend appointment model to include transportation segment relationships.
 - `src/types/transportationSegment.ts` - Shared segment interfaces and enums (new file).
 - `src/lib/validations/transportationSegment.ts` - Zod validation schemas for segment payloads (new file).
+- `src/lib/validations/transportationSegment.test.ts` - Tests ensuring segment validation schemas cover success and failure paths.
 - `src/services/appointmentService.ts` - Include segments in appointment fetch/create/update routines.
 - `src/services/appointmentStaffService.ts` - Keep driver assignments synced with segment updates.
 - `src/services/transportationSegmentService.ts` - Segment-specific CRUD logic and helpers (new file).
@@ -22,6 +23,7 @@
 - `src/components/features/appointments/AppointmentForm.test.tsx` - Cover new segment interactions.
 - `src/components/features/appointments/AppointmentDetailsDrawer.tsx` - Show segment details in appointment view.
 - `src/components/features/appointments/calendar/AppointmentMapView.tsx` - Render segment markers and driver availability states.
+- `src/types/map.ts` - Shared map marker types and segment metadata used by calendar tooling.
 - `src/components/features/appointments/calendar/DriverSegmentsBoard.tsx` - New driver-focused board UI (new component).
 - `src/components/features/appointments/calendar/DriverSegmentsBoard.test.tsx` - Tests for driver board logic (new file).
 - `src/utils/timezone.ts` - Helpers for segment scheduling windows and buffers.
@@ -42,17 +44,17 @@
   - [x] 1.2 Implement RLS policies mirroring appointments and write migration rollback script (reference existing policies in `20240905000000_create_appointment_staff_table.sql`)
   - [x] 1.3 Update seed / fixture scripts to include sample segments for testing (align with PRD §10 rollout notes)
 - [ ] 2.0 Update shared types and validation layers *(Auto Mode focus; keep compatibility with existing appointment consumers)*
-  - [ ] 2.1 Create shared `TransportationSegment` TypeScript interfaces and enums (store in `src/types/transportationSegment.ts`)
-  - [ ] 2.2 Add Zod validation schemas for create/update payloads and integrate with Supabase validators (mirror patterns in `src/lib/validations/appointment.ts`)
-  - [ ] 2.3 Ensure appointment types include optional embedded segment arrays without breaking existing consumers (update `Appointment` interface and map utilities)
-- [ ] 3.0 Implement backend services and APIs for segments **(Codex priority)**
-  - [ ] 3.1 Build `transportationSegmentService` with CRUD operations, conflict detection, and feature flag checks (PRD §6.1, §6.6)
-  - [ ] 3.2 Expose REST endpoints under `/api/transportation-segments` with request/response validation (follow patterns in `src/app/api/appointments/[id]/route.ts`)
-  - [ ] 3.3 Update appointment API routes to fetch, create, and update segments when `TRANSPORTATION_SEGMENTS_ENABLED` is true (ensure backward compatibility for legacy clients)
-- [ ] 4.0 Sync segments with appointment staff and driver assignments *(Auto Mode focus; reuse appointmentStaffService patterns)*
-  - [ ] 4.1 Auto-create or update `appointment_staff` driver entries when segments assign drivers (PRD §6.1 & existing triggers)
-  - [ ] 4.2 Handle driver removal or reassignment when segments change or are deleted (ensure calendar events clean up)
-  - [ ] 4.3 Add regression tests to ensure staff sync doesn’t trigger duplicate calendar/notification events (reference tests in `src/services/appointmentStaffService.ts`)
+  - [x] 2.1 Create shared `TransportationSegment` TypeScript interfaces and enums (store in `src/types/transportationSegment.ts`)
+  - [x] 2.2 Add Zod validation schemas for create/update payloads and integrate with Supabase validators (mirror patterns in `src/lib/validations/appointment.ts`)
+  - [x] 2.3 Ensure appointment types include optional embedded segment arrays without breaking existing consumers (update `Appointment` interface and map utilities)
+- [x] 3.0 Implement backend services and APIs for segments **(Codex priority)**
+  - [x] 3.1 Build `transportationSegmentService` with CRUD operations, conflict detection, and feature flag checks (PRD §6.1, §6.6)
+  - [x] 3.2 Expose REST endpoints under `/api/transportation-segments` with request/response validation (follow patterns in `src/app/api/appointments/[id]/route.ts`)
+  - [x] 3.3 Update appointment API routes to fetch, create, and update segments when `TRANSPORTATION_SEGMENTS_ENABLED` is true (ensure backward compatibility for legacy clients)
+- [x] 4.0 Sync segments with appointment staff and driver assignments *(Auto Mode focus; reuse appointmentStaffService patterns)*
+  - [x] 4.1 Auto-create or update `appointment_staff` driver entries when segments assign drivers (PRD §6.1 & existing triggers)
+  - [x] 4.2 Handle driver removal or reassignment when segments change or are deleted (ensure calendar events clean up)
+  - [x] 4.3 Add regression tests to ensure staff sync doesn't trigger duplicate calendar/notification events (reference tests in `src/services/appointmentStaffService.ts`)
 - [ ] 5.0 Build dispatcher Segment Mode in appointment tooling **(Codex priority)**
   - [ ] 5.1 Add simple vs. segment mode toggle with guardrails for legacy data (PRD §6.2 Simple Mode requirements)
   - [ ] 5.2 Implement timeline editor for segments (type selection, times, driver dropdown, locations, notes) with Google Places integration

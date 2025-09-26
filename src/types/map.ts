@@ -1,3 +1,9 @@
+import type {
+  TransportationSegment,
+  TransportationSegmentStatus,
+  TransportationSegmentType,
+} from './transportationSegment';
+
 // Map-related TypeScript types for Google Maps integration
 
 // Basic coordinate interface
@@ -49,6 +55,10 @@ export interface MapMarker {
   transportation_type?: 'driver' | 'self_transport';
   driver_id?: string;
   pickup_instructions?: string;
+  transportation_segments?: TransportationSegment[];
+  transportationSegments?: TransportationSegment[];
+  segment_types?: TransportationSegmentType[];
+  segment_status_counts?: Partial<Record<TransportationSegmentStatus, number>>;
 }
 
 // Map cluster for grouping nearby markers

@@ -1,6 +1,8 @@
+import { isFeatureEnabled } from '@/lib/featureFlags';
 import { appointmentService } from '@/services/appointmentService';
 import { appointmentStaffService } from '@/services/appointmentStaffService';
 import { telegramNotificationService } from '@/services/telegramNotificationService';
+import { transportationSegmentService } from '@/services/transportationSegmentService';
 import type { StaffAssignment, UpdateAppointment } from '@/types';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -26,11 +28,25 @@ export async function GET(
     // Get staff assignments for this appointment
     const staffAssignments = await appointmentStaffService.getStaffForAppointment(id);
 
+    // Get transportation segments if feature is enabled
+    let transportationSegments: any[] = [];
+    if (isFeatureEnabled('TRANSPORTATION_SEGMENTS_ENABLED')) {
+      try {
+        transportationSegments = await transportationSegmentService.getSegmentsForAppointment(id);
+      } catch (error) {
+        console.error('Error fetching transportation segments:', error);
+        // Don't fail the request if segments fail to load
+      }
+    }
+
     return NextResponse.json({
       success: true,
       data: {
         appointment,
         staff_assignments: staffAssignments,
+        ...(isFeatureEnabled('TRANSPORTATION_SEGMENTS_ENABLED') && {
+          transportation_segments: transportationSegments
+        })
       },
     });
   } catch (error) {
@@ -85,6 +101,11 @@ export async function PUT(
       recurring_rule: body.recurring_rule,
     };
 
+    // Extract transportation segments if feature is enabled
+    const transportationSegments = isFeatureEnabled('TRANSPORTATION_SEGMENTS_ENABLED')
+      ? body.transportation_segments || []
+      : [];
+
     // Remove undefined values
     Object.keys(updateData).forEach(key => {
       if (updateData[key as keyof UpdateAppointment] === undefined) {
@@ -116,6 +137,45 @@ export async function PUT(
 
     // Update appointment
     const updatedAppointment = await appointmentService.updateAppointment(id, updateData);
+
+    // Handle transportation segments updates if feature is enabled
+    if (isFeatureEnabled('TRANSPORTATION_SEGMENTS_ENABLED') && body.transportation_segments !== undefined) {
+      try {
+        console.log('Updating transportation segments:', transportationSegments);
+
+        // Get existing segments
+        const existingSegments = await transportationSegmentService.getSegmentsForAppointment(id);
+        const existingSegmentIds = existingSegments.map(s => s.id);
+        const newSegmentIds = transportationSegments.filter(s => s.id).map(s => s.id);
+
+        // Delete segments that are no longer in the list
+        for (const existingSegment of existingSegments) {
+          if (!newSegmentIds.includes(existingSegment.id)) {
+            await transportationSegmentService.deleteTransportationSegment(existingSegment.id);
+          }
+        }
+
+        // Create or update segments
+        for (const segmentData of transportationSegments) {
+          if (segmentData.id && existingSegmentIds.includes(segmentData.id)) {
+            // Update existing segment
+            await transportationSegmentService.updateTransportationSegment(segmentData.id, segmentData);
+          } else {
+            // Create new segment
+            await transportationSegmentService.createTransportationSegment({
+              ...segmentData,
+              appointment_id: id
+            });
+          }
+        }
+
+        console.log('Transportation segments updated successfully');
+      } catch (error) {
+        console.error('Error updating transportation segments:', error);
+        // Don't fail the entire request if segments fail to update
+        // Just log the error and continue
+      }
+    }
 
     // Handle staff assignment updates if provided
     let assignedStaff: any[] = [];
@@ -149,11 +209,24 @@ export async function PUT(
     const finalAppointment = await appointmentService.getAppointment(id);
     const staffForAppointment = await appointmentStaffService.getStaffForAppointment(id);
 
+    // Get updated transportation segments if feature is enabled
+    let updatedSegments: any[] = [];
+    if (isFeatureEnabled('TRANSPORTATION_SEGMENTS_ENABLED')) {
+      try {
+        updatedSegments = await transportationSegmentService.getSegmentsForAppointment(id);
+      } catch (error) {
+        console.error('Error fetching updated transportation segments:', error);
+      }
+    }
+
     return NextResponse.json({
       success: true,
       data: {
         appointment: finalAppointment,
         staff_assignments: staffForAppointment,
+        ...(isFeatureEnabled('TRANSPORTATION_SEGMENTS_ENABLED') && {
+          transportation_segments: updatedSegments
+        })
       },
       message: 'Appointment updated successfully',
     });

@@ -85,13 +85,23 @@ export function useAppointmentsForMap(options: UseAppointmentsForMapOptions = {}
       const timezoneArtifacts = buildTimezoneArtifacts();
 
       // Add timezone metadata to appointments for map display
-      const appointmentsWithTimezone = fetchedAppointments.map(apt => ({
-        ...apt,
-        timezone: timezoneArtifacts.resolution.timezone,
-        timezoneSource: timezoneArtifacts.resolution.source,
-        timezoneAbbreviation: timezoneArtifacts.resolution.abbreviation,
-        timezoneOffsetMinutes: timezoneArtifacts.resolution.offsetMinutes,
-      }));
+      const appointmentsWithTimezone = fetchedAppointments.map(apt => {
+        const normalizedSegments = apt.transportation_segments ?? apt.transportationSegments;
+
+        return {
+          ...apt,
+          ...(normalizedSegments
+            ? {
+                transportation_segments: normalizedSegments,
+                transportationSegments: normalizedSegments,
+              }
+            : {}),
+          timezone: timezoneArtifacts.resolution.timezone,
+          timezoneSource: timezoneArtifacts.resolution.source,
+          timezoneAbbreviation: timezoneArtifacts.resolution.abbreviation,
+          timezoneOffsetMinutes: timezoneArtifacts.resolution.offsetMinutes,
+        };
+      });
 
       // Debug logging for appointments data
       console.log('Fetched appointments for map (with expanded recurring):', appointmentsWithTimezone.map(apt => ({

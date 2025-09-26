@@ -65,13 +65,40 @@ describe('Map Types', () => {
         notes: 'Patient prefers morning appointments',
         transportation_type: 'driver',
         driver_id: 'driver-789',
-        pickup_instructions: 'Ring doorbell twice'
+        pickup_instructions: 'Ring doorbell twice',
+        transportation_segments: [
+          {
+            id: 'segment-1',
+            appointment_id: 'apt-123',
+            segment_type: 'pickup',
+            title: 'Pickup leg',
+            planned_start: '2024-01-15T09:30:00Z',
+            planned_end: '2024-01-15T09:50:00Z',
+            driver_id: 'driver-789',
+            travel_mode: 'vehicle',
+            origin: { lat: 25.2048, lng: 55.2708 },
+            destination: { lat: 25.1972, lng: 55.2744 },
+            estimated_travel_minutes: 20,
+            estimated_distance_km: 12.3,
+            buffer_minutes: 5,
+            instructions: 'Call upon arrival',
+            requires_follow_up: false,
+            status: 'scheduled',
+            manual_override: false,
+            created_at: '2024-01-01T00:00:00Z',
+            updated_at: '2024-01-01T00:00:00Z',
+          },
+        ],
+        segment_types: ['pickup'],
+        segment_status_counts: { scheduled: 1 }
       };
 
       expect(marker.id).toBe('marker-1');
       expect(marker.appointment_type).toBe('doctor_on_call');
       expect(marker.status).toBe('scheduled');
       expect(marker.custom_fields?.priority).toBe('high');
+      expect(marker.segment_types).toContain('pickup');
+      expect(marker.segment_status_counts?.scheduled).toBe(1);
     });
 
     it('should create valid MapCluster', () => {

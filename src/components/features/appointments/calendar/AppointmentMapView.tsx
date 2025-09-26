@@ -5,6 +5,7 @@ import { useCoordinateCache } from '@/hooks/useCoordinateCache';
 import { useMapClustering } from '@/hooks/useMapClustering';
 import type { Appointment } from '@/types';
 import { getAppointmentTypeDisplayName } from '@/types/appointment';
+import type { TransportationSegmentStatus } from '@/types/transportationSegment';
 import type {
     Coordinates,
     MapBounds,
@@ -962,6 +963,18 @@ export function AppointmentMapView({
           });
         }
 
+        const normalizedSegments = appointment.transportation_segments ?? appointment.transportationSegments;
+        const segmentTypes = normalizedSegments?.map(segment => segment.segment_type);
+        const segmentStatusCounts = normalizedSegments
+          ? normalizedSegments.reduce<Partial<Record<TransportationSegmentStatus, number>>>((acc, segment) => {
+              const status = segment.status;
+              if (status) {
+                acc[status] = (acc[status] ?? 0) + 1;
+              }
+              return acc;
+            }, {})
+          : undefined;
+
       return {
         id: appointment.id,
         position,
@@ -1007,7 +1020,11 @@ export function AppointmentMapView({
         notes: appointment.notes,
         transportation_type: appointment.transportation_type,
         driver_id: appointment.driver_id,
-        pickup_instructions: appointment.pickup_instructions
+        pickup_instructions: appointment.pickup_instructions,
+        transportation_segments: normalizedSegments,
+        transportationSegments: normalizedSegments,
+        segment_types: segmentTypes,
+        segment_status_counts: segmentStatusCounts
       };
       } catch (error) {
         console.error(`Error creating marker for appointment ${appointment.id}:`, error);

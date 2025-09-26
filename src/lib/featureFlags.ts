@@ -242,6 +242,17 @@ export const FEATURE_FLAGS: Record<string, FeatureFlag> = {
     dependencies: ['GOOGLE_CALENDAR_ENABLED'],
     experimental: true,
   },
+
+  // Transportation Segments Features
+  TRANSPORTATION_SEGMENTS_ENABLED: {
+    key: 'TRANSPORTATION_SEGMENTS_ENABLED',
+    name: 'Transportation Segments',
+    description: 'Enable transportation segments for driver scheduling',
+    enabled: false, // Disabled by default for staged rollout
+    category: 'api',
+    environment: 'all',
+    experimental: true,
+  },
 };
 
 // =============================================================================
