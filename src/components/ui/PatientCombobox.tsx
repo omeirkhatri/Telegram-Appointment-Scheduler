@@ -129,7 +129,7 @@ export function PatientCombobox({
   const handleBlur = (e: React.FocusEvent) => {
     // Delay to allow click events on options
     setTimeout(() => {
-      if (!e.currentTarget.contains(document.activeElement)) {
+      if (e.currentTarget && !e.currentTarget.contains(document.activeElement)) {
         setIsOpen(false);
         setHighlightedIndex(-1);
       }

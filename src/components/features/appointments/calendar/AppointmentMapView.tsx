@@ -3,9 +3,9 @@
 
 import { useCoordinateCache } from '@/hooks/useCoordinateCache';
 import { useMapClustering } from '@/hooks/useMapClustering';
+import { buildTimezoneArtifacts } from '@/lib/timezoneArtifacts';
 import type { Appointment } from '@/types';
 import { getAppointmentTypeDisplayName } from '@/types/appointment';
-import type { TransportationSegmentStatus } from '@/types/transportationSegment';
 import type {
     Coordinates,
     MapBounds,
@@ -16,15 +16,16 @@ import type {
     MapViewConfig
 } from '@/types/map';
 import { MAP_CONSTANTS } from '@/types/map';
+import type { TransportationSegmentStatus } from '@/types/transportationSegment';
 import { getAppointmentTypeColor } from '@/utils/appointmentTypes';
-import { formatInResolvedTimezone, formatTimeToHHMM, toLocalTime } from '@/utils/timezone';
-import { buildTimezoneArtifacts, getCurrentLocalTime } from '@/lib/timezoneArtifacts';
-import { TimezoneBadge } from '@/components/ui/TimezoneBadge';
+import { formatTimeToHHMM } from '@/utils/timezone';
 import { MarkerClusterer } from '@googlemaps/markerclusterer';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { MapControls } from './MapControls';
 import { MapErrorBoundary } from './MapErrorBoundary';
 import { MapInfoWindow } from './MapInfoWindow';
 import { OfficeMarker } from './OfficeMarker';
+import { SegmentMarkers } from './SegmentMarkers';
 
 // Google Maps types
 type GoogleMap = google.maps.Map;
@@ -74,6 +75,13 @@ interface AppointmentMapViewProps {
   fullscreenControl?: boolean;
   gestureHandling?: 'auto' | 'cooperative' | 'greedy' | 'none';
   resetBounds?: boolean; // New prop to control when bounds should be reset
+  // Transportation segment display options
+  showSegmentMarkers?: boolean;
+  showSegmentOrigins?: boolean;
+  showSegmentDestinations?: boolean;
+  showOnlyPickupDropoffSegments?: boolean;
+  onSegmentClick?: (segment: any) => void;
+  onDriverClick?: (driverId: string, driverName: string) => void;
 }
 
 interface MapState {
@@ -116,15 +124,52 @@ export function AppointmentMapView({
   rotateControl = true,
   fullscreenControl = true,
   gestureHandling = 'auto',
-  resetBounds = false
+  resetBounds = false,
+  // Transportation segment display options
+  showSegmentMarkers = false,
+  showSegmentOrigins = true,
+  showSegmentDestinations = true,
+  showOnlyPickupDropoffSegments = false,
+  onSegmentClick,
+  onDriverClick
 }: AppointmentMapViewProps) {
   // Mobile detection hook
   const [isMobile, setIsMobile] = useState(false);
   const [isTablet, setIsTablet] = useState(false);
-  
+
   // Get timezone context for map display
   const timezoneArtifacts = buildTimezoneArtifacts();
   const [isContainerReady, setIsContainerReady] = useState(false);
+
+  // Map controls state
+  const [mapControlsState, setMapControlsState] = useState({
+    showSegmentMarkers: showSegmentMarkers,
+    showSegmentOrigins: showSegmentOrigins,
+    showSegmentDestinations: showSegmentDestinations,
+    showOnlyPickupDropoffSegments: showOnlyPickupDropoffSegments
+  });
+
+  // Map control handlers
+  const handleToggleSegmentMarkers = (enabled: boolean) => {
+    setMapControlsState(prev => ({ ...prev, showSegmentMarkers: enabled }));
+  };
+
+  const handleToggleSegmentOrigins = (enabled: boolean) => {
+    setMapControlsState(prev => ({ ...prev, showSegmentOrigins: enabled }));
+  };
+
+  const handleToggleSegmentDestinations = (enabled: boolean) => {
+    setMapControlsState(prev => ({ ...prev, showSegmentDestinations: enabled }));
+  };
+
+  const handleTogglePickupDropoffOnly = (enabled: boolean) => {
+    setMapControlsState(prev => ({ ...prev, showOnlyPickupDropoffSegments: enabled }));
+  };
+
+  const handleNavigateToDriverBoard = () => {
+    // TODO: Implement navigation to driver board
+    console.log('Navigate to driver board');
+  };
 
   // Detect mobile/tablet on mount and resize
   useEffect(() => {
@@ -581,7 +626,7 @@ export function AppointmentMapView({
   const createMarkerIcon = useCallback((markerData: MapMarker, isMobileDevice = false): string => {
     // Get timezone context for time formatting
     const timezoneArtifacts = buildTimezoneArtifacts();
-    
+
     // Background color indicates status
     const statusColor = markerData.status === 'completed' ? '#10b981' :
                        markerData.status === 'cancelled' ? '#ef4444' :
@@ -610,6 +655,84 @@ export function AppointmentMapView({
         <!-- Time text - white, large, centered -->
         <text x="${centerPoint}" y="${textY}" text-anchor="middle" font-family="Arial, sans-serif" font-size="${fontSize}" fill="white" font-weight="bold" stroke="black" stroke-width="0.3">
           ${startTime}
+        </text>
+      </svg>
+    `;
+  }, []);
+
+  // Create segment marker icon SVG
+  const createSegmentMarkerIcon = useCallback((markerData: any, isMobileDevice = false): string => {
+    const svgSize = isMobileDevice ? 32 : 36;
+    const centerPoint = svgSize / 2;
+    const mainRadius = isMobileDevice ? 14 : 16;
+    const fontSize = isMobileDevice ? 9 : 10;
+    const strokeWidth = isMobileDevice ? 1.5 : 2;
+
+    // Get segment type color
+    const getSegmentTypeColor = (type: string, isOrigin: boolean) => {
+      switch (type) {
+        case 'pickup':
+          return isOrigin ? '#10b981' : '#059669'; // Green shades
+        case 'dropoff':
+          return isOrigin ? '#ef4444' : '#dc2626'; // Red shades
+        case 'stay_with_staff':
+          return isOrigin ? '#3b82f6' : '#2563eb'; // Blue shades
+        case 'metro_assist':
+          return isOrigin ? '#8b5cf6' : '#7c3aed'; // Purple shades
+        default:
+          return isOrigin ? '#6b7280' : '#4b5563'; // Gray shades
+      }
+    };
+
+    const segmentColor = getSegmentTypeColor(markerData.segment_type, markerData.is_origin);
+    const borderColor = markerData.is_origin ? '#ffffff' : '#e5e7eb';
+
+    // Get segment status color
+    const getSegmentStatusColor = (status: string) => {
+      switch (status) {
+        case 'completed':
+          return '#10b981';
+        case 'cancelled':
+          return '#ef4444';
+        case 'in_progress':
+          return '#3b82f6';
+        case 'scheduled':
+          return '#3b82f6';
+        default:
+          return '#6b7280';
+      }
+    };
+
+    const statusColor = getSegmentStatusColor(markerData.segment_status);
+
+    // Format time if available
+    const formatTime = (timeString?: string) => {
+      if (!timeString) return '';
+      try {
+        const date = new Date(timeString);
+        return date.toTimeString().slice(0, 5);
+      } catch {
+        return timeString;
+      }
+    };
+
+    const timeText = formatTime(markerData.planned_start);
+
+    return `
+      <svg width="${svgSize}" height="${svgSize + 6}" viewBox="0 0 ${svgSize} ${svgSize + 6}" xmlns="http://www.w3.org/2000/svg">
+        <!-- Main marker body - circle with segment type color -->
+        <circle cx="${centerPoint}" cy="${centerPoint}" r="${mainRadius}" fill="${segmentColor}" stroke="${borderColor}" stroke-width="${strokeWidth}"/>
+        <!-- Status indicator dot -->
+        <circle cx="${centerPoint}" cy="${centerPoint}" r="${mainRadius - 4}" fill="${statusColor}" opacity="0.8"/>
+        <!-- Time text if available -->
+        ${timeText ? `
+          <text x="${centerPoint}" y="${centerPoint + 3}" text-anchor="middle" font-family="Arial, sans-serif" font-size="${fontSize}" fill="white" font-weight="bold" stroke="black" stroke-width="0.2">
+            ${timeText}
+          </text>
+        ` : ''}
+        <!-- Origin/Destination indicator -->
+        <text x="${centerPoint}" y="${centerPoint - 2}" text-anchor="middle" font-family="Arial, sans-serif" font-size="${fontSize - 2}" fill="white" font-weight="bold" stroke="black" stroke-width="0.2">
+          ${markerData.is_origin ? 'O' : 'D'}
         </text>
       </svg>
     `;
@@ -1123,7 +1246,7 @@ export function AppointmentMapView({
         // Also show Google Maps info window as fallback
         if (infoWindowRef.current) {
           infoWindowRef.current.setContent(createInfoWindowContent(markerData));
-          
+
           // Configure info window options to prevent map panning
           infoWindowRef.current.setOptions({
             disableAutoPan: true, // Prevent automatic panning
@@ -1131,13 +1254,13 @@ export function AppointmentMapView({
             maxWidth: 240, // Match our reduced width
             zIndex: 1000 // Ensure it appears above other elements
           });
-          
+
           // Add custom CSS to make close button more compact and visible
           const existingStyle = document.getElementById('appointment-info-window-close-button-style');
           if (existingStyle) {
             existingStyle.remove();
           }
-          
+
           const style = document.createElement('style');
           style.id = 'appointment-info-window-close-button-style';
           style.textContent = `
@@ -1165,7 +1288,7 @@ export function AppointmentMapView({
             }
           `;
           document.head.appendChild(style);
-          
+
           infoWindowRef.current.open(mapInstanceRef.current, marker);
         }
       });
@@ -1213,7 +1336,7 @@ export function AppointmentMapView({
         if (infoWindowRef.current && mapInstanceRef.current) {
           const infoWindowContent = createInfoWindowContent(markerData);
           infoWindowRef.current.setContent(infoWindowContent);
-          
+
           // Configure info window options to prevent map panning
           infoWindowRef.current.setOptions({
             disableAutoPan: true, // Prevent automatic panning
@@ -1221,7 +1344,7 @@ export function AppointmentMapView({
             maxWidth: 240, // Match our reduced width
             zIndex: 1000 // Ensure it appears above other elements
           });
-          
+
           infoWindowRef.current.open(mapInstanceRef.current, marker);
 
           // Update map state to show info window
@@ -1237,7 +1360,7 @@ export function AppointmentMapView({
           if (existingStyle) {
             existingStyle.remove();
           }
-          
+
           const style = document.createElement('style');
           style.id = 'appointment-info-window-close-button-style';
           style.textContent = `
@@ -1453,6 +1576,65 @@ export function AppointmentMapView({
 
     markersRef.current = googleMarkers;
 
+    // Create segment markers if enabled
+    if (mapControlsState.showSegmentMarkers) {
+      const segmentMarkersHelper = SegmentMarkers({
+        segments: filteredAppointments.flatMap(appointment =>
+          appointment.transportation_segments ?? appointment.transportationSegments ?? []
+        ),
+        onSegmentClick,
+        onDriverClick,
+        showOrigins: mapControlsState.showSegmentOrigins,
+        showDestinations: mapControlsState.showSegmentDestinations,
+        showOnlyPickupDropoff: mapControlsState.showOnlyPickupDropoffSegments
+      });
+
+      const segmentMarkers = segmentMarkersHelper.createSegmentMarkers();
+
+      // Create Google Maps markers for segments
+      const segmentGoogleMarkers = segmentMarkers.map((segmentMarker) => {
+        const marker = new google.maps.Marker({
+          position: segmentMarker.position,
+          title: segmentMarker.title,
+          map: mapInstanceRef.current!,
+          icon: {
+            url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(createSegmentMarkerIcon(segmentMarker, currentIsMobile))}`,
+            scaledSize: new google.maps.Size(32, 32),
+            anchor: new google.maps.Point(16, 16)
+          },
+          optimized: !currentIsMobile,
+          clickable: true,
+          draggable: false
+        });
+
+        // Add click listener for segment markers
+        marker.addListener('click', () => {
+          if (onSegmentClick) {
+            const segment = filteredAppointments
+              .flatMap(appointment =>
+                appointment.transportation_segments ?? appointment.transportationSegments ?? []
+              )
+              .find(s => s.id === segmentMarker.segment_id);
+            if (segment) {
+              onSegmentClick(segment);
+            }
+          }
+
+          // Show segment info window
+          if (infoWindowRef.current) {
+            const content = segmentMarkersHelper.createSegmentInfoWindowContent(segmentMarker);
+            infoWindowRef.current.setContent(content);
+            infoWindowRef.current.open(mapInstanceRef.current, marker);
+          }
+        });
+
+        return marker;
+      });
+
+      // Add segment markers to the main markers array
+      markersRef.current.push(...segmentGoogleMarkers);
+    }
+
     // Update clustering with new markers - use caching for performance
     if (enableClustering && showClusters) {
       // Try to get cached cluster data first
@@ -1575,7 +1757,7 @@ export function AppointmentMapView({
       mapInstanceRef.current.setZoom(initialZoom);
       setHasInitialBounds(true);
     }
-  }, [filteredAppointments, mapState.isInitialized, enableClustering, showClusters]);
+  }, [filteredAppointments, mapState.isInitialized, enableClustering, showClusters, mapControlsState]);
 
   // Handle error state
   if (error) {
@@ -1708,13 +1890,28 @@ export function AppointmentMapView({
         style={style}
       >
         {/* Map Controls */}
+        <div className="absolute top-4 right-4 z-[9999]">
+          <MapControls
+            showSegmentMarkers={mapControlsState.showSegmentMarkers}
+            showSegmentOrigins={mapControlsState.showSegmentOrigins}
+            showSegmentDestinations={mapControlsState.showSegmentDestinations}
+            showOnlyPickupDropoffSegments={mapControlsState.showOnlyPickupDropoffSegments}
+            onToggleSegmentMarkers={handleToggleSegmentMarkers}
+            onToggleSegmentOrigins={handleToggleSegmentOrigins}
+            onToggleSegmentDestinations={handleToggleSegmentDestinations}
+            onTogglePickupDropoffOnly={handleTogglePickupDropoffOnly}
+            onNavigateToDriverBoard={handleNavigateToDriverBoard}
+            className="w-80"
+          />
+        </div>
+
         <div className="absolute bottom-4 left-4 z-[9999] flex flex-row gap-2">
           <button
             onClick={fitBoundsToMarkers}
             className="px-3 py-2 bg-white text-gray-700 rounded-lg shadow-lg hover:bg-gray-50 transition-colors text-sm font-medium border border-gray-300"
             title="Fit to map view"
             data-fit-to-map-button
-            style={{ 
+            style={{
               zIndex: 9999,
               pointerEvents: 'auto'
             }}

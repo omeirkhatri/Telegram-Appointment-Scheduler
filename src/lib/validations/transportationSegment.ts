@@ -56,8 +56,8 @@ const sharedTransportationSegmentFields = {
     .max(40, 'Travel mode must be 40 characters or less')
     .optional()
     .or(z.literal('')),
-  origin: transportationSegmentLocationSchema.optional(),
-  destination: transportationSegmentLocationSchema.optional(),
+  pickup_location: transportationSegmentLocationSchema.optional(),
+  patient_location: transportationSegmentLocationSchema.optional(),
   estimated_travel_minutes: z
     .number()
     .int('Travel minutes must be an integer')

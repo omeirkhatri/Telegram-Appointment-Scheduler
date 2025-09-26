@@ -1,5 +1,7 @@
 import { transportationSegmentService } from '@/services/transportationSegmentService';
 import type { UpdateTransportationSegment } from '@/types/transportationSegment';
+import { isValidPickupLocationType, requiresPickupLocationReference } from '@/types/transportationSegment';
+import { hasLegacyFields, logLegacyFieldWarning } from '@/utils/transportationSegmentsBackwardCompatibility';
 import { NextRequest, NextResponse } from 'next/server';
 
 // GET /api/transportation-segments/[id] - Get a single transportation segment by ID
@@ -58,7 +60,15 @@ export async function PUT(
       );
     }
 
-    // Extract update data
+    // Check for legacy fields and log warning
+    if (hasLegacyFields(body)) {
+      const legacyFields = [];
+      if (body.origin) legacyFields.push('origin');
+      if (body.destination) legacyFields.push('destination');
+      logLegacyFieldWarning(legacyFields);
+    }
+
+    // Extract update data with backward compatibility
     const updateData: Partial<UpdateTransportationSegment> = {
       segment_type: body.segment_type,
       title: body.title,
@@ -66,8 +76,11 @@ export async function PUT(
       planned_end: body.planned_end,
       driver_id: body.driver_id,
       travel_mode: body.travel_mode,
-      origin: body.origin,
-      destination: body.destination,
+      // Support both old and new field names for backward compatibility
+      pickup_location: body.pickup_location || body.origin,
+      patient_location: body.patient_location || body.destination,
+      pickup_location_type: body.pickup_location_type,
+      pickup_location_reference: body.pickup_location_reference,
       estimated_travel_minutes: body.estimated_travel_minutes,
       estimated_distance_km: body.estimated_distance_km,
       buffer_minutes: body.buffer_minutes,
@@ -159,6 +172,48 @@ export async function DELETE(
 // Helper function to validate segment update data
 function validateSegmentUpdateData(data: Partial<UpdateTransportationSegment>): string[] {
   const errors: string[] = [];
+
+  // Validate pickup location type if provided
+  if (data.pickup_location_type !== undefined) {
+    if (!isValidPickupLocationType(data.pickup_location_type)) {
+      errors.push('Invalid pickup location type. Must be one of: office, previous_appointment, metro_station, custom');
+    }
+  }
+
+  // Validate pickup location reference for types that require it
+  if (data.pickup_location_type && requiresPickupLocationReference(data.pickup_location_type)) {
+    if (!data.pickup_location_reference?.trim()) {
+      errors.push(`Pickup location reference is required for ${data.pickup_location_type} pickup type`);
+    }
+  }
+
+  // Validate pickup location type-specific requirements
+  if (data.pickup_location_type) {
+    switch (data.pickup_location_type) {
+      case 'previous_appointment':
+        if (!data.pickup_location_reference?.trim()) {
+          errors.push('Previous appointment ID is required for pickup from previous appointment');
+        }
+        break;
+      case 'metro_station':
+        if (!data.pickup_location_reference?.trim()) {
+          errors.push('Metro station ID is required for pickup from metro station');
+        }
+        break;
+      case 'office':
+        // Office pickup doesn't require a reference, but should have a valid office location
+        if (data.pickup_location === undefined || data.pickup_location === null) {
+          errors.push('Office pickup location is required for office pickup type');
+        }
+        break;
+      case 'custom':
+        // Custom pickup requires a valid pickup location
+        if (data.pickup_location === undefined || data.pickup_location === null) {
+          errors.push('Custom pickup location is required for custom pickup type');
+        }
+        break;
+    }
+  }
 
   if (data.planned_start !== undefined && data.planned_end !== undefined) {
     const start = new Date(data.planned_start);

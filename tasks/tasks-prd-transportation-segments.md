@@ -22,12 +22,17 @@
 - `src/components/features/appointments/AppointmentForm.tsx` - Add simple/segment mode toggle and editor UI.
 - `src/components/features/appointments/AppointmentForm.test.tsx` - Cover new segment interactions.
 - `src/components/features/appointments/AppointmentDetailsDrawer.tsx` - Show segment details in appointment view.
+- `src/components/features/appointments/TransportationSegmentsDisplay.tsx` - Component for displaying transportation segments in appointment details (new file).
 - `src/components/features/appointments/calendar/AppointmentMapView.tsx` - Render segment markers and driver availability states.
+- `src/components/features/appointments/calendar/SegmentMarkers.tsx` - Component for creating and managing segment markers on the map (new file).
+- `src/components/features/appointments/calendar/MapControls.tsx` - Control panel for map segment display options (new file).
 - `src/types/map.ts` - Shared map marker types and segment metadata used by calendar tooling.
 - `src/components/features/appointments/calendar/DriverSegmentsBoard.tsx` - New driver-focused board UI (new component).
 - `src/components/features/appointments/calendar/DriverSegmentsBoard.test.tsx` - Tests for driver board logic (new file).
 - `src/utils/timezone.ts` - Helpers for segment scheduling windows and buffers.
 - `src/utils/google/distanceMatrix.ts` - Wrapper for distance calculations with caching (new utility).
+- `src/utils/google/distanceMatrix.test.ts` - Jest coverage for distance matrix success, cache hits, and quota fallbacks.
+- `src/utils/transportationSegments.ts` - Shared helpers for travel buffer warnings and recommended thresholds.
 - `src/utils/auditTrail.ts` - Extend to support manual override context if not covered by service.
 - `docs/PRD/prd-transportation-segments.md` - Source requirements; maintain alignment as feature evolves.
 - `docs/Guides/transportation-segments.md` - Rollout/runbook documentation (new guide).
@@ -55,36 +60,36 @@
   - [x] 4.1 Auto-create or update `appointment_staff` driver entries when segments assign drivers (PRD §6.1 & existing triggers)
   - [x] 4.2 Handle driver removal or reassignment when segments change or are deleted (ensure calendar events clean up)
   - [x] 4.3 Add regression tests to ensure staff sync doesn't trigger duplicate calendar/notification events (reference tests in `src/services/appointmentStaffService.ts`)
-- [ ] 5.0 Build dispatcher Segment Mode in appointment tooling **(Codex priority)**
-  - [ ] 5.1 Add simple vs. segment mode toggle with guardrails for legacy data (PRD §6.2 Simple Mode requirements)
-  - [ ] 5.2 Implement timeline editor for segments (type selection, times, driver dropdown, locations, notes) with Google Places integration
-  - [ ] 5.3 Surface availability indicators (green/amber/red) and manual override prompts within the editor (PRD §6.2, §6.5)
-  - [ ] 5.4 Persist edits via segment API and ensure optimistic UI updates behave correctly (coordinate with Task 3.0 endpoints)
-- [ ] 6.0 Enhance appointment details and map experiences *(Auto Mode focus; build on existing calendar components)*
-  - [ ] 6.1 Render segment lists in Appointment Details Drawer with status badges and quick actions (PRD §6.2 & §6.3)
-  - [ ] 6.2 Update map view to display segment origins/destinations with leg-specific tooltips and filters (reuse marker patterns in `AppointmentMapView.tsx`)
-  - [ ] 6.3 Support toggles to highlight only pickup/dropoff segments and link to driver board (ensure mobile performance from existing map tuning)
-- [ ] 7.0 Deliver driver-focused visibility *(Auto Mode focus; new component but simpler data once services exist)*
-  - [ ] 7.1 Build Driver Segments Board showing per-driver timelines and conflict warnings (PRD §6.3)
-  - [ ] 7.2 Provide quick reassignment and status update actions from the board (hook into segment API endpoints)
-  - [ ] 7.3 Add responsive layout and accessibility checks for the new board (follow patterns from existing dashboards)
-- [ ] 8.0 Integrate calendar and Telegram notifications *(Auto Mode focus; extends existing integrations)*
-  - [ ] 8.1 Create per-segment Google Calendar events with appropriate titles and updates on status changes (PRD §6.4)
-  - [ ] 8.2 Update Telegram templates to include segment breakdowns and travel notes (reuse formatters in `src/utils/telegramFormatters.ts`)
-  - [ ] 8.3 Ensure recurring appointment workflows duplicate/adjust segments and notifications correctly (verify `appointmentService` recurrence helpers)
+- [x] 5.0 Build dispatcher Segment Mode in appointment tooling **(Codex priority)**
+  - [x] 5.1 Add simple vs. segment mode toggle with guardrails for legacy data (PRD §6.2 Simple Mode requirements)
+  - [x] 5.2 Implement timeline editor for segments (type selection, times, driver dropdown, locations, notes) with Google Places integration
+  - [x] 5.3 Surface availability indicators (green/amber/red) and manual override prompts within the editor (PRD §6.2, §6.5)
+  - [x] 5.4 Persist edits via segment API and ensure optimistic UI updates behave correctly (coordinate with Task 3.0 endpoints)
+- [x] 6.0 Enhance appointment details and map experiences *(Auto Mode focus; build on existing calendar components)*
+  - [x] 6.1 Render segment lists in Appointment Details Drawer with status badges and quick actions (PRD §6.2 & §6.3)
+  - [x] 6.2 Update map view to display segment origins/destinations with leg-specific tooltips and filters (reuse marker patterns in `AppointmentMapView.tsx`)
+  - [x] 6.3 Support toggles to highlight only pickup/dropoff segments and link to driver board (ensure mobile performance from existing map tuning)
+- [x] 7.0 Deliver driver-focused visibility *(Auto Mode focus; new component but simpler data once services exist)*
+  - [x] 7.1 Build Driver Segments Board showing per-driver timelines and conflict warnings (PRD §6.3)
+  - [x] 7.2 Provide quick reassignment and status update actions from the board (hook into segment API endpoints)
+  - [x] 7.3 Add responsive layout and accessibility checks for the new board (follow patterns from existing dashboards)
+- [x] 8.0 Integrate calendar and Telegram notifications *(Auto Mode focus; extends existing integrations)*
+  - [x] 8.1 Create per-segment Google Calendar events with appropriate titles and updates on status changes (PRD §6.4)
+  - [x] 8.2 Update Telegram templates to include segment breakdowns and travel notes (reuse formatters in `src/utils/telegramFormatters.ts`)
+  - [x] 8.3 Ensure recurring appointment workflows duplicate/adjust segments and notifications correctly (verify `appointmentService` recurrence helpers)
 - [ ] 9.0 Implement travel-time assistance and caching **(Codex priority)**
-  - [ ] 9.1 Build distance matrix utility with coordinate caching and error fallback handling (PRD §6.5; reuse `CoordinateCacheService`)
-  - [ ] 9.2 Show travel estimates and “recalculate” actions in dispatcher UI, respecting quota safeguards (tie into Task 5.0 UI)
-  - [ ] 9.3 Add automated checks to flag insufficient travel buffers and surface override workflows (connect to audit rules in Task 10.0)
-- [ ] 10.0 Add manual override auditing and reminders *(Auto Mode focus; leverage existing audit services)*
-  - [ ] 10.1 Extend audit trail service to record overrides with user, reason, and segment references (PRD §6.6)
-  - [ ] 10.2 Schedule reminder job or notifications for outstanding overrides approaching start time (consider reusing cron jobs in `src/jobs`)
-  - [ ] 10.3 Display override indicators and history within UI components (tie into Tasks 5.0 & 6.0 output)
-- [ ] 11.0 Provide reporting and analytics *(Auto Mode focus; data-layer changes once segments live)*
-  - [ ] 11.1 Add data export/report endpoints covering segment utilization and override stats (PRD §7)
-  - [ ] 11.2 Create dashboard widgets summarizing driver leg distribution and conflict resolution rates (can reuse chart components from other dashboards)
-  - [ ] 11.3 Document SQL models or BI queries for operations team follow-up (note dependencies on completed schema)
-- [ ] 12.0 Prepare rollout, documentation, and QA *(Auto Mode focus; primarily coordination tasks)*
-  - [ ] 12.1 Implement feature flag scaffolding and environment configuration updates (PRD §7 & §10)
-  - [ ] 12.2 Create operations guide covering pilot rollout, fallback steps, and dispatcher training (add `docs/Guides/transportation-segments.md`)
-  - [ ] 12.3 Define QA test plan, automated test coverage, and performance checks for segment-heavy days (align with `TESTING_CALENDAR_SYNC.md` patterns)
+  - [x] 9.1 Build distance matrix utility with coordinate caching and error fallback handling (PRD §6.5; reuse `CoordinateCacheService`)
+  - [x] 9.2 Show travel estimates and “recalculate” actions in dispatcher UI, respecting quota safeguards (tie into Task 5.0 UI)
+  - [x] 9.3 Add automated checks to flag insufficient travel buffers and surface override workflows (connect to audit rules in Task 10.0)
+- [x] 10.0 Add manual override auditing and reminders *(Auto Mode focus; leverage existing audit services)*
+  - [x] 10.1 Extend audit trail service to record overrides with user, reason, and segment references (PRD §6.6)
+  - [x] 10.2 Schedule reminder job or notifications for outstanding overrides approaching start time (consider reusing cron jobs in `src/jobs`)
+  - [x] 10.3 Display override indicators and history within UI components (tie into Tasks 5.0 & 6.0 output)
+- [x] 11.0 Provide reporting and analytics *(Auto Mode focus; data-layer changes once segments live)*
+  - [x] 11.1 Add data export/report endpoints covering segment utilization and override stats (PRD §7)
+  - [x] 11.2 Create dashboard widgets summarizing driver leg distribution and conflict resolution rates (can reuse chart components from other dashboards)
+  - [x] 11.3 Document SQL models or BI queries for operations team follow-up (note dependencies on completed schema)
+- [x] 12.0 Prepare rollout, documentation, and QA *(Auto Mode focus; primarily coordination tasks)*
+  - [x] 12.1 Implement feature flag scaffolding and environment configuration updates (PRD §7 & §10)
+  - [x] 12.2 Create operations guide covering pilot rollout, fallback steps, and dispatcher training (add `docs/Guides/transportation-segments.md`)
+  - [x] 12.3 Define QA test plan, automated test coverage, and performance checks for segment-heavy days (align with `TESTING_CALENDAR_SYNC.md` patterns)

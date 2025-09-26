@@ -1,4 +1,5 @@
 import { config } from '@/lib/env';
+import { supabase } from '@/lib/supabase';
 import { formatInTimeZone } from 'date-fns-tz';
 
 import { patientService } from './patientService';
@@ -513,6 +514,281 @@ export class TelegramNotificationService {
       error: lastError?.message || 'Max retries exceeded',
       retryable: true
     };
+  }
+
+  /**
+   * Send transportation segment notification via Telegram
+   */
+  async sendTransportationSegmentNotification(
+    telegramUserId: string,
+    segment: any,
+    driver: any,
+    changeType: 'created' | 'updated' | 'cancelled',
+  ): Promise<{ success: boolean; messageId?: number; error?: string }> {
+    const startTime = Date.now();
+
+    try {
+      console.log(`📱 Preparing to send ${changeType} transportation segment notification to user ${telegramUserId}`);
+
+      // Get patient data for the notification
+      const { data: appointment, error: appointmentError } = await supabase
+        .from('appointments')
+        .select(`
+          id,
+          patient:patients(id, name, phone, flat_villa_no, building_street, area, city)
+        `)
+        .eq('id', segment.appointment_id)
+        .single();
+
+      if (appointmentError || !appointment) {
+        console.error(`❌ Appointment not found for segment ${segment.id}`);
+        return {
+          success: false,
+          error: 'Appointment not found',
+        };
+      }
+
+      // Format the segment message
+      const messageText = this.formatTransportationSegmentMessage(
+        segment,
+        driver,
+        appointment.patient,
+        changeType
+      );
+
+      // Create Telegram message
+      const message: TelegramMessage = {
+        chat_id: telegramUserId,
+        text: messageText,
+        parse_mode: 'HTML',
+      };
+
+      // Send the message
+      const result = await telegramService.sendMessage(message);
+
+      if (result.success) {
+        console.log(`✅ Transportation segment notification sent successfully to user ${telegramUserId} in ${Date.now() - startTime}ms`);
+      } else {
+        console.error(`❌ Failed to send transportation segment notification to user ${telegramUserId}:`, result.error);
+      }
+
+      return result;
+    } catch (error) {
+      console.error('❌ Error sending transportation segment notification:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      };
+    }
+  }
+
+  /**
+   * Send transportation segment notifications to all assigned drivers
+   */
+  async sendTransportationSegmentNotificationsToDrivers(
+    segment: any,
+    changeType: 'created' | 'updated' | 'cancelled',
+  ): Promise<{ success: boolean; results: Array<{ driverId: string; success: boolean; error?: string }> }> {
+    const results: Array<{ driverId: string; success: boolean; error?: string }> = [];
+
+    console.log(`📱 Starting transportation segment notifications for segment ${segment.id} to driver ${segment.driver_id}`);
+
+    if (!segment.driver_id) {
+      console.log(`⚠️ No driver assigned to segment ${segment.id}, skipping notifications`);
+      return {
+        success: true,
+        results: [],
+      };
+    }
+
+    try {
+      // Get driver information
+      const driver = await staffService.getStaffMember(segment.driver_id);
+
+      if (!driver) {
+        console.error(`❌ Driver not found for segment ${segment.id}`);
+        results.push({
+          driverId: segment.driver_id,
+          success: false,
+          error: 'Driver not found',
+        });
+        return {
+          success: false,
+          results,
+        };
+      }
+
+      if (!driver.telegram_user_id) {
+        console.warn(`⚠️ Driver ${driver.first_name} ${driver.last_name} has no Telegram user ID, skipping notification`);
+        results.push({
+          driverId: segment.driver_id,
+          success: false,
+          error: 'No Telegram user ID',
+        });
+        return {
+          success: false,
+          results,
+        };
+      }
+
+      console.log(`📱 Sending transportation segment notification to ${driver.first_name} ${driver.last_name} (${driver.telegram_user_id})`);
+
+      const result = await this.sendTransportationSegmentNotification(
+        driver.telegram_user_id,
+        segment,
+        driver,
+        changeType
+      );
+
+      results.push({
+        driverId: segment.driver_id,
+        success: result.success,
+        error: result.error,
+      });
+
+      if (result.success) {
+        console.log(`✅ Transportation segment notification sent to ${driver.first_name} ${driver.last_name}`);
+      } else {
+        console.error(`❌ Failed to send transportation segment notification to ${driver.first_name} ${driver.last_name}:`, result.error);
+      }
+
+      return {
+        success: result.success,
+        results,
+      };
+    } catch (error) {
+      console.error(`❌ Error sending transportation segment notification:`, error);
+      results.push({
+        driverId: segment.driver_id,
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+      return {
+        success: false,
+        results,
+      };
+    }
+  }
+
+  /**
+   * Format transportation segment message for Telegram
+   */
+  private formatTransportationSegmentMessage(
+    segment: any,
+    driver: any,
+    patient: any,
+    changeType: 'created' | 'updated' | 'cancelled'
+  ): string {
+    const emoji = this.getSegmentChangeEmoji(changeType);
+    const action = this.getSegmentChangeAction(changeType);
+    const segmentTypeLabel = this.getSegmentTypeLabel(segment.segment_type);
+
+    let message = `${emoji} <b>${action} - ${segmentTypeLabel}</b>\n\n`;
+
+    // Patient information
+    message += `👤 <b>Patient:</b> ${patient?.name || 'Unknown'}\n`;
+    message += `📞 <b>Phone:</b> ${patient?.phone || 'Not provided'}\n\n`;
+
+    // Segment details
+    message += `🚗 <b>Transportation Details:</b>\n`;
+    message += `• <b>Type:</b> ${segmentTypeLabel}\n`;
+    message += `• <b>Title:</b> ${segment.title || segmentTypeLabel}\n`;
+
+    if (segment.planned_start) {
+      const startTime = formatInTimeZone(new Date(segment.planned_start), config.app.timezone, 'dd/MM/yyyy HH:mm');
+      message += `• <b>Start Time:</b> ${startTime}\n`;
+    }
+
+    if (segment.planned_end) {
+      const endTime = formatInTimeZone(new Date(segment.planned_end), config.app.timezone, 'dd/MM/yyyy HH:mm');
+      message += `• <b>End Time:</b> ${endTime}\n`;
+    }
+
+    if (segment.travel_mode) {
+      message += `• <b>Travel Mode:</b> ${segment.travel_mode}\n`;
+    }
+
+    if (segment.estimated_travel_minutes) {
+      message += `• <b>Estimated Duration:</b> ${segment.estimated_travel_minutes} minutes\n`;
+    }
+
+    if (segment.estimated_distance_km) {
+      message += `• <b>Distance:</b> ${segment.estimated_distance_km} km\n`;
+    }
+
+    // Location information
+    if (segment.origin?.address) {
+      message += `\n📍 <b>From:</b> ${segment.origin.address}\n`;
+    }
+
+    if (segment.destination?.address) {
+      message += `🎯 <b>To:</b> ${segment.destination.address}\n`;
+    }
+
+    // Instructions
+    if (segment.instructions) {
+      message += `\n📝 <b>Instructions:</b>\n${segment.instructions}\n`;
+    }
+
+    // Special flags
+    if (segment.requires_follow_up) {
+      message += `\n⚠️ <b>Requires follow-up confirmation</b>\n`;
+    }
+
+    if (segment.manual_override) {
+      message += `🔧 <b>Manual override applied</b>\n`;
+    }
+
+    // Driver information
+    message += `\n👨‍💼 <b>Assigned Driver:</b> ${driver.first_name} ${driver.last_name}\n`;
+
+    return message;
+  }
+
+  /**
+   * Get emoji for segment change type
+   */
+  private getSegmentChangeEmoji(changeType: 'created' | 'updated' | 'cancelled'): string {
+    switch (changeType) {
+      case 'created':
+        return '🆕';
+      case 'updated':
+        return '🔄';
+      case 'cancelled':
+        return '❌';
+      default:
+        return '📋';
+    }
+  }
+
+  /**
+   * Get action text for segment change type
+   */
+  private getSegmentChangeAction(changeType: 'created' | 'updated' | 'cancelled'): string {
+    switch (changeType) {
+      case 'created':
+        return 'New Transportation Segment';
+      case 'updated':
+        return 'Transportation Segment Updated';
+      case 'cancelled':
+        return 'Transportation Segment Cancelled';
+      default:
+        return 'Transportation Segment';
+    }
+  }
+
+  /**
+   * Get segment type label
+   */
+  private getSegmentTypeLabel(segmentType: string): string {
+    const labels: Record<string, string> = {
+      pickup: 'Pickup',
+      dropoff: 'Drop-off',
+      stay_with_staff: 'Stay with Staff',
+      metro_assist: 'Metro Assist',
+      custom: 'Custom',
+    };
+    return labels[segmentType] || segmentType;
   }
 
   /**

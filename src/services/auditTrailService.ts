@@ -6,11 +6,15 @@ import type {
     AuditTrailOperationResult,
     CreateAuditDetailRequest,
     CreateAuditTrailRequest,
+    CreateTransportationSegmentOverrideRequest,
     GetAuditStatisticsRequest,
     GetAuditStatisticsResponse,
     GetAuditTrailRequest,
     GetAuditTrailResponse,
+    GetTransportationSegmentOverridesRequest,
+    GetTransportationSegmentOverridesResponse,
     IAuditTrailService,
+    TransportationSegmentOverrideAudit,
     UpdateAuditTrailRequest,
 } from '@/types/auditTrail';
 
@@ -459,6 +463,210 @@ export class AuditTrailService implements IAuditTrailService {
       duration_ms: durationMs,
       notes: results.notes,
     });
+  }
+
+  /**
+   * Create a transportation segment override audit record
+   */
+  async createTransportationSegmentOverride(
+    request: CreateTransportationSegmentOverrideRequest
+  ): Promise<AuditTrailOperationResult> {
+    try {
+      const { data, error } = await supabase
+        .from('transportation_segment_override_audit')
+        .insert({
+          segment_id: request.segment_id,
+          appointment_id: request.appointment_id,
+          operation_type: request.operation_type,
+          override_reason: request.override_reason,
+          user_id: request.user_id,
+          user_name: request.user_name,
+          original_driver_id: request.original_driver_id,
+          new_driver_id: request.new_driver_id,
+          original_planned_start: request.original_planned_start,
+          new_planned_start: request.new_planned_start,
+          original_planned_end: request.original_planned_end,
+          new_planned_end: request.new_planned_end,
+          conflict_details: request.conflict_details,
+          override_justification: request.override_justification,
+          requires_follow_up: request.requires_follow_up || false,
+          metadata: request.metadata || {},
+        })
+        .select('id')
+        .single();
+
+      if (error) {
+        console.error('Error creating transportation segment override audit:', error);
+        return {
+          success: false,
+          audit_trail_id: '',
+          error: error.message,
+        };
+      }
+
+      return {
+        success: true,
+        audit_trail_id: data.id,
+      };
+    } catch (error) {
+      console.error('Error creating transportation segment override audit:', error);
+      return {
+        success: false,
+        audit_trail_id: '',
+        error: error instanceof Error ? error.message : 'Unknown error',
+      };
+    }
+  }
+
+  /**
+   * Get transportation segment override audits with filtering
+   */
+  async getTransportationSegmentOverrides(
+    request: GetTransportationSegmentOverridesRequest
+  ): Promise<GetTransportationSegmentOverridesResponse> {
+    try {
+      const limit = request.limit || 50;
+      const offset = request.offset || 0;
+
+      let query = supabase
+        .from('transportation_segment_override_audit')
+        .select('*', { count: 'exact' })
+        .order('created_at', { ascending: false });
+
+      // Apply filters
+      if (request.segment_id) {
+        query = query.eq('segment_id', request.segment_id);
+      }
+
+      if (request.appointment_id) {
+        query = query.eq('appointment_id', request.appointment_id);
+      }
+
+      if (request.user_id) {
+        query = query.eq('user_id', request.user_id);
+      }
+
+      if (request.operation_type) {
+        query = query.eq('operation_type', request.operation_type);
+      }
+
+      if (request.requires_follow_up !== undefined) {
+        query = query.eq('requires_follow_up', request.requires_follow_up);
+      }
+
+      // Get total count
+      const { count, error: countError } = await query;
+
+      if (countError) {
+        console.error('Error getting transportation segment override count:', countError);
+        return {
+          success: false,
+          data: {
+            overrides: [],
+            total_count: 0,
+            has_more: false,
+          },
+          error: countError.message,
+        };
+      }
+
+      // Get override records with pagination
+      const { data, error } = await query
+        .range(offset, offset + limit - 1);
+
+      if (error) {
+        console.error('Error getting transportation segment overrides:', error);
+        return {
+          success: false,
+          data: {
+            overrides: [],
+            total_count: 0,
+            has_more: false,
+          },
+          error: error.message,
+        };
+      }
+
+      return {
+        success: true,
+        data: {
+          overrides: data as TransportationSegmentOverrideAudit[],
+          total_count: count || 0,
+          has_more: (offset + limit) < (count || 0),
+        },
+      };
+    } catch (error) {
+      console.error('Error getting transportation segment overrides:', error);
+      return {
+        success: false,
+        data: {
+          overrides: [],
+          total_count: 0,
+          has_more: false,
+        },
+        error: error instanceof Error ? error.message : 'Unknown error',
+      };
+    }
+  }
+
+  /**
+   * Update follow-up reminder status for transportation segment overrides
+   */
+  async updateTransportationSegmentOverrideFollowUp(
+    overrideId: string,
+    reminderSent: boolean
+  ): Promise<AuditTrailOperationResult> {
+    try {
+      const { error } = await supabase
+        .from('transportation_segment_override_audit')
+        .update({ follow_up_reminder_sent: reminderSent })
+        .eq('id', overrideId);
+
+      if (error) {
+        console.error('Error updating transportation segment override follow-up:', error);
+        return {
+          success: false,
+          audit_trail_id: '',
+          error: error.message,
+        };
+      }
+
+      return {
+        success: true,
+        audit_trail_id: overrideId,
+      };
+    } catch (error) {
+      console.error('Error updating transportation segment override follow-up:', error);
+      return {
+        success: false,
+        audit_trail_id: '',
+        error: error instanceof Error ? error.message : 'Unknown error',
+      };
+    }
+  }
+
+  /**
+   * Get transportation segment overrides requiring follow-up
+   */
+  async getTransportationSegmentOverridesRequiringFollowUp(): Promise<TransportationSegmentOverrideAudit[]> {
+    try {
+      const { data, error } = await supabase
+        .from('transportation_segment_override_audit')
+        .select('*')
+        .eq('requires_follow_up', true)
+        .eq('follow_up_reminder_sent', false)
+        .order('created_at', { ascending: true });
+
+      if (error) {
+        console.error('Error getting transportation segment overrides requiring follow-up:', error);
+        return [];
+      }
+
+      return data as TransportationSegmentOverrideAudit[];
+    } catch (error) {
+      console.error('Error getting transportation segment overrides requiring follow-up:', error);
+      return [];
+    }
   }
 }
 

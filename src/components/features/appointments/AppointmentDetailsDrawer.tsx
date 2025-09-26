@@ -2,6 +2,7 @@
 
 import type { Appointment, Patient, Staff } from '@/types';
 import { getAppointmentStatusDisplayName, getAppointmentTypeDisplayName } from '@/types/appointment';
+import type { TransportationSegmentOverrideAudit } from '@/types/auditTrail';
 import { formatTimeToHHMM } from '@/utils/timezone';
 import {
     AlertCircle,
@@ -21,6 +22,7 @@ import {
     X,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { TransportationSegmentsDisplay } from './TransportationSegmentsDisplay';
 
 interface AppointmentDetailsDrawerProps {
   isOpen: boolean;
@@ -46,6 +48,8 @@ export function AppointmentDetailsDrawer({
   const [isClosing, setIsClosing] = useState(false);
   const [appointmentStaff, setAppointmentStaff] = useState<any[]>([]);
   const [isLoadingStaff, setIsLoadingStaff] = useState(false);
+  const [segmentOverrides, setSegmentOverrides] = useState<Record<string, TransportationSegmentOverrideAudit[]>>({});
+  const [isLoadingOverrides, setIsLoadingOverrides] = useState(false);
 
   // Handle escape key
   useEffect(() => {
@@ -100,6 +104,42 @@ export function AppointmentDetailsDrawer({
           setAppointmentStaff([]);
         })
         .finally(() => setIsLoadingStaff(false));
+    }
+  }, [appointment?.id]);
+
+  // Fetch transportation segment overrides when appointment changes
+  useEffect(() => {
+    if (appointment?.id) {
+      setIsLoadingOverrides(true);
+
+      // Fetch overrides for this appointment
+      fetch(`/api/transportation-segments/overrides?appointment_id=${appointment.id}`)
+        .then(res => {
+          if (!res.ok) {
+            throw new Error(`HTTP error! status: ${res.status}`);
+          }
+          return res.json();
+        })
+        .then(data => {
+          if (data.success && data.data?.overrides) {
+            // Group overrides by segment_id
+            const overridesBySegment: Record<string, TransportationSegmentOverrideAudit[]> = {};
+            data.data.overrides.forEach((override: TransportationSegmentOverrideAudit) => {
+              if (!overridesBySegment[override.segment_id]) {
+                overridesBySegment[override.segment_id] = [];
+              }
+              overridesBySegment[override.segment_id].push(override);
+            });
+            setSegmentOverrides(overridesBySegment);
+          } else {
+            setSegmentOverrides({});
+          }
+        })
+        .catch(err => {
+          console.error('Error fetching segment overrides:', err);
+          setSegmentOverrides({});
+        })
+        .finally(() => setIsLoadingOverrides(false));
     }
   }, [appointment?.id]);
 
@@ -442,20 +482,61 @@ export function AppointmentDetailsDrawer({
               <Car className="w-5 h-5 text-gray-600" />
               <h3 className="text-lg font-semibold text-gray-900">Transportation</h3>
             </div>
-            {appointment.transportation_type === 'driver' && driver ? (
-              <div className="p-3 bg-white rounded-lg border">
-                <p className="font-medium text-gray-900">
-                  {driver.first_name} {driver.last_name}
-                </p>
-                <p className="text-sm text-gray-600">{driver.phone}</p>
-              </div>
-            ) : appointment.transportation_type === 'self_transport' ? (
-              <div className="p-3 bg-white rounded-lg border">
-                <p className="font-medium text-gray-900">Self Transport</p>
-                <p className="text-sm text-gray-600">{appointment.transportation_method}</p>
-              </div>
+
+            {/* Transportation Segments (if available) */}
+            {appointment.transportation_segments && appointment.transportation_segments.length > 0 ? (
+              <TransportationSegmentsDisplay
+                segments={appointment.transportation_segments}
+                segmentOverrides={segmentOverrides}
+                onEdit={(segment) => {
+                  // TODO: Implement segment editing
+                  console.log('Edit segment:', segment);
+                }}
+                onCallDriver={(driverId, driverName) => {
+                  // TODO: Implement driver calling
+                  console.log('Call driver:', driverId, driverName);
+                }}
+                onViewOverrideHistory={(segmentId) => {
+                  // Override history is handled by the component itself
+                  console.log('View override history for segment:', segmentId);
+                }}
+              />
+            ) : appointment.transportationSegments && appointment.transportationSegments.length > 0 ? (
+              <TransportationSegmentsDisplay
+                segments={appointment.transportationSegments}
+                segmentOverrides={segmentOverrides}
+                onEdit={(segment) => {
+                  // TODO: Implement segment editing
+                  console.log('Edit segment:', segment);
+                }}
+                onCallDriver={(driverId, driverName) => {
+                  // TODO: Implement driver calling
+                  console.log('Call driver:', driverId, driverName);
+                }}
+                onViewOverrideHistory={(segmentId) => {
+                  // Override history is handled by the component itself
+                  console.log('View override history for segment:', segmentId);
+                }}
+              />
             ) : (
-              <p className="text-gray-500">No transportation assigned</p>
+              /* Legacy transportation display */
+              <>
+                {appointment.transportation_type === 'driver' && driver ? (
+                  <div className="p-3 bg-white rounded-lg border">
+                    <p className="font-medium text-gray-900">
+                      {driver.first_name} {driver.last_name}
+                    </p>
+                    <p className="text-sm text-gray-600">{driver.phone}</p>
+                  </div>
+                ) : appointment.transportation_type === 'self_transport' ? (
+                  <div className="p-3 bg-white rounded-lg border">
+                    <p className="font-medium text-gray-900">Self Transport</p>
+                    <p className="text-sm text-gray-600">{appointment.transportation_method}</p>
+                  </div>
+                ) : (
+                  <p className="text-gray-500">No transportation assigned</p>
+                )}
+              </>
             )}
           </div>
 

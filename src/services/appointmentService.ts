@@ -23,6 +23,7 @@ import { appointmentStaffService } from './appointmentStaffService';
 import { getCompatibleUnifiedCalendarSyncService } from './compatibleUnifiedCalendarSyncService';
 import { getGoogleCalendarService } from './googleCalendarService';
 import { telegramNotificationService } from './telegramNotificationService';
+import { transportationSegmentService } from './transportationSegmentService';
 
 export class AppointmentService {
   // Helper method to send notifications for appointment changes
@@ -709,6 +710,9 @@ export class AppointmentService {
         const created = await this.createAppointment(newAppointment);
         generatedAppointments.push(created);
         console.log(`Successfully created recurring appointment ${i}:`, created.id);
+
+        // Duplicate transportation segments for the new appointment
+        await this.duplicateTransportationSegmentsForRecurringAppointment(baseAppointmentId, created.id, nextDate);
       } catch (error) {
         console.error(`Failed to create recurring appointment ${i}:`, error);
         console.error('Appointment data that failed:', newAppointment);
@@ -716,6 +720,118 @@ export class AppointmentService {
     }
 
     return generatedAppointments;
+  }
+
+  /**
+   * Duplicate transportation segments for a recurring appointment
+   */
+  private async duplicateTransportationSegmentsForRecurringAppointment(
+    baseAppointmentId: string,
+    newAppointmentId: string,
+    newDate: Date
+  ): Promise<void> {
+    try {
+      console.log(`🔄 Duplicating transportation segments for recurring appointment ${newAppointmentId}`);
+
+      // Check if transportation segments feature is enabled
+      if (!isFeatureEnabled('TRANSPORTATION_SEGMENTS_ENABLED')) {
+        console.log('Transportation segments feature is disabled, skipping segment duplication');
+        return;
+      }
+
+      // Get all segments for the base appointment
+      const baseSegments = await transportationSegmentService.getSegmentsForAppointment(baseAppointmentId);
+
+      if (baseSegments.length === 0) {
+        console.log(`No transportation segments found for base appointment ${baseAppointmentId}`);
+        return;
+      }
+
+      console.log(`Found ${baseSegments.length} transportation segments to duplicate`);
+
+      // Duplicate each segment with adjusted timing
+      for (const baseSegment of baseSegments) {
+        try {
+          // Calculate new timing for the segment
+          const newStartTime = this.adjustSegmentTimingForRecurringAppointment(
+            baseSegment.planned_start,
+            baseSegment.planned_end,
+            newDate
+          );
+
+          // Create new segment data
+          const newSegmentData = {
+            appointment_id: newAppointmentId,
+            segment_type: baseSegment.segment_type,
+            title: baseSegment.title,
+            planned_start: newStartTime.start,
+            planned_end: newStartTime.end,
+            driver_id: baseSegment.driver_id,
+            travel_mode: baseSegment.travel_mode,
+            origin: baseSegment.origin,
+            destination: baseSegment.destination,
+            estimated_travel_minutes: baseSegment.estimated_travel_minutes,
+            estimated_distance_km: baseSegment.estimated_distance_km,
+            buffer_minutes: baseSegment.buffer_minutes,
+            instructions: baseSegment.instructions,
+            requires_follow_up: baseSegment.requires_follow_up,
+            status: 'draft' as const, // Start as draft for recurring appointments
+            manual_override: false
+          };
+
+          // Create the new segment
+          const newSegment = await transportationSegmentService.createTransportationSegment(newSegmentData);
+          console.log(`✅ Duplicated transportation segment ${baseSegment.id} -> ${newSegment.id}`);
+        } catch (error) {
+          console.error(`❌ Failed to duplicate transportation segment ${baseSegment.id}:`, error);
+          // Continue with other segments even if one fails
+        }
+      }
+
+      console.log(`✅ Successfully duplicated transportation segments for recurring appointment ${newAppointmentId}`);
+    } catch (error) {
+      console.error(`❌ Error duplicating transportation segments for recurring appointment ${newAppointmentId}:`, error);
+      // Don't throw error to prevent breaking the main recurring appointment creation
+    }
+  }
+
+  /**
+   * Adjust segment timing for a recurring appointment
+   */
+  private adjustSegmentTimingForRecurringAppointment(
+    originalStart: string | null | undefined,
+    originalEnd: string | null | undefined,
+    newDate: Date
+  ): { start: string | null; end: string | null } {
+    if (!originalStart || !originalEnd) {
+      return { start: null, end: null };
+    }
+
+    try {
+      const originalStartTime = new Date(originalStart);
+      const originalEndTime = new Date(originalEnd);
+
+      // Extract time components from original times
+      const startHour = originalStartTime.getHours();
+      const startMinute = originalStartTime.getMinutes();
+      const endHour = originalEndTime.getHours();
+      const endMinute = originalEndTime.getMinutes();
+
+      // Create new times with the same time components but new date
+      const newStartTime = new Date(newDate);
+      newStartTime.setHours(startHour, startMinute, 0, 0);
+
+      const newEndTime = new Date(newDate);
+      newEndTime.setHours(endHour, endMinute, 0, 0);
+
+      return {
+        start: newStartTime.toISOString(),
+        end: newEndTime.toISOString()
+      };
+    } catch (error) {
+      console.error('Error adjusting segment timing:', error);
+      return { start: null, end: null };
+    }
   }
 
 

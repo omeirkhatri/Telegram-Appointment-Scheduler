@@ -4,7 +4,7 @@
 -- Create pickup location type enum
 CREATE TYPE pickup_location_type_enum AS ENUM (
   'office',
-  'previous_appointment', 
+  'previous_appointment',
   'metro_station',
   'custom'
 );
@@ -13,7 +13,7 @@ CREATE TYPE pickup_location_type_enum AS ENUM (
 DO $$
 BEGIN
   IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'transportation_segments') THEN
-    ALTER TABLE transportation_segments 
+    ALTER TABLE transportation_segments
     ADD COLUMN IF NOT EXISTS pickup_location_type pickup_location_type_enum,
     ADD COLUMN IF NOT EXISTS pickup_location_reference UUID;
   END IF;
@@ -23,16 +23,16 @@ END $$;
 DO $$
 BEGIN
   IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'transportation_segments') THEN
-    ALTER TABLE transportation_segments 
+    ALTER TABLE transportation_segments
     RENAME COLUMN origin TO pickup_location;
   END IF;
 END $$;
 
--- Rename destination column to patient_location  
+-- Rename destination column to patient_location
 DO $$
 BEGIN
   IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'transportation_segments') THEN
-    ALTER TABLE transportation_segments 
+    ALTER TABLE transportation_segments
     RENAME COLUMN destination TO patient_location;
   END IF;
 END $$;
@@ -41,8 +41,8 @@ END $$;
 DO $$
 BEGIN
   IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'transportation_segments') THEN
-    ALTER TABLE transportation_segments 
-    ADD CONSTRAINT transportation_segments_pickup_location_reference_check 
+    ALTER TABLE transportation_segments
+    ADD CONSTRAINT transportation_segments_pickup_location_reference_check
     CHECK (
       (pickup_location_type = 'previous_appointment' AND pickup_location_reference IS NOT NULL) OR
       (pickup_location_type = 'metro_station' AND pickup_location_reference IS NOT NULL) OR
@@ -55,12 +55,12 @@ END $$;
 DO $$
 BEGIN
   IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'transportation_segments') THEN
-    CREATE INDEX IF NOT EXISTS idx_transportation_segments_pickup_location_type 
-    ON transportation_segments(pickup_location_type) 
+    CREATE INDEX IF NOT EXISTS idx_transportation_segments_pickup_location_type
+    ON transportation_segments(pickup_location_type)
     WHERE pickup_location_type IS NOT NULL;
 
-    CREATE INDEX IF NOT EXISTS idx_transportation_segments_pickup_location_reference 
-    ON transportation_segments(pickup_location_reference) 
+    CREATE INDEX IF NOT EXISTS idx_transportation_segments_pickup_location_reference
+    ON transportation_segments(pickup_location_reference)
     WHERE pickup_location_reference IS NOT NULL;
   END IF;
 END $$;
@@ -69,8 +69,8 @@ END $$;
 DO $$
 BEGIN
   IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'transportation_segments') THEN
-    UPDATE transportation_segments 
-    SET pickup_location_type = 'custom' 
+    UPDATE transportation_segments
+    SET pickup_location_type = 'custom'
     WHERE pickup_location_type IS NULL;
   END IF;
 END $$;
@@ -79,7 +79,7 @@ END $$;
 DO $$
 BEGIN
   IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'transportation_segments') THEN
-    ALTER TABLE transportation_segments 
+    ALTER TABLE transportation_segments
     ALTER COLUMN pickup_location_type SET NOT NULL;
   END IF;
 END $$;

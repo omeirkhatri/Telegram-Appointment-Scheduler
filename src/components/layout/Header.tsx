@@ -4,6 +4,7 @@ import { TimeDisplay } from '@/components/ui/TimeDisplay';
 import {
     Activity,
     CalendarDays,
+    Car,
     Menu,
     Settings,
     Sun,
@@ -56,6 +57,7 @@ const Header: React.FC<HeaderProps> = ({ title = 'MediCare Scheduler', currentPa
     { name: 'Patients', href: '/patients', icon: Users, active: currentPage === 'patients' },
     { name: 'Staff', href: '/staff', icon: UserCheck, active: currentPage === 'staff' },
     { name: 'Appointments', href: '/appointments', icon: CalendarDays, active: currentPage === 'appointments' },
+    { name: 'Driver Board', href: '/driver-board', icon: Car, active: currentPage === 'driver-board' },
     { name: 'Settings', href: '/settings', icon: Settings, active: currentPage === 'settings' },
   ];
 

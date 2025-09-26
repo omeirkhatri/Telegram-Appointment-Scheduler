@@ -15,11 +15,23 @@ export type TransportationSegmentStatus =
   | 'completed'
   | 'cancelled';
 
+export type PickupLocationType =
+  | 'office'
+  | 'previous_appointment'
+  | 'metro_station'
+  | 'custom';
+
 export interface TransportationSegmentLocation {
   lat: number;
   lng: number;
   address?: string;
   landmark?: string;
+  // Additional fields for enhanced location data
+  place_id?: string; // Google Places ID for better location identification
+  formatted_address?: string; // Full formatted address from Google Places
+  city?: string; // City name
+  area?: string; // Area/district name
+  building_name?: string; // Building or landmark name
 }
 
 export interface TransportationSegment {
@@ -31,8 +43,10 @@ export interface TransportationSegment {
   planned_end?: string;
   driver_id?: string | null;
   travel_mode?: string | null;
-  origin?: TransportationSegmentLocation | null;
-  destination?: TransportationSegmentLocation | null;
+  pickup_location?: TransportationSegmentLocation | null;
+  patient_location?: TransportationSegmentLocation | null;
+  pickup_location_type: PickupLocationType;
+  pickup_location_reference?: string | null;
   estimated_travel_minutes?: number | null;
   estimated_distance_km?: number | null;
   buffer_minutes?: number | null;
@@ -40,6 +54,7 @@ export interface TransportationSegment {
   requires_follow_up?: boolean | null;
   status: TransportationSegmentStatus;
   manual_override?: boolean | null;
+  google_event_id?: string | null;
   created_at: string;
   updated_at: string;
   driver?: Staff;
@@ -53,8 +68,10 @@ export interface CreateTransportationSegment {
   planned_end?: string;
   driver_id?: string | null;
   travel_mode?: string | null;
-  origin?: TransportationSegmentLocation | null;
-  destination?: TransportationSegmentLocation | null;
+  pickup_location?: TransportationSegmentLocation | null;
+  patient_location?: TransportationSegmentLocation | null;
+  pickup_location_type: PickupLocationType;
+  pickup_location_reference?: string | null;
   estimated_travel_minutes?: number | null;
   estimated_distance_km?: number | null;
   buffer_minutes?: number | null;
@@ -72,8 +89,10 @@ export interface UpdateTransportationSegment {
   planned_end?: string;
   driver_id?: string | null;
   travel_mode?: string | null;
-  origin?: TransportationSegmentLocation | null;
-  destination?: TransportationSegmentLocation | null;
+  pickup_location?: TransportationSegmentLocation | null;
+  patient_location?: TransportationSegmentLocation | null;
+  pickup_location_type?: PickupLocationType;
+  pickup_location_reference?: string | null;
   estimated_travel_minutes?: number | null;
   estimated_distance_km?: number | null;
   buffer_minutes?: number | null;
@@ -123,4 +142,23 @@ export function isTransportationSegmentCompleted(status: TransportationSegmentSt
 
 export function isTransportationSegmentCancelled(status: TransportationSegmentStatus): boolean {
   return status === 'cancelled';
+}
+
+// Helper functions for pickup location types
+export function getPickupLocationTypeLabel(type: PickupLocationType): string {
+  const labels: Record<PickupLocationType, string> = {
+    office: 'From Office',
+    previous_appointment: 'From Previous Appointment',
+    metro_station: 'From Metro Station',
+    custom: 'From Custom Location',
+  };
+  return labels[type];
+}
+
+export function requiresPickupLocationReference(type: PickupLocationType): boolean {
+  return type === 'previous_appointment' || type === 'metro_station';
+}
+
+export function isValidPickupLocationType(type: string): type is PickupLocationType {
+  return ['office', 'previous_appointment', 'metro_station', 'custom'].includes(type);
 }

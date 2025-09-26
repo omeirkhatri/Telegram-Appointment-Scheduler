@@ -1,5 +1,5 @@
 import { isFeatureEnabled } from '@/lib/featureFlags';
-import type { CreateTransportationSegment, TransportationSegment } from '@/types/transportationSegment';
+import type { TransportationSegment } from '@/types/transportationSegment';
 import { appointmentStaffService } from './appointmentStaffService';
 import { transportationSegmentService } from './transportationSegmentService';
 
@@ -176,7 +176,7 @@ describe('TransportationSegmentService - Staff Sync', () => {
 
       await expect(transportationSegmentService.syncAllDriverAssignmentsForAppointment(mockAppointmentId))
         .resolves.not.toThrow();
-      
+
       expect(mockAppointmentStaffService.getStaffForAppointment).not.toHaveBeenCalled();
       expect(mockAppointmentStaffService.createAppointmentStaff).not.toHaveBeenCalled();
     });

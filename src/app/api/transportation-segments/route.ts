@@ -1,5 +1,7 @@
 import { transportationSegmentService } from '@/services/transportationSegmentService';
 import type { CreateTransportationSegment, TransportationSegmentFilters } from '@/types/transportationSegment';
+import { isValidPickupLocationType, requiresPickupLocationReference } from '@/types/transportationSegment';
+import { hasLegacyFields, logLegacyFieldWarning } from '@/utils/transportationSegmentsBackwardCompatibility';
 import { NextRequest, NextResponse } from 'next/server';
 
 // GET /api/transportation-segments - Get all transportation segments with optional filtering
@@ -54,7 +56,15 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
 
-    // Extract segment data
+    // Check for legacy fields and log warning
+    if (hasLegacyFields(body)) {
+      const legacyFields = [];
+      if (body.origin) legacyFields.push('origin');
+      if (body.destination) legacyFields.push('destination');
+      logLegacyFieldWarning(legacyFields);
+    }
+
+    // Extract segment data with backward compatibility
     const segmentData: CreateTransportationSegment = {
       appointment_id: body.appointment_id,
       segment_type: body.segment_type,
@@ -63,8 +73,11 @@ export async function POST(request: NextRequest) {
       planned_end: body.planned_end,
       driver_id: body.driver_id,
       travel_mode: body.travel_mode,
-      origin: body.origin,
-      destination: body.destination,
+      // Support both old and new field names for backward compatibility
+      pickup_location: body.pickup_location || body.origin,
+      patient_location: body.patient_location || body.destination,
+      pickup_location_type: body.pickup_location_type || 'custom',
+      pickup_location_reference: body.pickup_location_reference,
       estimated_travel_minutes: body.estimated_travel_minutes,
       estimated_distance_km: body.estimated_distance_km,
       buffer_minutes: body.buffer_minutes,
@@ -117,6 +130,57 @@ function validateSegmentData(data: CreateTransportationSegment): string[] {
 
   if (!data.segment_type) {
     errors.push('Segment type is required');
+  }
+
+  // Validate pickup location type
+  if (!data.pickup_location_type) {
+    errors.push('Pickup location type is required');
+  } else if (!isValidPickupLocationType(data.pickup_location_type)) {
+    errors.push('Invalid pickup location type. Must be one of: office, previous_appointment, metro_station, custom');
+  }
+
+  // Validate pickup location reference for types that require it
+  if (data.pickup_location_type && requiresPickupLocationReference(data.pickup_location_type)) {
+    if (!data.pickup_location_reference?.trim()) {
+      errors.push(`Pickup location reference is required for ${data.pickup_location_type} pickup type`);
+    }
+  }
+
+  // Validate pickup location type-specific requirements
+  if (data.pickup_location_type) {
+    switch (data.pickup_location_type) {
+      case 'previous_appointment':
+        if (!data.pickup_location_reference?.trim()) {
+          errors.push('Previous appointment ID is required for pickup from previous appointment');
+        }
+        break;
+      case 'metro_station':
+        if (!data.pickup_location_reference?.trim()) {
+          errors.push('Metro station ID is required for pickup from metro station');
+        }
+        break;
+      case 'office':
+        // Office pickup doesn't require a reference, but should have a valid office location
+        if (!data.pickup_location) {
+          errors.push('Office pickup location is required for office pickup type');
+        }
+        break;
+      case 'custom':
+        // Custom pickup requires a valid pickup location
+        if (!data.pickup_location) {
+          errors.push('Custom pickup location is required for custom pickup type');
+        }
+        break;
+    }
+  }
+
+  // Validate that pickup and patient locations are provided
+  if (!data.pickup_location) {
+    errors.push('Pickup location is required');
+  }
+
+  if (!data.patient_location) {
+    errors.push('Patient location is required');
   }
 
   if (data.planned_start && data.planned_end) {

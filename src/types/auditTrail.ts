@@ -3,6 +3,10 @@
 export type CopyOperationType = 'single_copy' | 'bulk_copy';
 export type CopyOperationStatus = 'pending' | 'in_progress' | 'completed' | 'failed' | 'partially_completed';
 
+// Transportation Segment Override Types
+export type OverrideOperationType = 'transportation_segment_override' | 'driver_reassignment_override' | 'timing_override';
+export type OverrideReason = 'driver_conflict' | 'timing_conflict' | 'travel_buffer_insufficient' | 'manual_requirement' | 'emergency_override';
+
 // Main audit trail record
 export interface AppointmentCopyAuditTrail {
   id: string;
@@ -226,4 +230,94 @@ export interface IAuditTrailService {
 
   // Get audit details for an audit trail
   getAuditDetails(audit_trail_id: string): Promise<AppointmentCopyAuditDetail[]>;
+
+  // Transportation segment override methods
+  createTransportationSegmentOverride(request: CreateTransportationSegmentOverrideRequest): Promise<AuditTrailOperationResult>;
+  getTransportationSegmentOverrides(request: GetTransportationSegmentOverridesRequest): Promise<GetTransportationSegmentOverridesResponse>;
+  updateTransportationSegmentOverrideFollowUp(overrideId: string, reminderSent: boolean): Promise<AuditTrailOperationResult>;
+  getTransportationSegmentOverridesRequiringFollowUp(): Promise<TransportationSegmentOverrideAudit[]>;
+}
+
+// Transportation Segment Override Audit Trail
+export interface TransportationSegmentOverrideAudit {
+  id: string;
+  segment_id: string;
+  appointment_id: string;
+  operation_type: OverrideOperationType;
+  override_reason: OverrideReason;
+  user_id: string;
+  user_name?: string;
+
+  // Override details
+  original_driver_id?: string;
+  new_driver_id?: string;
+  original_planned_start?: string;
+  new_planned_start?: string;
+  original_planned_end?: string;
+  new_planned_end?: string;
+
+  // Conflict details
+  conflict_details: {
+    driver_conflicts?: string[];
+    timing_conflicts?: string[];
+    travel_buffer_issues?: string[];
+    warnings_acknowledged: string[];
+  };
+
+  // Override justification
+  override_justification: string;
+  requires_follow_up: boolean;
+  follow_up_reminder_sent?: boolean;
+
+  // Timestamps
+  created_at: string;
+  updated_at: string;
+
+  // Additional metadata
+  metadata: Record<string, any>;
+}
+
+// Request/Response types for transportation segment overrides
+export interface CreateTransportationSegmentOverrideRequest {
+  segment_id: string;
+  appointment_id: string;
+  operation_type: OverrideOperationType;
+  override_reason: OverrideReason;
+  user_id: string;
+  user_name?: string;
+  original_driver_id?: string;
+  new_driver_id?: string;
+  original_planned_start?: string;
+  new_planned_start?: string;
+  original_planned_end?: string;
+  new_planned_end?: string;
+  conflict_details: {
+    driver_conflicts?: string[];
+    timing_conflicts?: string[];
+    travel_buffer_issues?: string[];
+    warnings_acknowledged: string[];
+  };
+  override_justification: string;
+  requires_follow_up?: boolean;
+  metadata?: Record<string, any>;
+}
+
+export interface GetTransportationSegmentOverridesRequest {
+  segment_id?: string;
+  appointment_id?: string;
+  user_id?: string;
+  operation_type?: OverrideOperationType;
+  requires_follow_up?: boolean;
+  limit?: number;
+  offset?: number;
+}
+
+export interface GetTransportationSegmentOverridesResponse {
+  success: boolean;
+  data: {
+    overrides: TransportationSegmentOverrideAudit[];
+    total_count: number;
+    has_more: boolean;
+  };
+  error?: string;
 }
