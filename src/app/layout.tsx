@@ -2,7 +2,7 @@ import { KeyboardShortcutsProvider } from '@/components/providers/KeyboardShortc
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
 import { ToastProvider } from '@/components/ui/ToastContainer';
 import { DebugProvider } from '@/hooks/useDebugState';
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import './globals.css';
 
 // Use system fonts as fallback to avoid Google Fonts connectivity issues
@@ -17,6 +17,12 @@ const geistMono = {
 export const metadata: Metadata = {
   title: 'MediCare Scheduler',
   description: 'Healthcare appointment scheduling system for Best DOC',
+};
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
 };
 
 export default function RootLayout({

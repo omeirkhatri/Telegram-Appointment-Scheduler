@@ -559,6 +559,19 @@ export class AuditTrailService implements IAuditTrailService {
 
       if (countError) {
         console.error('Error getting transportation segment override count:', countError);
+
+        // If the table doesn't exist, return empty results instead of error
+        if (countError.message?.includes('relation "transportation_segment_override_audit" does not exist')) {
+          return {
+            success: true,
+            data: {
+              overrides: [],
+              total_count: 0,
+              has_more: false,
+            },
+          };
+        }
+
         return {
           success: false,
           data: {
@@ -576,6 +589,19 @@ export class AuditTrailService implements IAuditTrailService {
 
       if (error) {
         console.error('Error getting transportation segment overrides:', error);
+
+        // If the table doesn't exist, return empty results instead of error
+        if (error.message?.includes('relation "transportation_segment_override_audit" does not exist')) {
+          return {
+            success: true,
+            data: {
+              overrides: [],
+              total_count: 0,
+              has_more: false,
+            },
+          };
+        }
+
         return {
           success: false,
           data: {

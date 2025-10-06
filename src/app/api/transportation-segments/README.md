@@ -135,16 +135,32 @@ Create a new transportation segment.
 
 #### Validation Rules
 
-- `appointment_id`: Required
-- `segment_type`: Required
-- `pickup_location_type`: Required
-- `pickup_location`: Required
-- `patient_location`: Required
+**Required Fields**:
+- `appointment_id`: Required, must be a valid appointment ID
+- `segment_type`: Required, must be one of: `pickup`, `dropoff`, `stay_with_staff`, `metro_assist`, `custom`
+- `pickup_location_type`: Required, must be one of: `office`, `previous_appointment`, `metro_station`, `custom`
+- `pickup_location`: Required, must be a valid location object with lat/lng coordinates
+- `patient_location`: Required, must be a valid location object with lat/lng coordinates
+
+**Conditional Requirements**:
 - `pickup_location_reference`: Required for `previous_appointment` and `metro_station` types
+  - For `previous_appointment`: Must be a valid appointment ID that exists and has a patient location
+  - For `metro_station`: Must be a valid metro station ID that is configured in the system
+
+**Data Validation**:
 - `planned_start` and `planned_end`: If provided, end must be after start
-- `estimated_travel_minutes`: Must be between 0 and 1440
-- `estimated_distance_km`: Must be between 0 and 10000
-- `buffer_minutes`: Must be between 0 and 360
+- `estimated_travel_minutes`: Must be between 0 and 1440 (0 to 24 hours)
+- `estimated_distance_km`: Must be between 0 and 10000 (0 to 10,000 km)
+- `buffer_minutes`: Must be between 0 and 360 (0 to 6 hours)
+- `pickup_location` and `patient_location`: Must be different locations
+- `pickup_location.lat` and `pickup_location.lng`: Must be valid coordinates (-90 to 90 for lat, -180 to 180 for lng)
+- `patient_location.lat` and `patient_location.lng`: Must be valid coordinates (-90 to 90 for lat, -180 to 180 for lng)
+
+**Business Logic Validation**:
+- Previous appointment must exist and be accessible
+- Metro station must be configured and active
+- Custom location must be geocodable
+- Office location must be configured in system settings
 
 #### Response
 

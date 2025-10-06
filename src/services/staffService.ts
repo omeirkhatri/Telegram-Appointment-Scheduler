@@ -87,7 +87,7 @@ export class StaffService {
     }
 
     // Trigger calendar creation if staff has email and calendar feature is enabled
-    if (data.email && data.email !== 'no-email@bestdoc.com' && isFeatureEnabled('GOOGLE_CALENDAR_ENABLED')) {
+    if (data.email && isFeatureEnabled('GOOGLE_CALENDAR_ENABLED')) {
       try {
         await this.createStaffCalendar(data);
       } catch (calendarError) {
@@ -424,7 +424,7 @@ export class StaffService {
       }
 
       // If email is being added/updated and staff doesn't have a calendar yet, create one
-      if (updates.email && updates.email !== 'no-email@bestdoc.com' && !staff.google_calendar_id) {
+      if (updates.email && !staff.google_calendar_id) {
         console.log(`📅 Creating calendar for staff ${staffId} with new email ${updates.email}`);
 
         // Create a temporary staff object with the updated email for calendar creation

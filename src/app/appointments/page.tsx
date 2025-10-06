@@ -1,9 +1,9 @@
 'use client';
 
+import { AppointmentContextMenu, AppointmentDetailsDrawer, AppointmentModal, CopyAppointmentModal, RecurringAppointmentDeleteModal, RecurringAppointmentEditModal } from '@/components/features/appointments';
 import { AppointmentCalendar } from '@/components/features/appointments/calendar';
 import { AppointmentFilters, type AppointmentFilterState } from '@/components/features/appointments/filters';
 import Header from '@/components/layout/Header';
-import { AppointmentContextMenu, AppointmentDetailsDrawer, AppointmentModal, CopyAppointmentModal, RecurringAppointmentDeleteModal, RecurringAppointmentEditModal } from '@/components/features/appointments';
 import { ErrorMessage, VirtualizedTable, type VirtualizedTableColumn } from '@/components/ui';
 import { useToastContext } from '@/components/ui/ToastContainer';
 import { useAppointmentsForDateRange, useUpdateAppointment } from '@/hooks/useAppointments';
@@ -380,7 +380,7 @@ export default function AppointmentsPage() {
         }
         appointmentId = parts[0];
         occurrenceNumber = parseInt(parts[1], 10);
-        
+
         // Validate that the occurrence number was parsed correctly
         if (isNaN(occurrenceNumber)) {
           throw new Error('Invalid occurrence number in virtual appointment ID');
@@ -388,7 +388,7 @@ export default function AppointmentsPage() {
       } else {
         // This is a real appointment - get occurrence number from custom_fields
         occurrenceNumber = (recurringDeleteAppointment.custom_fields as any)?.occurrence_number;
-        
+
       }
 
       // For "this_occurrence" deletion in multi-row system, we don't need occurrence numbers
@@ -722,11 +722,11 @@ export default function AppointmentsPage() {
 
 
       {/* Main Content - Full Width */}
-      <main className="px-8 py-8 space-y-4">
+      <main className="px-3 py-4 space-y-3 sm:px-4 sm:py-6 lg:px-8 lg:py-8">
         {/* Page Header */}
-        <div className="flex items-start justify-between gap-6">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
           {/* Left side - Filters */}
-          <div className="flex-1" style={{ maxWidth: '108rem' }}>
+          <div className="w-full lg:flex-1">
             <AppointmentFilters
               filters={filters}
               onFiltersChange={handleFiltersChange}
@@ -734,42 +734,45 @@ export default function AppointmentsPage() {
               staffOptions={staffOptions}
             />
           </div>
-          
+
           {/* Right side - View Toggle and New Appointment */}
-          <div className="flex flex-col items-end space-y-3 flex-shrink-0">
+          <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center sm:justify-between lg:w-auto lg:flex-col lg:items-end lg:justify-start">
             {/* View Toggle */}
-            <div className="flex items-center bg-[--muted] rounded-lg p-1 w-full">
+            <div className="flex w-full items-center overflow-hidden rounded-lg bg-[--muted] p-1 sm:max-w-sm lg:w-full">
               <button
                 onClick={() => setViewMode('calendar')}
-                className={`flex items-center justify-center px-4 py-2 rounded-md text-sm font-medium transition-colors flex-1 ${
+                className={`flex flex-1 items-center justify-center rounded-md px-2 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium transition-colors ${
                   viewMode === 'calendar'
                     ? 'bg-[--primary] text-[--primary-foreground]'
                     : 'text-[--muted-foreground] hover:text-[--foreground]'
                 }`}
               >
-                <Grid3X3 className="w-4 h-4 mr-2" />
-                Calendar
+                <Grid3X3 className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
+                <span className="hidden sm:inline">Calendar</span>
+                <span className="sm:hidden">Cal</span>
               </button>
               <button
                 onClick={() => setViewMode('table')}
-                className={`flex items-center justify-center px-4 py-2 rounded-md text-sm font-medium transition-colors flex-1 ${
+                className={`flex flex-1 items-center justify-center rounded-md px-2 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium transition-colors ${
                   viewMode === 'table'
                     ? 'bg-[--primary] text-[--primary-foreground]'
                     : 'text-[--muted-foreground] hover:text-[--foreground]'
                 }`}
               >
-                <List className="w-4 h-4 mr-2" />
-                Table
+                <List className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
+                <span className="hidden sm:inline">Table</span>
+                <span className="sm:hidden">List</span>
               </button>
             </div>
-            
+
             {/* New Appointment Button */}
             <button
               onClick={handleOpenAppointmentModal}
-              className="inline-flex items-center justify-center px-4 py-2 bg-[--primary] text-[--primary-foreground] rounded-lg hover:bg-[--primary]/90 transition-colors w-full"
+              className="inline-flex w-full items-center justify-center rounded-lg bg-[--primary] px-3 sm:px-4 py-1.5 sm:py-2 text-sm sm:text-base font-medium text-[--primary-foreground] shadow-sm transition-colors hover:bg-[--primary]/90 sm:w-auto lg:w-full"
             >
-              <Plus className="w-4 h-4 mr-2" />
-              New Appointment
+              <Plus className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
+              <span className="hidden sm:inline">New Appointment</span>
+              <span className="sm:hidden">New</span>
             </button>
           </div>
         </div>
@@ -790,7 +793,7 @@ export default function AppointmentsPage() {
 
         {/* Calendar View */}
         {viewMode === 'calendar' && (
-          <div className="bg-[--card] border border-[--border] rounded-xl p-6 shadow-lg">
+          <div className="bg-[--card] border border-[--border] rounded-xl p-3 sm:p-6 shadow-lg">
             <AppointmentCalendar
               key={`calendar-${viewMode}`}
               initialView="timeGridWeek"

@@ -47,6 +47,19 @@ export async function GET(request: NextRequest) {
     });
 
     if (!result.success) {
+      // If the table doesn't exist, return empty results instead of error
+      if (result.error?.includes('relation "transportation_segment_override_audit" does not exist')) {
+        return NextResponse.json({
+          success: true,
+          data: {
+            overrides: [],
+            total_count: 0,
+            has_more: false,
+          },
+          message: 'Transportation segment overrides retrieved successfully (table not yet created)',
+        });
+      }
+
       return NextResponse.json(
         {
           success: false,

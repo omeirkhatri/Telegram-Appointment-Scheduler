@@ -1,8 +1,8 @@
 'use client';
 
-import { AppointmentForm } from './AppointmentForm';
 import { ErrorMessage, LoadingOverlay } from '@/components/ui';
 import { useToastContext } from '@/components/ui/ToastContainer';
+import { AppointmentForm } from './AppointmentForm';
 // Remove direct service import - we'll use API calls instead
 import type { Appointment, Patient, Staff, StaffAssignment } from '@/types';
 import { X } from 'lucide-react';
@@ -162,7 +162,7 @@ export function AppointmentModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       {/* Backdrop */}
       <div
         className="absolute inset-0 bg-black/50 backdrop-blur-sm"
@@ -170,30 +170,37 @@ export function AppointmentModal({
       />
 
       {/* Modal */}
-      <div className="relative bg-[--card] border border-[--border] rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden">
+      <div className="relative bg-white border border-gray-200 rounded-2xl shadow-2xl w-full max-w-7xl max-h-[98vh] overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-[--border]">
-          <div>
-            <h2 className="text-2xl font-bold text-[--foreground]">
-              {initialAppointment?.id ? 'Edit Appointment' : 'New Appointment'}
-            </h2>
-            <p className="text-[--muted-foreground] mt-1">
-              {initialAppointment?.id
-                ? 'Update appointment details and staff assignments'
-                : 'Create a new appointment with patient and staff details'
-              }
-            </p>
+        <div className="flex items-center justify-between p-8 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50">
+          <div className="flex items-center space-x-4">
+            <div className="w-14 h-14 bg-blue-100 rounded-xl flex items-center justify-center">
+              <svg className="w-7 h-7 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+            </div>
+            <div>
+              <h2 className="text-3xl font-bold text-gray-900">
+                {initialAppointment?.id ? 'Edit Appointment' : 'New Appointment'}
+              </h2>
+              <p className="text-gray-600 mt-2 text-lg">
+                {initialAppointment?.id
+                  ? 'Update appointment details and staff assignments'
+                  : 'Create a new appointment with patient and staff details'
+                }
+              </p>
+            </div>
           </div>
           <button
             onClick={handleCancel}
-            className="p-2 text-[--muted-foreground] hover:text-[--foreground] hover:bg-[--accent] rounded-lg transition-colors"
+            className="p-3 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-xl transition-colors"
           >
-            <X className="w-5 h-5" />
+            <X className="w-7 h-7" />
           </button>
         </div>
 
         {/* Content */}
-        <div className="p-6 overflow-y-auto max-h-[calc(90vh-140px)]">
+        <div className="p-8 overflow-y-auto max-h-[calc(98vh-180px)] bg-gray-50">
           {/* Loading overlay for data fetching */}
           {(isLoadingPatients || isLoadingStaff || isLoadingStaffAssignments) && (
             <LoadingOverlay message="Loading appointment data..." isLoading={true} />

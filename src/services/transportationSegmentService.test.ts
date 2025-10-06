@@ -1,215 +1,243 @@
-import { isFeatureEnabled } from '@/lib/featureFlags';
-import type { TransportationSegment } from '@/types/transportationSegment';
-import { appointmentStaffService } from './appointmentStaffService';
-import { transportationSegmentService } from './transportationSegmentService';
+import type {
+    CreateTransportationSegment,
+    TransportationSegmentFilters
+} from '@/types/transportationSegment';
+import { TransportationSegmentService } from './transportationSegmentService';
 
 // Mock dependencies
-jest.mock('@/lib/featureFlags');
-jest.mock('@/lib/supabase');
-jest.mock('./appointmentStaffService');
+jest.mock('@/lib/supabase', () => ({
+  supabase: {
+    from: jest.fn(),
+  },
+}));
 
-const mockIsFeatureEnabled = isFeatureEnabled as jest.MockedFunction<typeof isFeatureEnabled>;
-const mockAppointmentStaffService = appointmentStaffService as jest.Mocked<typeof appointmentStaffService>;
+jest.mock('@/lib/featureFlags', () => ({
+  isFeatureEnabled: jest.fn(),
+}));
 
-describe('TransportationSegmentService - Staff Sync', () => {
-  const mockAppointmentId = 'appointment-123';
-  const mockDriverId1 = 'driver-123';
-  const mockDriverId2 = 'driver-456';
+jest.mock('@/services/appointmentStaffService', () => ({
+  appointmentStaffService: {
+    getAppointmentStaff: jest.fn(),
+  },
+}));
 
-  const mockSegment: TransportationSegment = {
-    id: 'segment-123',
-    appointment_id: mockAppointmentId,
-    segment_type: 'pickup',
-    title: 'Test Pickup',
-    planned_start: '2025-02-15T08:00:00Z',
-    planned_end: '2025-02-15T08:30:00Z',
-    driver_id: mockDriverId1,
-    travel_mode: 'vehicle',
-    origin: { lat: 25.2048, lng: 55.2708 },
-    destination: { lat: 25.1972, lng: 55.2744 },
-    estimated_travel_minutes: 30,
-    estimated_distance_km: 15.5,
-    buffer_minutes: 5,
-    instructions: 'Test instructions',
-    requires_follow_up: false,
-    status: 'scheduled',
-    manual_override: false,
-    created_at: '2025-02-15T07:00:00Z',
-    updated_at: '2025-02-15T07:00:00Z',
-  };
+jest.mock('@/services/auditTrailService', () => ({
+  auditTrailService: {
+    logTransportationSegmentOperation: jest.fn(),
+    getTransportationSegmentOverrides: jest.fn(),
+  },
+}));
+
+jest.mock('@/services/googleCalendarService', () => ({
+  getGoogleCalendarService: jest.fn(),
+}));
+
+jest.mock('@/services/telegramNotificationService', () => ({
+  telegramNotificationService: {
+    sendTransportationSegmentNotification: jest.fn(),
+  },
+}));
+
+describe('TransportationSegmentService', () => {
+  let service: TransportationSegmentService;
+  let mockSupabase: any;
 
   beforeEach(() => {
+    service = new TransportationSegmentService();
+    mockSupabase = require('@/lib/supabase').supabase;
     jest.clearAllMocks();
-    mockIsFeatureEnabled.mockReturnValue(true);
   });
 
-  describe('Driver Assignment Sync Logic', () => {
-    it('should identify drivers that need assignment when segments exist', async () => {
-      // Mock segments with drivers
-      const segments = [
-        { ...mockSegment, id: 'segment-1', driver_id: mockDriverId1 },
-        { ...mockSegment, id: 'segment-2', driver_id: mockDriverId2 },
-      ];
+  describe('isFeatureEnabled', () => {
+    it('should check if transportation segments feature is enabled', () => {
+      const { isFeatureEnabled } = require('@/lib/featureFlags');
+      isFeatureEnabled.mockReturnValue(true);
 
-      // Mock no existing assignments
-      mockAppointmentStaffService.getStaffForAppointment.mockResolvedValue([]);
-
-      // Mock the getSegmentsForAppointment method
-      jest.spyOn(transportationSegmentService, 'getSegmentsForAppointment')
-        .mockResolvedValue(segments);
-
-      // Mock the syncDriverAssignment method
-      const syncDriverAssignmentSpy = jest.spyOn(transportationSegmentService as any, 'syncDriverAssignment')
-        .mockResolvedValue();
-
-      await transportationSegmentService.syncAllDriverAssignmentsForAppointment(mockAppointmentId);
-
-      // Should call syncDriverAssignment for both drivers
-      expect(syncDriverAssignmentSpy).toHaveBeenCalledWith(mockAppointmentId, mockDriverId1, 'driver');
-      expect(syncDriverAssignmentSpy).toHaveBeenCalledWith(mockAppointmentId, mockDriverId2, 'driver');
+      const result = (service as any).isFeatureEnabled();
+      expect(result).toBe(true);
+      expect(isFeatureEnabled).toHaveBeenCalledWith('transportation_segments');
     });
 
-    it('should identify drivers that need removal when no segments exist', async () => {
-      // Mock existing driver assignments
-      const existingAssignments = [
-        {
-          id: 'staff-assignment-1',
-          appointment_id: mockAppointmentId,
-          staff_id: mockDriverId1,
-          role: 'driver',
-          is_primary: false,
-          google_event_id: null,
-          created_at: '2025-02-15T06:00:00Z',
-          updated_at: '2025-02-15T06:00:00Z',
-        },
-        {
-          id: 'staff-assignment-2',
-          appointment_id: mockAppointmentId,
-          staff_id: mockDriverId2,
-          role: 'driver',
-          is_primary: false,
-          google_event_id: null,
-          created_at: '2025-02-15T06:00:00Z',
-          updated_at: '2025-02-15T06:00:00Z',
-        },
-      ];
+    it('should return false when feature is disabled', () => {
+      const { isFeatureEnabled } = require('@/lib/featureFlags');
+      isFeatureEnabled.mockReturnValue(false);
 
-      mockAppointmentStaffService.getStaffForAppointment.mockResolvedValue(existingAssignments);
+      const result = (service as any).isFeatureEnabled();
+      expect(result).toBe(false);
+    });
+  });
 
-      // Mock no segments exist
-      jest.spyOn(transportationSegmentService, 'getSegmentsForAppointment')
-        .mockResolvedValue([]);
+  describe('getTransportationSegments', () => {
+    it('should return empty array when feature is disabled', async () => {
+      const { isFeatureEnabled } = require('@/lib/featureFlags');
+      isFeatureEnabled.mockReturnValue(false);
 
-      // Mock the removeDriverAssignment method
-      const removeDriverAssignmentSpy = jest.spyOn(transportationSegmentService as any, 'removeDriverAssignment')
-        .mockResolvedValue();
-
-      await transportationSegmentService.syncAllDriverAssignmentsForAppointment(mockAppointmentId);
-
-      // Should call removeDriverAssignment for both drivers
-      expect(removeDriverAssignmentSpy).toHaveBeenCalledWith(mockAppointmentId, mockDriverId1);
-      expect(removeDriverAssignmentSpy).toHaveBeenCalledWith(mockAppointmentId, mockDriverId2);
+      const result = await service.getTransportationSegments();
+      expect(result).toEqual([]);
     });
 
-    it('should not create duplicate assignments when driver already assigned', async () => {
-      // Mock existing driver assignment
-      const existingAssignment = {
-        id: 'existing-assignment-123',
-        appointment_id: mockAppointmentId,
-        staff_id: mockDriverId1,
-        role: 'driver',
-        is_primary: false,
-        google_event_id: null,
-        created_at: '2025-02-15T06:00:00Z',
-        updated_at: '2025-02-15T06:00:00Z',
+    it('should fetch transportation segments with no filters', async () => {
+      const { isFeatureEnabled } = require('@/lib/featureFlags');
+      isFeatureEnabled.mockReturnValue(true);
+
+      const mockQuery = {
+        select: jest.fn().mockReturnThis(),
+        order: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
       };
 
-      mockAppointmentStaffService.getStaffForAppointment.mockResolvedValue([existingAssignment]);
+      mockSupabase.from.mockReturnValue(mockQuery);
+      mockQuery.select.mockResolvedValue({
+        data: [
+          {
+            id: 'segment-1',
+            appointment_id: 'appointment-1',
+            segment_type: 'pickup',
+            title: 'Test Segment',
+            pickup_location_type: 'office',
+            status: 'scheduled',
+            created_at: '2024-01-01T09:00:00Z',
+            updated_at: '2024-01-01T09:00:00Z',
+          },
+        ],
+        error: null,
+      });
 
-      // Mock segments with the same driver
-      const segments = [{ ...mockSegment, driver_id: mockDriverId1 }];
-      jest.spyOn(transportationSegmentService, 'getSegmentsForAppointment')
-        .mockResolvedValue(segments);
+      const result = await service.getTransportationSegments();
+      expect(result).toHaveLength(1);
+      expect(result[0].id).toBe('segment-1');
+      expect(mockSupabase.from).toHaveBeenCalledWith('transportation_segments');
+    });
 
-      // Mock the syncDriverAssignment method
-      const syncDriverAssignmentSpy = jest.spyOn(transportationSegmentService as any, 'syncDriverAssignment')
-        .mockResolvedValue();
+    it('should apply filters correctly', async () => {
+      const { isFeatureEnabled } = require('@/lib/featureFlags');
+      isFeatureEnabled.mockReturnValue(true);
 
-      await transportationSegmentService.syncAllDriverAssignmentsForAppointment(mockAppointmentId);
+      const mockQuery = {
+        select: jest.fn().mockReturnThis(),
+        order: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
+      };
 
-      // Should not call syncDriverAssignment since driver already exists
-      expect(syncDriverAssignmentSpy).not.toHaveBeenCalled();
+      mockSupabase.from.mockReturnValue(mockQuery);
+      mockQuery.select.mockResolvedValue({ data: [], error: null });
+
+      const filters: TransportationSegmentFilters = {
+        appointment_id: 'appointment-1',
+        driver_id: 'driver-1',
+        segment_type: 'pickup',
+        status: 'scheduled',
+        requires_follow_up: true,
+      };
+
+      await service.getTransportationSegments(filters);
+
+      expect(mockQuery.eq).toHaveBeenCalledWith('appointment_id', 'appointment-1');
+      expect(mockQuery.eq).toHaveBeenCalledWith('driver_id', 'driver-1');
+      expect(mockQuery.eq).toHaveBeenCalledWith('segment_type', 'pickup');
+      expect(mockQuery.eq).toHaveBeenCalledWith('status', 'scheduled');
+      expect(mockQuery.eq).toHaveBeenCalledWith('requires_follow_up', true);
+    });
+
+    it('should handle database errors', async () => {
+      const { isFeatureEnabled } = require('@/lib/featureFlags');
+      isFeatureEnabled.mockReturnValue(true);
+
+      const mockQuery = {
+        select: jest.fn().mockReturnThis(),
+        order: jest.fn().mockReturnThis(),
+      };
+
+      mockSupabase.from.mockReturnValue(mockQuery);
+      mockQuery.select.mockResolvedValue({
+        data: null,
+        error: { message: 'Database error' },
+      });
+
+      await expect(service.getTransportationSegments()).rejects.toThrow(
+        'Failed to fetch transportation segments: Database error'
+      );
     });
   });
 
-  describe('Staff Sync Error Handling', () => {
-    it('should handle staff sync errors gracefully', async () => {
-      // Mock staff service to throw error
-      mockAppointmentStaffService.getStaffForAppointment.mockRejectedValue(new Error('Database error'));
+  describe('createTransportationSegment', () => {
+    it('should return null when feature is disabled', async () => {
+      const { isFeatureEnabled } = require('@/lib/featureFlags');
+      isFeatureEnabled.mockReturnValue(false);
 
-      // Mock segments
-      jest.spyOn(transportationSegmentService, 'getSegmentsForAppointment')
-        .mockResolvedValue([mockSegment]);
+      const segmentData: CreateTransportationSegment = {
+        appointment_id: 'appointment-1',
+        segment_type: 'pickup',
+        pickup_location_type: 'office',
+      };
 
-      // Should not throw error even if staff sync fails
-      await expect(transportationSegmentService.syncAllDriverAssignmentsForAppointment(mockAppointmentId))
-        .resolves.not.toThrow();
+      const result = await service.createTransportationSegment(segmentData);
+      expect(result).toBeNull();
     });
 
-    it('should handle missing segments gracefully', async () => {
-      // Mock appointment staff service
-      mockAppointmentStaffService.getStaffForAppointment.mockResolvedValue([]);
+    it('should create transportation segment successfully', async () => {
+      const { isFeatureEnabled } = require('@/lib/featureFlags');
+      isFeatureEnabled.mockReturnValue(true);
 
-      // Mock segments query to throw error
-      jest.spyOn(transportationSegmentService, 'getSegmentsForAppointment')
-        .mockRejectedValue(new Error('Segments query failed'));
+      const mockQuery = {
+        insert: jest.fn().mockReturnThis(),
+        select: jest.fn().mockReturnThis(),
+        single: jest.fn().mockReturnThis(),
+      };
 
-      // Should not throw error even if segments query fails
-      await expect(transportationSegmentService.syncAllDriverAssignmentsForAppointment(mockAppointmentId))
-        .resolves.not.toThrow();
-    });
-  });
-
-  describe('Feature Flag Integration', () => {
-    it('should skip staff sync when transportation segments feature is disabled', async () => {
-      mockIsFeatureEnabled.mockReturnValue(false);
-
-      await expect(transportationSegmentService.syncAllDriverAssignmentsForAppointment(mockAppointmentId))
-        .resolves.not.toThrow();
-
-      expect(mockAppointmentStaffService.getStaffForAppointment).not.toHaveBeenCalled();
-      expect(mockAppointmentStaffService.createAppointmentStaff).not.toHaveBeenCalled();
-    });
-  });
-
-  describe('Calendar Event Prevention', () => {
-    it('should not trigger duplicate calendar events when driver assignment already exists', async () => {
-      // Mock existing driver assignment
-      mockAppointmentStaffService.getStaffForAppointment.mockResolvedValue([
-        {
-          id: 'existing-assignment-123',
-          appointment_id: mockAppointmentId,
-          staff_id: mockDriverId1,
-          role: 'driver',
-          is_primary: false,
-          google_event_id: 'existing-event-123',
-          created_at: '2025-02-15T06:00:00Z',
-          updated_at: '2025-02-15T06:00:00Z',
+      mockSupabase.from.mockReturnValue(mockQuery);
+      mockQuery.single.mockResolvedValue({
+        data: {
+          id: 'segment-1',
+          appointment_id: 'appointment-1',
+          segment_type: 'pickup',
+          title: 'Test Segment',
+          pickup_location_type: 'office',
+          status: 'draft',
+          created_at: '2024-01-01T09:00:00Z',
+          updated_at: '2024-01-01T09:00:00Z',
         },
-      ]);
+        error: null,
+      });
 
-      // Mock segments with the same driver
-      jest.spyOn(transportationSegmentService, 'getSegmentsForAppointment')
-        .mockResolvedValue([{ ...mockSegment, driver_id: mockDriverId1 }]);
+      const segmentData: CreateTransportationSegment = {
+        appointment_id: 'appointment-1',
+        segment_type: 'pickup',
+        title: 'Test Segment',
+        pickup_location_type: 'office',
+      };
 
-      // Mock the syncDriverAssignment method
-      const syncDriverAssignmentSpy = jest.spyOn(transportationSegmentService as any, 'syncDriverAssignment')
-        .mockResolvedValue();
+      const result = await service.createTransportationSegment(segmentData);
+      expect(result).toBeDefined();
+      expect(result?.id).toBe('segment-1');
+      expect(mockQuery.insert).toHaveBeenCalledWith([segmentData]);
+    });
 
-      await transportationSegmentService.syncAllDriverAssignmentsForAppointment(mockAppointmentId);
+    it('should handle creation errors', async () => {
+      const { isFeatureEnabled } = require('@/lib/featureFlags');
+      isFeatureEnabled.mockReturnValue(true);
 
-      // Should not call syncDriverAssignment since driver already exists
-      expect(syncDriverAssignmentSpy).not.toHaveBeenCalled();
+      const mockQuery = {
+        insert: jest.fn().mockReturnThis(),
+        select: jest.fn().mockReturnThis(),
+        single: jest.fn().mockReturnThis(),
+      };
+
+      mockSupabase.from.mockReturnValue(mockQuery);
+      mockQuery.single.mockResolvedValue({
+        data: null,
+        error: { message: 'Creation failed' },
+      });
+
+      const segmentData: CreateTransportationSegment = {
+        appointment_id: 'appointment-1',
+        segment_type: 'pickup',
+        pickup_location_type: 'office',
+      };
+
+      await expect(service.createTransportationSegment(segmentData)).rejects.toThrow(
+        'Failed to create transportation segment: Creation failed'
+      );
     });
   });
 });

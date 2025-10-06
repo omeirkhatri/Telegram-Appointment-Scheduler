@@ -169,7 +169,7 @@ export function SegmentMarkers({
           </div>
           <div>
             <h3 class="font-semibold text-gray-900">${getTransportationSegmentTypeLabel(segment.segment_type)}</h3>
-            <p class="text-sm text-gray-600">${marker.is_origin ? 'Pickup Location' : 'Patient Location'}</p>
+            <p class="text-sm text-gray-600">${marker.is_origin ? 'Pickup Location (where driver picks up patient)' : 'Patient Location (where patient is going)'}</p>
           </div>
         </div>
 

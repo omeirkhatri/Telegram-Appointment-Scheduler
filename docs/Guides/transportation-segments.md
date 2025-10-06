@@ -4,6 +4,8 @@
 
 This guide provides comprehensive instructions for rolling out, managing, and operating the Transportation Segments feature in the BestDOC Appointment Scheduler. The feature enables dispatchers to create structured transportation segments for driver scheduling, replacing the single-driver assignment model.
 
+**Note**: This guide has been updated to reflect the new pickup/patient location terminology and pickup location type system implemented in the latest version.
+
 ## Table of Contents
 
 1. [Feature Overview](#feature-overview)
@@ -21,11 +23,20 @@ This guide provides comprehensive instructions for rolling out, managing, and op
 
 Transportation Segments allow dispatchers to break down appointments into structured transportation legs:
 
-- **Pickup Segments**: Driver picks up patient from location A
-- **Dropoff Segments**: Driver drops off patient at location B
+- **Pickup Segments**: Driver picks up patient from pickup location
+- **Dropoff Segments**: Driver drops off patient at patient location
 - **Stay-with-Staff Segments**: Driver remains with patient during appointment
 - **Metro Assist Segments**: Driver helps with public transportation
 - **Custom Segments**: Specialized transportation needs
+
+### Pickup Location Types
+
+The system supports four types of pickup locations:
+
+- **From Office**: Pickup from the main office location
+- **From Previous Appointment**: Pickup from a previous appointment's patient location
+- **From Metro Station**: Pickup from a designated metro station
+- **From Custom Location**: Pickup from any custom address or location
 
 ### Key Benefits
 
@@ -47,6 +58,11 @@ Transportation Segments allow dispatchers to break down appointments into struct
    # Verify migration success
    npx supabase db diff
    ```
+
+   **Important**: The migration includes updates to field names:
+   - `origin` → `pickup_location`
+   - `destination` → `patient_location`
+   - Added `pickup_location_type` and `pickup_location_reference` columns
 
 2. **Environment Configuration**
    ```bash

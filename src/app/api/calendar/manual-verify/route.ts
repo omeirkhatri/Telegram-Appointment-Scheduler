@@ -58,7 +58,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if staff has email
-    if (!staff.email || staff.email === 'no-email@bestdoc.com') {
+    if (!staff.email) {
       throw new Error('Staff member does not have a valid email address');
     }
 
@@ -98,7 +98,7 @@ export async function POST(request: NextRequest) {
       case 'mark_verified':
         // Manually mark as verified
         const verificationDate = new Date().toISOString();
-        
+
         // For staff without calendar IDs, we need to handle the constraint differently
         if (!staff.google_calendar_id) {
           // First set the status to 'pending' to bypass the constraint

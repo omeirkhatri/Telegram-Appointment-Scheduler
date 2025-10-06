@@ -6,14 +6,14 @@ import { buildTimezoneArtifacts, getCurrentLocalTime } from '@/lib/timezoneArtif
 import type { Appointment } from '@/types';
 import { getAppointmentTypeDisplayName } from '@/types/appointment';
 import { getAppointmentTypeColor } from '@/utils/appointmentTypes';
-import type { DateSelectArg, EventClickArg, EventDropArg, EventResizeArg } from '@fullcalendar/core';
+import type { DateSelectArg, EventClickArg, EventDropArg } from '@fullcalendar/core';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import listPlugin from '@fullcalendar/list';
 import FullCalendar from '@fullcalendar/react';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import { isSameMonth } from 'date-fns';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AppointmentMapView } from './AppointmentMapView';
 
 
@@ -114,6 +114,7 @@ export function AppointmentCalendar({
   const [currentView, setCurrentView] = useState<CalendarViewType>(initialView);
   const timezoneArtifacts = buildTimezoneArtifacts();
   const [currentDate, setCurrentDate] = useState(() => getCurrentLocalTime(timezoneArtifacts));
+  const [isCompactLayout, setIsCompactLayout] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [pickerDate, setPickerDate] = useState(() => getCurrentLocalTime(timezoneArtifacts));
   const datePickerRef = useRef<HTMLDivElement>(null);
@@ -138,6 +139,19 @@ export function AppointmentCalendar({
       return () => document.removeEventListener('mousedown', handleClickOutside);
     }
   }, [showDatePicker]);
+
+  // Track viewport width for responsive adjustments
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const updateLayout = () => {
+      setIsCompactLayout(window.innerWidth < 640);
+    };
+
+    updateLayout();
+    window.addEventListener('resize', updateLayout);
+    return () => window.removeEventListener('resize', updateLayout);
+  }, []);
 
   const handleMapDateChange = useCallback((date: Date) => {
     setCurrentDate(date);
@@ -171,7 +185,7 @@ export function AppointmentCalendar({
     {
       appointmentType: filters.appointmentType,
       status: filters.status,
-      transportationType: filters.transportation_type,
+      // transportationType: filters.transportation_type,
     }
   );
 
@@ -249,28 +263,28 @@ export function AppointmentCalendar({
         const nowIndicatorArrow = document.querySelector('.fc-now-indicator-arrow');
 
         if (nowIndicator) {
-          nowIndicator.style.setProperty('border-color', '#ef4444', 'important');
-          nowIndicator.style.setProperty('border-width', thickness, 'important');
-          nowIndicator.style.setProperty('z-index', '10', 'important');
+          (nowIndicator as HTMLElement).style.setProperty('border-color', '#ef4444', 'important');
+          (nowIndicator as HTMLElement).style.setProperty('border-width', thickness, 'important');
+          (nowIndicator as HTMLElement).style.setProperty('z-index', '10', 'important');
         }
 
         if (nowIndicatorLine) {
-          nowIndicatorLine.style.setProperty('border-color', '#ef4444', 'important');
-          nowIndicatorLine.style.setProperty('border-width', thickness, 'important');
-          nowIndicatorLine.style.setProperty('height', thickness, 'important');
+          (nowIndicatorLine as HTMLElement).style.setProperty('border-color', '#ef4444', 'important');
+          (nowIndicatorLine as HTMLElement).style.setProperty('border-width', thickness, 'important');
+          (nowIndicatorLine as HTMLElement).style.setProperty('height', thickness, 'important');
         }
 
         if (nowIndicatorArrow) {
-          nowIndicatorArrow.style.setProperty('display', 'block', 'important');
-          nowIndicatorArrow.style.setProperty('width', '8px', 'important');
-          nowIndicatorArrow.style.setProperty('height', '8px', 'important');
-          nowIndicatorArrow.style.setProperty('border-radius', '50%', 'important');
-          nowIndicatorArrow.style.setProperty('background-color', '#ef4444', 'important');
-          nowIndicatorArrow.style.setProperty('border', 'none', 'important');
-          nowIndicatorArrow.style.setProperty('position', 'absolute', 'important');
-          nowIndicatorArrow.style.setProperty('left', '-4px', 'important');
-          nowIndicatorArrow.style.setProperty('top', '-3px', 'important');
-          nowIndicatorArrow.style.setProperty('z-index', '11', 'important');
+          (nowIndicatorArrow as HTMLElement).style.setProperty('display', 'block', 'important');
+          (nowIndicatorArrow as HTMLElement).style.setProperty('width', '8px', 'important');
+          (nowIndicatorArrow as HTMLElement).style.setProperty('height', '8px', 'important');
+          (nowIndicatorArrow as HTMLElement).style.setProperty('border-radius', '50%', 'important');
+          (nowIndicatorArrow as HTMLElement).style.setProperty('background-color', '#ef4444', 'important');
+          (nowIndicatorArrow as HTMLElement).style.setProperty('border', 'none', 'important');
+          (nowIndicatorArrow as HTMLElement).style.setProperty('position', 'absolute', 'important');
+          (nowIndicatorArrow as HTMLElement).style.setProperty('left', '-4px', 'important');
+          (nowIndicatorArrow as HTMLElement).style.setProperty('top', '-3px', 'important');
+          (nowIndicatorArrow as HTMLElement).style.setProperty('z-index', '11', 'important');
         }
       };
 
@@ -357,17 +371,18 @@ export function AppointmentCalendar({
     const startDateTime = new Date(utcDateTime.getTime() + (4 * 60 * 60 * 1000));
     const endDateTime = new Date(startDateTime.getTime() + appointment.duration_minutes * 60000);
 
-    console.log('Event created:', {
-      appointment_date: appointment.appointment_date,
-      start_time: appointment.start_time,
-      startDateTime: startDateTime,
-      endDateTime: endDateTime,
-      startDateTimeUTC: startDateTime.toISOString(),
-      startDateTimeLocal: startDateTime.toLocaleString(),
-      currentLocalTime: getCurrentLocalTime(timezoneArtifacts),
-      timezone: timezoneArtifacts.resolution.timezone,
-      timezoneSource: timezoneArtifacts.resolution.source
-    });
+    // Debug logging for event creation (commented out to reduce console noise)
+    // console.log('Event created:', {
+    //   appointment_date: appointment.appointment_date,
+    //   start_time: appointment.start_time,
+    //   startDateTime: startDateTime,
+    //   endDateTime: endDateTime,
+    //   startDateTimeUTC: startDateTime.toISOString(),
+    //   startDateTimeLocal: startDateTime.toLocaleString(),
+    //   currentLocalTime: getCurrentLocalTime(timezoneArtifacts),
+    //   timezone: timezoneArtifacts.resolution.timezone,
+    //   timezoneSource: timezoneArtifacts.resolution.source
+    // });
 
     // Create title with patient name and appointment type
     const patientName = appointment.patient?.name || 'Unknown Patient';
@@ -385,7 +400,7 @@ export function AppointmentCalendar({
     let color = getAppointmentTypeColor(appointment.appointment_type, 'primary');
     if (isRecurring) {
       // Make recurring appointments slightly more transparent and add a pattern
-      color = getAppointmentTypeColor(appointment.appointment_type, 'secondary');
+      color = getAppointmentTypeColor(appointment.appointment_type, 'light');
     }
 
     return {
@@ -434,7 +449,7 @@ export function AppointmentCalendar({
         clientY: nativeEvent.clientY,
         preventDefault: () => nativeEvent.preventDefault(),
         stopPropagation: () => nativeEvent.stopPropagation(),
-      } as React.MouseEvent;
+      } as unknown as React.MouseEvent;
       onEventRightClick(appointment, reactEvent);
     }
   }, [onEventRightClick]);
@@ -468,7 +483,7 @@ export function AppointmentCalendar({
     }
   }, [onEventDrop]);
 
-  const handleEventResize = useCallback(async (resizeInfo: EventResizeArg) => {
+  const handleEventResize = useCallback(async (resizeInfo: any) => {
     const event = resizeInfo.event;
     const appointmentId = event.id;
     const rawStart = event.start;
@@ -556,6 +571,54 @@ export function AppointmentCalendar({
     changeDate(newDate);
   }, [currentDate, changeDate]);
 
+  const calendarViews = useMemo(() => ({
+    dayGridMonth: {
+      dayHeaderFormat: { weekday: 'long' } // Always use full day names
+    },
+    timeGridWeek: {
+      dayHeaderFormat: { weekday: 'long', month: 'short', day: 'numeric' } // Always use full day names
+    },
+    timeGridDay: {
+      dayHeaderFormat: { weekday: 'long', month: 'short', day: 'numeric' } // Always use full day names
+    },
+    listWeek: {
+      dayHeaderFormat: { weekday: 'long', month: 'short', day: 'numeric' }, // Always use full day names
+      listDayFormat: { weekday: 'long', month: 'short', day: 'numeric' }
+    },
+    listDay: {
+      dayHeaderFormat: { weekday: 'long', month: 'short', day: 'numeric' }, // Always use full day names
+      listDayFormat: { weekday: 'long', month: 'short', day: 'numeric' }
+    }
+  }), []);
+
+  const getCompactWeekdayLabel = (date: Date) => {
+    const labels = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'];
+    const day = date.getDay();
+    const index = (day + 6) % 7; // shift so Monday is first
+    return labels[index] || labels[0];
+  };
+
+  const getResponsiveWeekdayLabel = (date: Date) => {
+    const fullLabels = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+    const shortLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    const day = date.getDay();
+    const index = (day + 6) % 7; // shift so Monday is first
+
+    return {
+      full: fullLabels[index] || fullLabels[0],
+      short: shortLabels[index] || shortLabels[0]
+    };
+  };
+
+  const viewButtonClass = (isActive: boolean) =>
+    `px-1.5 py-1 text-xs font-medium rounded-md transition-colors sm:px-3 sm:py-2 sm:text-sm sm:rounded-lg ${
+      isActive
+        ? 'bg-[--primary] text-[--primary-foreground]'
+        : 'text-[--foreground] hover:bg-[--accent]'
+    }`;
+
+  const shouldEnableHorizontalScroll = isCompactLayout && currentView === 'timeGridWeek';
+
   if (error) {
     return (
       <div className="flex items-center justify-center h-64 bg-red-50 border border-red-200 rounded-lg">
@@ -576,8 +639,8 @@ export function AppointmentCalendar({
   return (
     <div data-testid="calendar-container" className="bg-[--card] rounded-lg shadow-sm border border-[--border] calendar-container">
       {/* Custom Header Toolbar */}
-      <div className="flex items-center justify-between p-4 border-b border-[--border]">
-        <div className="flex items-center space-x-2">
+      <div className="flex flex-col gap-4 p-4 border-b border-[--border] lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex flex-wrap items-center gap-2">
           {/* Date Navigation Buttons */}
           <button
             onClick={() => {
@@ -757,7 +820,7 @@ export function AppointmentCalendar({
           </div>
         </div>
 
-        <div className="flex items-center justify-center flex-1">
+        <div className="flex items-center justify-center flex-1 min-w-0">
           {/* Month display for month view - centered */}
           {currentView === 'dayGridMonth' && (
             <div className="text-lg font-semibold text-[--foreground]">
@@ -833,56 +896,26 @@ export function AppointmentCalendar({
 
         </div>
 
-        <div className="flex items-center space-x-1">
-          <button
-            onClick={() => changeView('dayGridMonth')}
-            className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
-              currentView === 'dayGridMonth'
-                ? 'bg-[--primary] text-[--primary-foreground]'
-                : 'text-[--foreground] hover:bg-[--accent]'
-            }`}
-          >
-            Month
+        <div className="calendar-toolbar flex items-center justify-center gap-0.5 sm:gap-2 sm:justify-end">
+          <button onClick={() => changeView('dayGridMonth')} className={viewButtonClass(currentView === 'dayGridMonth')}>
+            <span className="hidden sm:inline">Month</span>
+            <span className="sm:hidden text-xs">📅</span>
           </button>
-          <button
-            onClick={() => changeView('timeGridWeek')}
-            className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
-              currentView === 'timeGridWeek'
-                ? 'bg-[--primary] text-[--primary-foreground]'
-                : 'text-[--foreground] hover:bg-[--accent]'
-            }`}
-          >
-            Week
+          <button onClick={() => changeView('timeGridWeek')} className={viewButtonClass(currentView === 'timeGridWeek')}>
+            <span className="hidden sm:inline">Week</span>
+            <span className="sm:hidden text-xs">📊</span>
           </button>
-          <button
-            onClick={() => changeView('timeGridDay')}
-            className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
-              currentView === 'timeGridDay'
-                ? 'bg-[--primary] text-[--primary-foreground]'
-                : 'text-[--foreground] hover:bg-[--accent]'
-            }`}
-          >
-            Day
+          <button onClick={() => changeView('timeGridDay')} className={viewButtonClass(currentView === 'timeGridDay')}>
+            <span className="hidden sm:inline">Day</span>
+            <span className="sm:hidden text-xs">📋</span>
           </button>
-          <button
-            onClick={() => changeView('listDay')}
-            className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
-              currentView === 'listDay' || currentView === 'listWeek'
-                ? 'bg-[--primary] text-[--primary-foreground]'
-                : 'text-[--foreground] hover:bg-[--accent]'
-            }`}
-          >
-            List
+          <button onClick={() => changeView('listDay')} className={viewButtonClass(currentView === 'listDay' || currentView === 'listWeek')}>
+            <span className="hidden sm:inline">List</span>
+            <span className="sm:hidden text-xs">📝</span>
           </button>
-          <button
-            onClick={() => changeView('map')}
-            className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
-              currentView === 'map'
-                ? 'bg-[--primary] text-[--primary-foreground]'
-                : 'text-[--foreground] hover:bg-[--accent]'
-            }`}
-          >
-            Map
+          <button onClick={() => changeView('map')} className={viewButtonClass(currentView === 'map')}>
+            <span className="hidden sm:inline">Map</span>
+            <span className="sm:hidden text-xs">🗺️</span>
           </button>
         </div>
       </div>
@@ -909,8 +942,8 @@ export function AppointmentCalendar({
       {currentView === 'map' ? (
         <div>
 
-          {/* Debug: Log appointments being passed to map */}
-          {console.log('Appointments being passed to AppointmentMapView (with expanded recurring):', mapAppointments.map(apt => ({
+          {/* Debug: Log appointments being passed to map (commented out to reduce console noise) */}
+          {/* {console.log('Appointments being passed to AppointmentMapView (with expanded recurring):', mapAppointments.map(apt => ({
             id: apt.id,
             patient_name: apt.patient?.name,
             appointment_date: apt.appointment_date,
@@ -920,7 +953,7 @@ export function AppointmentCalendar({
             coordinates: apt.patient?.latitude ? `${apt.patient.latitude}, ${apt.patient.longitude}` : 'None',
             is_recurring_generated: apt.custom_fields?.is_recurring_generated || false,
             base_appointment_id: apt.custom_fields?.base_appointment_id || 'N/A'
-          })))}
+          })))} */}
 
           <AppointmentMapView
             appointments={mapAppointments}
@@ -931,13 +964,13 @@ export function AppointmentCalendar({
             onAppointmentRightClick={onEventRightClick}
             height="625px"
             searchFilters={{
-              appointment_types: filters.appointmentType ? [filters.appointmentType] : undefined,
-              statuses: filters.status ? [filters.status] : undefined,
+              appointment_types: filters.appointmentType ? [filters.appointmentType as any] : undefined,
+              statuses: filters.status ? [filters.status as any] : undefined,
               date_range: filters.dateFrom || filters.dateTo ? {
                 start_date: filters.dateFrom || new Date().toISOString().split('T')[0],
                 end_date: filters.dateTo || new Date().toISOString().split('T')[0]
               } : undefined,
-              transportation_type: filters.transportation_type ? [filters.transportation_type] : undefined,
+              // transportation_type: filters.transportation_type ? [filters.transportation_type] : undefined,
               ...mapNavigation.state.searchFilters
             }}
             showClusters={true}
@@ -946,7 +979,9 @@ export function AppointmentCalendar({
           />
         </div>
       ) : (
-        <FullCalendar
+        <div className={shouldEnableHorizontalScroll ? 'calendar-week-scroll overflow-x-auto lg:overflow-visible' : 'overflow-x-visible'}>
+          <div className={shouldEnableHorizontalScroll ? 'min-w-[720px]' : ''}>
+            <FullCalendar
         ref={calendarRef}
         plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin, listPlugin]}
         initialView={initialView}
@@ -958,7 +993,6 @@ export function AppointmentCalendar({
         firstDay={1} // Start week on Monday (0=Sunday, 1=Monday)
         // Force timezone handling
         nowIndicator={true}
-        nowIndicatorClassNames="custom-now-indicator"
         buttonText={{
           today: 'Today',
           month: 'Month',
@@ -972,8 +1006,6 @@ export function AppointmentCalendar({
         slotLabelInterval="01:00:00" // Show hour labels
         slotMinTime="00:00:00" // Start at midnight (full day)
         slotMaxTime="24:00:00" // End at midnight (full day)
-        nowIndicator={true} // Show current time indicator
-        nowIndicatorClassNames="custom-now-indicator"
         eventTimeFormat={{
           hour: '2-digit',
           minute: '2-digit',
@@ -984,25 +1016,7 @@ export function AppointmentCalendar({
           minute: '2-digit',
           hour12: false,
         }}
-        views={{
-          dayGridMonth: {
-            dayHeaderFormat: { weekday: 'long' }
-          },
-          timeGridWeek: {
-            dayHeaderFormat: { weekday: 'long', month: 'short', day: 'numeric' }
-          },
-          timeGridDay: {
-            dayHeaderFormat: { weekday: 'long', month: 'short', day: 'numeric' }
-          },
-          listWeek: {
-            dayHeaderFormat: { weekday: 'long', month: 'short', day: 'numeric' },
-            listDayFormat: { weekday: 'long', month: 'short', day: 'numeric' }
-          },
-          listDay: {
-            dayHeaderFormat: { weekday: 'long', month: 'short', day: 'numeric' },
-            listDayFormat: { weekday: 'long', month: 'short', day: 'numeric' }
-          }
-        }}
+        // views={calendarViews}
         dayHeaderClassNames={(args) => {
           if (args.view.type === 'timeGridDay') {
             // Hide day header for Day view since we have our own header
@@ -1023,7 +1037,6 @@ export function AppointmentCalendar({
         // Event settings
         events={events}
         editable={!!onEventDrop}
-        eventResizable={!!onEventResize}
         selectable={!!onDateSelect}
         selectMirror={true}
         dayMaxEvents={true}
@@ -1059,7 +1072,7 @@ export function AppointmentCalendar({
         // Custom event content
         eventContent={(eventInfo) => {
           const appointment = eventInfo.event.extendedProps.appointment as Appointment;
-          const eventColor = eventInfo.event.color || '#3b82f6'; // Default blue color
+          const eventColor = (eventInfo.event as any).color || '#3b82f6'; // Default blue color
           return (
             <div
               data-testid="calendar-event"
@@ -1089,6 +1102,8 @@ export function AppointmentCalendar({
           return 'No events to display';
         }}
       />
+          </div>
+        </div>
       )}
     </div>
   );

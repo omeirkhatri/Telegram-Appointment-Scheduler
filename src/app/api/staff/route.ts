@@ -78,7 +78,7 @@ export async function POST(request: NextRequest) {
       staff_type: body.staff_type,
       specialization: body.specialization,
       phone: body.phone,
-      email: body.email?.trim() || 'no-email@bestdoc.com',
+      email: body.email?.trim() || null,
       telegram_user_id: body.telegram_user_id && body.telegram_user_id.trim() !== '' ? body.telegram_user_id : undefined,
       available_days: body.available_days || [1, 2, 3, 4, 5], // Default to Mon-Fri
       working_hours_start: body.working_hours_start || '09:00',
@@ -236,7 +236,7 @@ async function getStaffCalendarStatus(staffId: string): Promise<CalendarStatusRe
     }
 
     // Get verification status if enabled and staff has email
-    if (staff.google_calendar_id && staff.email && staff.email !== 'no-email@bestdoc.com') {
+    if (staff.google_calendar_id && staff.email) {
       try {
         const verificationService = getCalendarVerificationService();
         const verificationStatus = await verificationService.checkVerificationStatus(staffId);

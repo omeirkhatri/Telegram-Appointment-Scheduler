@@ -62,7 +62,7 @@ WITH appointment_base AS (
     FROM appointments a
     WHERE a.id = '770e8400-e29b-41d4-a716-446655440001'
 )
-INSERT INTO transportation_segments (
+-- INSERT INTO transportation_segments (
     id,
     appointment_id,
     segment_type,
@@ -129,7 +129,7 @@ WITH appointment_base AS (
     FROM appointments a
     WHERE a.id = '770e8400-e29b-41d4-a716-446655440001'
 )
-INSERT INTO transportation_segments (
+-- INSERT INTO transportation_segments (
     id,
     appointment_id,
     segment_type,
@@ -196,7 +196,7 @@ WITH appointment_base AS (
     FROM appointments a
     WHERE a.id = '770e8400-e29b-41d4-a716-446655440003'
 )
-INSERT INTO transportation_segments (
+-- INSERT INTO transportation_segments (
     id,
     appointment_id,
     segment_type,

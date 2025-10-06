@@ -401,7 +401,7 @@ async function retryStaffOperation(
 
     switch (operationType) {
       case 'create_calendar':
-        if (!staff.email || staff.email === 'no-email@bestdoc.com') {
+        if (!staff.email) {
           throw new Error('Staff email is required for calendar creation');
         }
         success = await retryCreateCalendarForStaff(staff);

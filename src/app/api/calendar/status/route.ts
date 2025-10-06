@@ -213,7 +213,7 @@ async function getStaffCalendarStatus(staffId: string): Promise<CalendarStatusRe
     }
 
     // Get verification status if enabled
-    if (staff.google_calendar_id && staff.email && staff.email !== 'no-email@bestdoc.com') {
+    if (staff.google_calendar_id && staff.email) {
       try {
         const verificationService = getCalendarVerificationService();
         const verificationStatus = await verificationService.checkVerificationStatus(staffId);

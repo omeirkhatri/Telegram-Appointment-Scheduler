@@ -14,7 +14,7 @@ import listPlugin from '@fullcalendar/list';
 import FullCalendar from '@fullcalendar/react';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import { isSameMonth } from 'date-fns';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AppointmentMapView } from './AppointmentMapView';
 
 
@@ -115,6 +115,7 @@ export function AppointmentCalendar({
   const [currentView, setCurrentView] = useState<CalendarViewType>(initialView);
   const timezoneArtifacts = buildTimezoneArtifacts();
   const [currentDate, setCurrentDate] = useState(() => getCurrentLocalTime(timezoneArtifacts));
+  const [isCompactLayout, setIsCompactLayout] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [pickerDate, setPickerDate] = useState(() => getCurrentLocalTime(timezoneArtifacts));
   const datePickerRef = useRef<HTMLDivElement>(null);
@@ -139,6 +140,19 @@ export function AppointmentCalendar({
       return () => document.removeEventListener('mousedown', handleClickOutside);
     }
   }, [showDatePicker]);
+
+  // Track viewport width for responsive adjustments
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const updateLayout = () => {
+      setIsCompactLayout(window.innerWidth < 640);
+    };
+
+    updateLayout();
+    window.addEventListener('resize', updateLayout);
+    return () => window.removeEventListener('resize', updateLayout);
+  }, []);
 
   const handleMapDateChange = useCallback((date: Date) => {
     setCurrentDate(date);
@@ -556,6 +570,54 @@ export function AppointmentCalendar({
     changeDate(newDate);
   }, [currentDate, changeDate]);
 
+  const calendarViews = useMemo(() => ({
+    dayGridMonth: {
+      dayHeaderFormat: isCompactLayout ? { weekday: 'short' } : { weekday: 'long' }
+    },
+    timeGridWeek: {
+      dayHeaderFormat: isCompactLayout
+        ? { weekday: 'short', day: 'numeric' }
+        : { weekday: 'long', month: 'short', day: 'numeric' }
+    },
+    timeGridDay: {
+      dayHeaderFormat: isCompactLayout
+        ? { weekday: 'short', month: 'short', day: 'numeric' }
+        : { weekday: 'long', month: 'short', day: 'numeric' }
+    },
+    listWeek: {
+      dayHeaderFormat: isCompactLayout
+        ? { weekday: 'short', month: 'short', day: 'numeric' }
+        : { weekday: 'long', month: 'short', day: 'numeric' },
+      listDayFormat: isCompactLayout
+        ? { weekday: 'short', month: 'short', day: 'numeric' }
+        : { weekday: 'long', month: 'short', day: 'numeric' }
+    },
+    listDay: {
+      dayHeaderFormat: isCompactLayout
+        ? { weekday: 'short', month: 'short', day: 'numeric' }
+        : { weekday: 'long', month: 'short', day: 'numeric' },
+      listDayFormat: isCompactLayout
+        ? { weekday: 'short', month: 'short', day: 'numeric' }
+        : { weekday: 'long', month: 'short', day: 'numeric' }
+    }
+  }), [isCompactLayout]);
+
+  const getCompactWeekdayLabel = (date: Date) => {
+    const labels = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'];
+    const day = date.getDay();
+    const index = (day + 6) % 7; // shift so Monday is first
+    return labels[index] || labels[0];
+  };
+
+  const viewButtonClass = (isActive: boolean) =>
+    `px-1.5 sm:px-3 py-1 sm:py-2 text-xs sm:text-sm font-medium rounded-md transition-colors ${
+      isActive
+        ? 'bg-[--primary] text-[--primary-foreground] shadow-sm'
+        : 'text-[--foreground] hover:bg-[--accent]'
+    }`;
+
+  const shouldEnableHorizontalScroll = isCompactLayout && currentView === 'timeGridWeek';
+
   if (error) {
     return (
       <div className="flex items-center justify-center h-64 bg-red-50 border border-red-200 rounded-lg">
@@ -576,8 +638,8 @@ export function AppointmentCalendar({
   return (
     <div data-testid="calendar-container" className="bg-[--card] rounded-lg shadow-sm border border-[--border] calendar-container">
       {/* Custom Header Toolbar */}
-      <div className="flex items-center justify-between p-4 border-b border-[--border]">
-        <div className="flex items-center space-x-2">
+      <div className="flex flex-col gap-2 p-2 sm:p-4 border-b border-[--border] lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex flex-wrap items-center gap-0.5 sm:gap-2">
           {/* Date Navigation Buttons */}
           <button
             onClick={() => {
@@ -589,10 +651,10 @@ export function AppointmentCalendar({
                 navigateDay('prev');
               }
             }}
-            className="p-2 text-[--muted-foreground] hover:text-[--foreground] hover:bg-[--accent] rounded-lg transition-colors"
+            className="p-1 sm:p-2 text-[--muted-foreground] hover:text-[--foreground] hover:bg-[--accent] rounded-md transition-colors"
             title={currentView === 'dayGridMonth' ? "Previous month" : currentView === 'timeGridWeek' ? "Previous week" : "Previous day"}
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
           </button>
@@ -601,7 +663,7 @@ export function AppointmentCalendar({
               const today = getCurrentLocalTime(timezoneArtifacts);
               changeDate(today);
             }}
-            className="px-3 py-2 text-sm font-medium text-[--foreground] bg-[--accent] rounded-lg hover:bg-[--accent]/80 transition-colors"
+            className="px-1.5 sm:px-3 py-1 sm:py-2 text-xs sm:text-sm font-medium text-[--foreground] bg-[--accent] rounded-md hover:bg-[--accent]/80 transition-colors"
             title="Go to today"
           >
             Today
@@ -616,10 +678,10 @@ export function AppointmentCalendar({
                 navigateDay('next');
               }
             }}
-            className="p-2 text-[--muted-foreground] hover:text-[--foreground] hover:bg-[--accent] rounded-lg transition-colors"
+            className="p-1 sm:p-2 text-[--muted-foreground] hover:text-[--foreground] hover:bg-[--accent] rounded-md transition-colors"
             title={currentView === 'dayGridMonth' ? "Next month" : currentView === 'timeGridWeek' ? "Next week" : "Next day"}
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>
           </button>
@@ -629,16 +691,16 @@ export function AppointmentCalendar({
                 setPickerDate(currentDate);
                 setShowDatePicker(!showDatePicker);
               }}
-              className="p-2 text-[--muted-foreground] hover:text-[--foreground] hover:bg-[--accent] rounded-lg transition-colors"
+              className="p-1 sm:p-2 text-[--muted-foreground] hover:text-[--foreground] hover:bg-[--accent] rounded-md transition-colors"
               title="Select date"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
             </button>
 
             {showDatePicker && (
-              <div className="absolute top-full left-0 mt-2 bg-white border border-gray-300 rounded-lg shadow-xl z-50 p-4 w-[280px]">
+              <div className="absolute top-full left-0 mt-2 bg-white border border-gray-300 rounded-lg shadow-xl z-50 p-3 sm:p-4 w-[280px] sm:w-[320px]">
                 {/* Header with month navigation */}
                 <div className="grid grid-cols-[2rem,1fr,2rem,2rem] items-center mb-4 gap-2">
                   <button
@@ -757,16 +819,16 @@ export function AppointmentCalendar({
           </div>
         </div>
 
-        <div className="flex items-center justify-center flex-1">
+        <div className="flex items-center justify-center flex-1 min-w-0">
           {/* Month display for month view - centered */}
           {currentView === 'dayGridMonth' && (
-            <div className="text-lg font-semibold text-[--foreground]">
+            <div className="text-base sm:text-lg font-semibold text-[--foreground] text-center">
               {currentDate.toLocaleDateString('en', { month: 'long', year: 'numeric', timeZone: timezoneArtifacts.resolution.timezone })}
             </div>
           )}
           {/* Week display for week view - centered */}
           {currentView === 'timeGridWeek' && (
-            <div className="text-lg font-semibold text-[--foreground]">
+            <div className="text-base sm:text-lg font-semibold text-[--foreground] text-center">
               {(() => {
                 const startOfWeek = new Date(currentDate);
                 const day = startOfWeek.getDay();
@@ -790,7 +852,7 @@ export function AppointmentCalendar({
           )}
           {/* Day display for day view - centered */}
           {currentView === 'timeGridDay' && (
-            <div className="text-lg font-semibold text-[--foreground]">
+            <div className="text-base sm:text-lg font-semibold text-[--foreground] text-center">
               {currentDate.toLocaleDateString('en', {
                 weekday: 'long',
                 month: 'long',
@@ -824,65 +886,32 @@ export function AppointmentCalendar({
 
         </div>
 
-        <div className="flex items-center space-x-1">
-          <button
-            onClick={() => changeView('dayGridMonth')}
-            className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
-              currentView === 'dayGridMonth'
-                ? 'bg-[--primary] text-[--primary-foreground]'
-                : 'text-[--foreground] hover:bg-[--accent]'
-            }`}
-          >
-            Month
+        <div className="calendar-toolbar flex flex-wrap items-center justify-center gap-0.5 sm:gap-2 sm:justify-end">
+          <button onClick={() => changeView('dayGridMonth')} className={viewButtonClass(currentView === 'dayGridMonth')}>
+            <span className="hidden sm:inline">Month</span>
+            <span className="sm:hidden text-xs">📅</span>
           </button>
-          <button
-            onClick={() => changeView('timeGridWeek')}
-            className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
-              currentView === 'timeGridWeek'
-                ? 'bg-[--primary] text-[--primary-foreground]'
-                : 'text-[--foreground] hover:bg-[--accent]'
-            }`}
-          >
-            Week
+          <button onClick={() => changeView('timeGridWeek')} className={viewButtonClass(currentView === 'timeGridWeek')}>
+            <span className="hidden sm:inline">Week</span>
+            <span className="sm:hidden text-xs">📊</span>
           </button>
-          <button
-            onClick={() => changeView('timeGridDay')}
-            className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
-              currentView === 'timeGridDay'
-                ? 'bg-[--primary] text-[--primary-foreground]'
-                : 'text-[--foreground] hover:bg-[--accent]'
-            }`}
-          >
-            Day
+          <button onClick={() => changeView('timeGridDay')} className={viewButtonClass(currentView === 'timeGridDay')}>
+            <span className="hidden sm:inline">Day</span>
+            <span className="sm:hidden text-xs">📋</span>
           </button>
-          <button
-            onClick={() => changeView('listDay')}
-            className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
-              currentView === 'listDay' || currentView === 'listWeek'
-                ? 'bg-[--primary] text-[--primary-foreground]'
-                : 'text-[--foreground] hover:bg-[--accent]'
-            }`}
-          >
-            List
+          <button onClick={() => changeView('listDay')} className={viewButtonClass(currentView === 'listDay' || currentView === 'listWeek')}>
+            <span className="hidden sm:inline">List</span>
+            <span className="sm:hidden text-xs">📝</span>
           </button>
-          <button
-            onClick={() => changeView('map')}
-            className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
-              currentView === 'map'
-                ? 'bg-[--primary] text-[--primary-foreground]'
-                : 'text-[--foreground] hover:bg-[--accent]'
-            }`}
-          >
-            Map
+          <button onClick={() => changeView('map')} className={viewButtonClass(currentView === 'map')}>
+            <span className="hidden sm:inline">Map</span>
+            <span className="sm:hidden text-xs">🗺️</span>
           </button>
-          {/* Fit to Markers button - only show when in map view */}
           {currentView === 'map' && (
             <button
               onClick={() => {
-                // Trigger the fit bounds function from the map view
                 const mapView = document.querySelector('[data-testid="map-container"]');
                 if (mapView) {
-                  // Dispatch a custom event that the map view can listen to
                   const event = new CustomEvent('fitToMarkers');
                   mapView.dispatchEvent(event);
                 }
@@ -893,6 +922,10 @@ export function AppointmentCalendar({
               📍 Fit to Map
             </button>
           )}
+
+
+
+
         </div>
       </div>
 
@@ -955,7 +988,9 @@ export function AppointmentCalendar({
           />
         </div>
       ) : (
-        <FullCalendar
+        <div className={shouldEnableHorizontalScroll ? 'calendar-week-scroll overflow-x-auto lg:overflow-visible' : 'overflow-x-visible'}>
+          <div className={shouldEnableHorizontalScroll ? 'min-w-[720px]' : ''}>
+            <FullCalendar
         ref={calendarRef}
         plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin, listPlugin]}
         initialView={initialView}
@@ -993,26 +1028,12 @@ export function AppointmentCalendar({
           minute: '2-digit',
           hour12: false,
         }}
-        views={{
-          dayGridMonth: {
-            dayHeaderFormat: { weekday: 'long' }
-          },
-          timeGridWeek: {
-            dayHeaderFormat: { weekday: 'long', month: 'short', day: 'numeric' }
-          },
-          timeGridDay: {
-            dayHeaderFormat: { weekday: 'long', month: 'short', day: 'numeric' }
-          },
-          listWeek: {
-            dayHeaderFormat: { weekday: 'long', month: 'short', day: 'numeric' },
-            listDayFormat: { weekday: 'long', month: 'short', day: 'numeric' }
-          },
-          listDay: {
-            dayHeaderFormat: { weekday: 'long', month: 'short', day: 'numeric' },
-            listDayFormat: { weekday: 'long', month: 'short', day: 'numeric' }
-          }
-        }}
+        views={calendarViews}
         dayHeaderClassNames={(args) => {
+          if (args.view.type === 'timeGridDay') {
+            return ['hidden'];
+          }
+
           if (args.view.type !== 'dayGridMonth') {
             return [];
           }
@@ -1022,6 +1043,23 @@ export function AppointmentCalendar({
           }
 
           return [];
+        }}
+        dayHeaderContent={(args) => {
+          if (!isCompactLayout) {
+            return undefined;
+          }
+
+          if (args.view.type === 'dayGridMonth') {
+            return { html: `<span>${getCompactWeekdayLabel(args.date)}</span>` };
+          }
+
+          if (args.view.type === 'timeGridWeek') {
+            const dayLabel = getCompactWeekdayLabel(args.date);
+            const dayNumber = args.date.getDate();
+            return { html: `<span>${dayLabel}</span> <span>${dayNumber}</span>` };
+          }
+
+          return undefined;
         }}
         fixedWeekCount={false}
         // Event settings
@@ -1093,6 +1131,8 @@ export function AppointmentCalendar({
           return 'No events to display';
         }}
       />
+          </div>
+        </div>
       )}
     </div>
   );

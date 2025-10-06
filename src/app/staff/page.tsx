@@ -204,18 +204,18 @@ export default function StaffPage() {
     {
       key: 'staff',
       header: 'Staff Member',
-      width: 300,
-      minWidth: 200,
+      width: 280,
+      minWidth: 180,
       render: (member) => (
-        <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 bg-[--muted] rounded-full flex items-center justify-center">
-            <span className="text-sm font-medium text-[--muted-foreground]">
+        <div className="flex items-center space-x-2 sm:space-x-3">
+          <div className="w-8 h-8 sm:w-10 sm:h-10 bg-[--muted] rounded-full flex items-center justify-center flex-shrink-0">
+            <span className="text-xs sm:text-sm font-medium text-[--muted-foreground]">
               {member.first_name[0]}{member.last_name[0]}
             </span>
           </div>
           <div className="min-w-0 flex-1">
-            <p className="font-medium text-[--foreground] truncate">{member.first_name} {member.last_name}</p>
-            <p className="text-sm text-[--muted-foreground] truncate">{member.email}</p>
+            <p className="font-medium text-[--foreground] truncate text-sm sm:text-base">{member.first_name} {member.last_name}</p>
+            <p className="text-xs sm:text-sm text-[--muted-foreground] truncate">{member.email}</p>
           </div>
         </div>
       ),
@@ -223,70 +223,73 @@ export default function StaffPage() {
     {
       key: 'role',
       header: 'Role',
-      width: 180,
-      minWidth: 100,
+      width: 120,
+      minWidth: 80,
       render: (member) => (
-        <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${
+        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
           member.staff_type === 'doctor' ? 'bg-[--medical-blue]/10 text-[--medical-blue]' :
           member.staff_type === 'nurse' ? 'bg-[--success]/10 text-[--success]' :
           'bg-[--warning]/10 text-[--warning]'
         }`}>
-          {member.staff_type.charAt(0).toUpperCase() + member.staff_type.slice(1)}
+          <span className="hidden sm:inline">{member.staff_type.charAt(0).toUpperCase() + member.staff_type.slice(1)}</span>
+          <span className="sm:hidden">{member.staff_type.charAt(0).toUpperCase()}</span>
         </span>
       ),
     },
     {
       key: 'specialization',
       header: 'Specialization',
-      width: 250,
-      minWidth: 120,
+      width: 180,
+      minWidth: 100,
       render: (member) => (
-        <span className="text-sm text-[--foreground] truncate">{member.specialization || 'N/A'}</span>
+        <span className="text-xs sm:text-sm text-[--foreground] truncate">{member.specialization || 'N/A'}</span>
       ),
     },
     {
       key: 'status',
       header: 'Status',
-      width: 140,
-      minWidth: 80,
+      width: 100,
+      minWidth: 60,
       render: (member) => (
-        <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${
+        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
           member.status === 'active' ? 'bg-[--success]/10 text-[--success]' :
           member.status === 'inactive' ? 'bg-[--error]/10 text-[--error]' :
           'bg-[--warning]/10 text-[--warning]'
         }`}>
-          {member.status.charAt(0).toUpperCase() + member.status.slice(1)}
+          <span className="hidden sm:inline">{member.status.charAt(0).toUpperCase() + member.status.slice(1)}</span>
+          <span className="sm:hidden">{member.status.charAt(0).toUpperCase()}</span>
         </span>
       ),
     },
     {
       key: 'contact',
       header: 'Contact',
-      width: 180,
-      minWidth: 120,
+      width: 140,
+      minWidth: 100,
       render: (member) => (
-        <div className="flex items-center space-x-2">
-          <Phone className="w-4 h-4 text-[--muted-foreground] flex-shrink-0" />
-          <span className="text-sm text-[--foreground] truncate">{member.phone}</span>
+        <div className="flex items-center space-x-1 sm:space-x-2">
+          <Phone className="w-3 h-3 sm:w-4 sm:h-4 text-[--muted-foreground] flex-shrink-0" />
+          <span className="text-xs sm:text-sm text-[--foreground] truncate">{member.phone}</span>
         </div>
       ),
     },
     {
       key: 'telegram_status',
-      header: 'Telegram Status',
-      width: 200,
-      minWidth: 150,
+      header: 'Telegram',
+      width: 120,
+      minWidth: 80,
       render: (member) => (
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-1">
           {member.telegram_verified ? (
-            <CheckCircle className="w-4 h-4 text-green-600" />
+            <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4 text-green-600 flex-shrink-0" />
           ) : (
-            <XCircle className="w-4 h-4 text-red-600" />
+            <XCircle className="w-3 h-3 sm:w-4 sm:h-4 text-red-600 flex-shrink-0" />
           )}
-          <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${
+          <span className={`inline-flex items-center px-1.5 sm:px-2 py-1 rounded-full text-xs font-medium ${
             member.telegram_verified ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
           }`}>
-            {member.telegram_verified ? 'Verified' : 'Not Verified'}
+            <span className="hidden sm:inline">{member.telegram_verified ? 'Verified' : 'Not Verified'}</span>
+            <span className="sm:hidden">{member.telegram_verified ? '✓' : '✗'}</span>
           </span>
         </div>
       ),
@@ -294,31 +297,37 @@ export default function StaffPage() {
     {
       key: 'calendar_status',
       header: 'Calendar Status',
-      width: 200,
-      minWidth: 120,
+      width: 160,
+      minWidth: 100,
+      maxWidth: 180,
       render: (member) => (
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-1">
           {getCalendarStatusIcon(member.calendar_verification_status)}
-          <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${getCalendarStatusColor(member.calendar_verification_status)}`}>
-            {getCalendarStatusText(member.calendar_verification_status)}
+          <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getCalendarStatusColor(member.calendar_verification_status)}`}>
+            <span className="hidden sm:inline">{getCalendarStatusText(member.calendar_verification_status)}</span>
+            <span className="sm:hidden">
+              {member.calendar_verification_status === 'verified' ? '✓' :
+               member.calendar_verification_status === 'failed' ? '✗' :
+               member.calendar_verification_status === 'pending' ? '⏳' : '○'}
+            </span>
           </span>
         </div>
       ),
     },
     {
       key: 'actions',
-      header: 'Actions',
-      width: 120,
-      minWidth: 80,
+      header: '',
+      width: 60,
+      minWidth: 50,
       render: (member) => (
         <button
           onClick={(e) => {
             e.stopPropagation();
             handleEditStaff(member);
           }}
-          className="p-2 text-[--muted-foreground] hover:text-[--foreground] hover:bg-[--accent] rounded-lg transition-colors"
+          className="p-1.5 sm:p-2 text-[--muted-foreground] hover:text-[--foreground] hover:bg-[--accent] rounded-lg transition-colors"
         >
-          <MoreHorizontal className="w-4 h-4" />
+          <MoreHorizontal className="w-3 h-3 sm:w-4 sm:h-4" />
         </button>
       ),
     },
@@ -330,26 +339,27 @@ export default function StaffPage() {
       <Header currentPage="staff" />
 
       {/* Main Content - Full Width */}
-      <main className="px-8 py-8 space-y-8">
+      <main className="px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8 space-y-4 sm:space-y-6 lg:space-y-8">
         {/* Page Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-[--foreground]">Staff</h1>
-            <p className="text-[--muted-foreground] text-lg mt-1">Manage healthcare staff and schedules</p>
+            <h1 className="text-2xl sm:text-3xl font-bold text-[--foreground]">Staff</h1>
+            <p className="text-[--muted-foreground] text-sm sm:text-lg mt-1">Manage healthcare staff and schedules</p>
           </div>
           <button
             onClick={handleAddStaff}
             data-testid="new-staff-button"
-            className="inline-flex items-center px-4 py-2 bg-[--primary] text-[--primary-foreground] rounded-lg hover:bg-[--primary]/90 transition-colors"
+            className="inline-flex items-center px-3 sm:px-4 py-2 bg-[--primary] text-[--primary-foreground] rounded-lg hover:bg-[--primary]/90 transition-colors text-sm sm:text-base self-start sm:self-auto"
           >
-            <Plus className="w-4 h-4 mr-2" />
-            Add Staff
+            <Plus className="w-4 h-4 mr-1 sm:mr-2" />
+            <span className="hidden sm:inline">Add Staff</span>
+            <span className="sm:hidden">Add</span>
           </button>
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <div className="bg-[--card] border border-[--border] rounded-xl p-6 shadow-lg">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
+          <div className="bg-[--card] border border-[--border] rounded-xl p-3 sm:p-4 lg:p-6 shadow-lg">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-[--muted-foreground]">Total Staff</p>
@@ -388,8 +398,8 @@ export default function StaffPage() {
         </div>
 
         {/* Search and filters */}
-        <div className="bg-[--card] border border-[--border] rounded-xl p-6 shadow-lg">
-          <div className="flex flex-col lg:flex-row gap-4">
+        <div className="bg-[--card] border border-[--border] rounded-xl p-4 sm:p-6 shadow-lg">
+          <div className="flex flex-col gap-3 sm:gap-4">
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[--muted-foreground]" />
               <input
@@ -399,16 +409,16 @@ export default function StaffPage() {
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 data-testid="staff-search"
-                className="w-full pl-10 pr-4 py-3 border border-[--border] rounded-lg bg-[--muted] text-[--foreground] placeholder-[--muted-foreground] focus:outline-none focus:ring-2 focus:ring-[--ring] focus:border-transparent"
+                className="w-full pl-10 pr-4 py-2.5 sm:py-3 border border-[--border] rounded-lg bg-[--muted] text-[--foreground] placeholder-[--muted-foreground] focus:outline-none focus:ring-2 focus:ring-[--ring] focus:border-transparent text-sm sm:text-base"
               />
             </div>
-            <div className="flex flex-col sm:flex-row gap-4">
-              <div className="relative">
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+              <div className="relative flex-1">
                 <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[--muted-foreground]" />
                 <select
                   value={calendarStatusFilter}
                   onChange={(e) => setCalendarStatusFilter(e.target.value as CalendarVerificationStatus | 'all')}
-                  className="pl-10 pr-8 py-3 border border-[--border] rounded-lg bg-[--muted] text-[--foreground] focus:outline-none focus:ring-2 focus:ring-[--ring] focus:border-transparent appearance-none"
+                  className="w-full pl-10 pr-8 py-2.5 sm:py-3 border border-[--border] rounded-lg bg-[--muted] text-[--foreground] focus:outline-none focus:ring-2 focus:ring-[--ring] focus:border-transparent appearance-none text-sm sm:text-base"
                 >
                   <option value="all">All Calendar Status</option>
                   <option value="verified">Verified</option>
@@ -422,10 +432,11 @@ export default function StaffPage() {
                   setSearchTerm('');
                   setCalendarStatusFilter('all');
                 }}
-                className="inline-flex items-center px-4 py-3 border border-[--border] rounded-lg hover:bg-[--accent] transition-colors text-[--muted-foreground] hover:text-[--foreground]"
+                className="inline-flex items-center justify-center px-3 sm:px-4 py-2.5 sm:py-3 border border-[--border] rounded-lg hover:bg-[--accent] transition-colors text-[--muted-foreground] hover:text-[--foreground] text-sm sm:text-base"
               >
-                <Filter className="w-4 h-4 mr-2" />
-                Clear Filters
+                <Filter className="w-4 h-4 mr-1 sm:mr-2" />
+                <span className="hidden sm:inline">Clear Filters</span>
+                <span className="sm:hidden">Clear</span>
               </button>
             </div>
           </div>
@@ -442,18 +453,34 @@ export default function StaffPage() {
         )}
 
         {/* Virtualized Staff Table */}
-        <VirtualizedTable
-          data={filteredStaff}
-          columns={columns}
-          height={600}
-          itemHeight={80}
-          loading={isLoading || !isClient}
-          loadingMessage="Loading staff members..."
-          emptyMessage="No staff members found"
-          onRowClick={handleEditStaff}
-          getRowKey={(member) => member.id}
-          enableKeyboardNavigation={true}
-        />
+        <div className="sm:hidden">
+          <VirtualizedTable
+            data={filteredStaff}
+            columns={columns}
+            height={400}
+            itemHeight={60}
+            loading={isLoading || !isClient}
+            loadingMessage="Loading staff members..."
+            emptyMessage="No staff members found"
+            onRowClick={handleEditStaff}
+            getRowKey={(member) => member.id}
+            enableKeyboardNavigation={true}
+          />
+        </div>
+        <div className="hidden sm:block">
+          <VirtualizedTable
+            data={filteredStaff}
+            columns={columns}
+            height={600}
+            itemHeight={80}
+            loading={isLoading || !isClient}
+            loadingMessage="Loading staff members..."
+            emptyMessage="No staff members found"
+            onRowClick={handleEditStaff}
+            getRowKey={(member) => member.id}
+            enableKeyboardNavigation={true}
+          />
+        </div>
 
         {/* Staff Modal */}
         <StaffModal

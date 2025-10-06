@@ -50,7 +50,7 @@ export function CalendarStatusDisplay({
         return <Clock className="w-5 h-5 text-yellow-600" />;
       case 'not_required':
         // Check if staff has email - if they do, show clock (in progress) instead of calendar
-        if (staff.email && staff.email !== 'no-email@bestdoc.com') {
+        if (staff.email) {
           return <Clock className="w-5 h-5 text-yellow-600" />;
         }
         return <Calendar className="w-5 h-5 text-gray-400" />;
@@ -69,7 +69,7 @@ export function CalendarStatusDisplay({
         return 'bg-yellow-50 border-yellow-200 text-yellow-800';
       case 'not_required':
         // Check if staff has email - if they do, show yellow (in progress) instead of gray
-        if (staff.email && staff.email !== 'no-email@bestdoc.com') {
+        if (staff.email) {
           return 'bg-yellow-50 border-yellow-200 text-yellow-800';
         }
         return 'bg-gray-50 border-gray-200 text-gray-600';
@@ -88,7 +88,7 @@ export function CalendarStatusDisplay({
         return 'Calendar Pending Verification';
       case 'not_required':
         // Check if staff has email - if they do, show different text
-        if (staff.email && staff.email !== 'no-email@bestdoc.com') {
+        if (staff.email) {
           return 'Calendar Setup In Progress';
         }
         return 'Calendar Not Required';
@@ -113,7 +113,7 @@ export function CalendarStatusDisplay({
 
     if (status === 'not_required') {
       // Check if staff has email - if they do, calendar should be required
-      if (staff.email && staff.email !== 'no-email@bestdoc.com') {
+      if (staff.email) {
         return 'Calendar setup is in progress. This may take a few moments to complete.';
       }
       return 'No email address provided. Calendar integration is not required for this staff member.';
@@ -179,8 +179,8 @@ export function CalendarStatusDisplay({
 
   const canShowManualControls = (status: CalendarVerificationStatus | undefined) => {
     // Show manual controls if staff has a valid email
-    // Don't show if email is not set or is the default no-email
-    return staff.email && staff.email !== 'no-email@bestdoc.com';
+    // Don't show if email is not set
+    return !!staff.email;
   };
 
   const canChangeEmail = (status: CalendarVerificationStatus | undefined) => {
@@ -204,11 +204,11 @@ export function CalendarStatusDisplay({
   const calendarId = staff.google_calendar_id;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3 sm:space-y-4">
       {/* Calendar Status Header */}
-      <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold text-gray-900 flex items-center space-x-2">
-          <Calendar className="w-5 h-5" />
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+        <h3 className="text-base sm:text-lg font-semibold text-gray-900 flex items-center space-x-2">
+          <Calendar className="w-4 h-4 sm:w-5 sm:h-5" />
           <span>Calendar Status</span>
         </h3>
         {calendarId && (
@@ -216,10 +216,11 @@ export function CalendarStatusDisplay({
             href={`https://calendar.google.com/calendar/u/0/r?cid=${encodeURIComponent(calendarId)}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center space-x-1 text-sm text-blue-600 hover:text-blue-800"
+            className="inline-flex items-center space-x-1 text-xs sm:text-sm text-blue-600 hover:text-blue-800 self-start sm:self-auto"
           >
-            <ExternalLink className="w-4 h-4" />
-            <span>View Calendar</span>
+            <ExternalLink className="w-3 h-3 sm:w-4 sm:h-4" />
+            <span className="hidden sm:inline">View Calendar</span>
+            <span className="sm:hidden">View</span>
           </a>
         )}
       </div>
@@ -274,15 +275,16 @@ export function CalendarStatusDisplay({
         )}
 
         {/* Action Buttons */}
-        <div className="flex items-center space-x-3 mt-4">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 mt-4">
           {canRetry(status, errorCode) && (
             <button
               onClick={handleRetry}
               disabled={isRetrying}
-              className="inline-flex items-center space-x-2 px-3 py-2 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-md hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="inline-flex items-center justify-center space-x-2 px-3 py-2 text-xs sm:text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-md hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <RefreshCw className={`w-4 h-4 ${isRetrying ? 'animate-spin' : ''}`} />
-              <span>{isRetrying ? 'Retrying...' : 'Retry Setup'}</span>
+              <RefreshCw className={`w-3 h-3 sm:w-4 sm:h-4 ${isRetrying ? 'animate-spin' : ''}`} />
+              <span className="hidden sm:inline">{isRetrying ? 'Retrying...' : 'Retry Setup'}</span>
+              <span className="sm:hidden">{isRetrying ? 'Retrying...' : 'Retry'}</span>
             </button>
           )}
 
@@ -290,10 +292,11 @@ export function CalendarStatusDisplay({
             <button
               onClick={handleVerify}
               disabled={isVerifying}
-              className="inline-flex items-center space-x-2 px-3 py-2 text-sm font-medium text-green-600 bg-green-50 border border-green-200 rounded-md hover:bg-green-100 focus:outline-none focus:ring-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="inline-flex items-center justify-center space-x-2 px-3 py-2 text-xs sm:text-sm font-medium text-green-600 bg-green-50 border border-green-200 rounded-md hover:bg-green-100 focus:outline-none focus:ring-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <CheckCircle className="w-4 h-4" />
-              <span>{isVerifying ? 'Verifying...' : 'Start Verification'}</span>
+              <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4" />
+              <span className="hidden sm:inline">{isVerifying ? 'Verifying...' : 'Start Verification'}</span>
+              <span className="sm:hidden">{isVerifying ? 'Verifying...' : 'Verify'}</span>
             </button>
           )}
 
@@ -301,47 +304,51 @@ export function CalendarStatusDisplay({
           {canShowManualControls(status) && (
             <button
               onClick={() => setShowManualControls(!showManualControls)}
-              className="inline-flex items-center space-x-2 px-3 py-2 text-sm font-medium text-gray-600 bg-gray-50 border border-gray-200 rounded-md hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-500"
+              className="inline-flex items-center justify-center space-x-2 px-3 py-2 text-xs sm:text-sm font-medium text-gray-600 bg-gray-50 border border-gray-200 rounded-md hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-500"
             >
-              <Settings className="w-4 h-4" />
-              <span>Manual Controls</span>
+              <Settings className="w-3 h-3 sm:w-4 sm:h-4" />
+              <span className="hidden sm:inline">Manual Controls</span>
+              <span className="sm:hidden">Manual</span>
             </button>
           )}
         </div>
 
         {/* Manual Verification Controls Panel */}
         {showManualControls && canShowManualControls(status) && (
-          <div className="mt-4 p-4 bg-gray-50 border border-gray-200 rounded-md">
-            <h5 className="font-medium text-gray-800 mb-3">Manual Verification Options</h5>
+          <div className="mt-4 p-3 sm:p-4 bg-gray-50 border border-gray-200 rounded-md">
+            <h5 className="font-medium text-gray-800 mb-3 text-sm sm:text-base">Manual Verification Options</h5>
             <div className="space-y-2">
               {/* Send Email Again */}
               <button
                 onClick={() => handleManualAction('send_email_again')}
                 disabled={isManualActionLoading}
-                className="w-full inline-flex items-center justify-center space-x-2 px-3 py-2 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-md hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full inline-flex items-center justify-center space-x-2 px-3 py-2 text-xs sm:text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-md hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <Mail className="w-4 h-4" />
-                <span>{isManualActionLoading ? 'Sending...' : 'Send Email Again'}</span>
+                <Mail className="w-3 h-3 sm:w-4 sm:h-4" />
+                <span className="hidden sm:inline">{isManualActionLoading ? 'Sending...' : 'Send Email Again'}</span>
+                <span className="sm:hidden">{isManualActionLoading ? 'Sending...' : 'Send Email'}</span>
               </button>
 
               {/* Mark as Verified */}
               <button
                 onClick={() => handleManualAction('mark_verified')}
                 disabled={isManualActionLoading}
-                className="w-full inline-flex items-center justify-center space-x-2 px-3 py-2 text-sm font-medium text-green-600 bg-green-50 border border-green-200 rounded-md hover:bg-green-100 focus:outline-none focus:ring-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full inline-flex items-center justify-center space-x-2 px-3 py-2 text-xs sm:text-sm font-medium text-green-600 bg-green-50 border border-green-200 rounded-md hover:bg-green-100 focus:outline-none focus:ring-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <CheckCircle className="w-4 h-4" />
-                <span>{isManualActionLoading ? 'Updating...' : 'Mark as Verified'}</span>
+                <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4" />
+                <span className="hidden sm:inline">{isManualActionLoading ? 'Updating...' : 'Mark as Verified'}</span>
+                <span className="sm:hidden">{isManualActionLoading ? 'Updating...' : 'Mark Verified'}</span>
               </button>
 
               {/* Change Email */}
               <button
                 onClick={handleChangeEmailClick}
                 disabled={isManualActionLoading || !canChangeEmail(status)}
-                className="w-full inline-flex items-center justify-center space-x-2 px-3 py-2 text-sm font-medium text-orange-600 bg-orange-50 border border-orange-200 rounded-md hover:bg-orange-100 focus:outline-none focus:ring-2 focus:ring-orange-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full inline-flex items-center justify-center space-x-2 px-3 py-2 text-xs sm:text-sm font-medium text-orange-600 bg-orange-50 border border-orange-200 rounded-md hover:bg-orange-100 focus:outline-none focus:ring-2 focus:ring-orange-500 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <Settings className="w-4 h-4" />
-                <span>Change Email</span>
+                <Settings className="w-3 h-3 sm:w-4 sm:h-4" />
+                <span className="hidden sm:inline">Change Email</span>
+                <span className="sm:hidden">Change Email</span>
               </button>
             </div>
           </div>
@@ -349,11 +356,11 @@ export function CalendarStatusDisplay({
 
         {/* Change Email Form */}
         {showChangeEmailForm && (
-          <div className="mt-4 p-4 bg-gray-50 border border-gray-200 rounded-md">
-            <h5 className="font-medium text-gray-800 mb-3">Change Email Address</h5>
+          <div className="mt-4 p-3 sm:p-4 bg-gray-50 border border-gray-200 rounded-md">
+            <h5 className="font-medium text-gray-800 mb-3 text-sm sm:text-base">Change Email Address</h5>
             <div className="space-y-3">
               <div>
-                <label htmlFor="new-email" className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="new-email" className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
                   New Email Address
                 </label>
                 <input
@@ -361,33 +368,34 @@ export function CalendarStatusDisplay({
                   id="new-email"
                   value={newEmail}
                   onChange={(e) => setNewEmail(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base"
                   placeholder="Enter new email address"
                 />
-                <p className="mt-1 text-sm text-gray-600">
+                <p className="mt-1 text-xs sm:text-sm text-gray-600">
                   ⚠️ Changing email will reset verification status. Staff will need to verify the new email address.
                 </p>
               </div>
-              <div className="flex space-x-2">
+              <div className="flex flex-col sm:flex-row gap-2">
                 <button
                   onClick={() => handleManualAction('change_email')}
                   disabled={isManualActionLoading || !newEmail.trim() || newEmail === staff.email}
-                  className="flex-1 inline-flex items-center justify-center space-x-2 px-3 py-2 text-sm font-medium text-white bg-blue-600 border border-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex-1 inline-flex items-center justify-center space-x-2 px-3 py-2 text-xs sm:text-sm font-medium text-white bg-blue-600 border border-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <span>{isManualActionLoading ? 'Updating...' : 'Update Email'}</span>
+                  <span className="hidden sm:inline">{isManualActionLoading ? 'Updating...' : 'Update Email'}</span>
+                  <span className="sm:hidden">{isManualActionLoading ? 'Updating...' : 'Update'}</span>
                 </button>
                 <button
                   onClick={() => {
                     setShowChangeEmailForm(false);
                     setNewEmail('');
                   }}
-                  className="flex-1 inline-flex items-center justify-center space-x-2 px-3 py-2 text-sm font-medium text-gray-600 bg-gray-50 border border-gray-200 rounded-md hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-500"
+                  className="flex-1 inline-flex items-center justify-center space-x-2 px-3 py-2 text-xs sm:text-sm font-medium text-gray-600 bg-gray-50 border border-gray-200 rounded-md hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-500"
                 >
                   <span>Cancel</span>
                 </button>
               </div>
               {newEmail === staff.email && (
-                <p className="text-sm text-gray-600">
+                <p className="text-xs sm:text-sm text-gray-600">
                   New email must be different from current email address.
                 </p>
               )}

@@ -1,5 +1,5 @@
-import type { Appointment } from '@/types';
 import { buildTimezoneArtifacts } from '@/lib/timezoneArtifacts';
+import type { Appointment } from '@/types';
 import { useCallback, useEffect, useState } from 'react';
 
 interface UseAppointmentsForMapOptions {
@@ -132,7 +132,7 @@ export function useAppointmentsForMap(options: UseAppointmentsForMapOptions = {}
     if (typeof window !== 'undefined') {
       fetchAppointments();
     }
-  }, [fetchAppointments]);
+  }, [options.dateFrom, options.dateTo, options.patientId, options.appointmentType, options.status, options.driverId, options.transportationType, options.hasRecurringRule]);
 
   return {
     appointments,

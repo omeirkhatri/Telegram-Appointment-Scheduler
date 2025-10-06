@@ -1,8 +1,8 @@
+import { buildTimezoneArtifacts } from '@/lib/timezoneArtifacts';
 import type { Appointment, CalendarEvent } from '@/types';
 import { getAppointmentTypeDisplayName } from '@/types/appointment';
 import { getAppointmentTypeColor, getDurationConstraints, validateDurationForType } from '@/utils/appointmentTypes';
-import { formatInResolvedTimezone, toLocalTime, toUTC } from '@/utils/timezone';
-import { buildTimezoneArtifacts } from '@/lib/timezoneArtifacts';
+import { toLocalTime, toUTC } from '@/utils/timezone';
 import { format } from 'date-fns';
 import { useCallback, useEffect, useState } from 'react';
 
@@ -154,7 +154,7 @@ export function useAppointments(options: UseAppointmentsOptions = {}): UseAppoin
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [options.dateFrom, options.dateTo, options.staffId, options.appointmentType, options.status]);
 
   useEffect(() => {
     // Only fetch on client-side to prevent hydration mismatches
@@ -249,7 +249,7 @@ export function useUpdateAppointment() {
     try {
       // Get timezone context for appointment updates
       const timezoneArtifacts = buildTimezoneArtifacts();
-      
+
       // Convert the new start time to local timezone for formatting
       const startInLocal = toLocalTime(newStart, timezoneArtifacts.context);
       const appointmentDate = format(startInLocal, 'yyyy-MM-dd');

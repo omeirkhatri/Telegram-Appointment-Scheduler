@@ -32,6 +32,11 @@
 - `src/utils/pickupLocationHelpers.ts` - Helper functions for pickup location data processing
 - `src/utils/pickupLocationValidation.ts` - Validation utilities for pickup location requirements
 - `src/hooks/usePickupLocationForm.ts` - Hook for managing pickup location form state
+- `docs/Guides/dispatcher-pickup-location-guide.md` - User guide for dispatchers explaining pickup location types
+- `docs/Guides/transportation-segments-migration-guide.md` - Migration guide for existing users
+- `docs/Guides/transportation-segments-database-schema.md` - Database schema documentation
+- `docs/Guides/dispatcher-training-materials.md` - Training materials for dispatchers
+- `docs/Guides/transportation-segments-troubleshooting.md` - Troubleshooting guide for common issues
 
 ### Notes
 
@@ -100,24 +105,24 @@
   - [x] 6.7 Add recalculate button for travel time estimates
   - [x] 6.8 Update calendar integration to use new time calculation logic
 
-- [ ] 7.0 Update Documentation and User Guides
-  - [ ] 7.1 Update technical documentation to reflect new terminology and field names
-  - [ ] 7.2 Create user guide for dispatchers explaining new pickup location types
-  - [ ] 7.3 Update API documentation with new field names and validation rules
-  - [ ] 7.4 Create migration guide for existing users
-  - [ ] 7.5 Update database schema documentation
-  - [ ] 7.6 Create training materials for dispatchers
-  - [ ] 7.7 Update inline help text and tooltips throughout the application
-  - [ ] 7.8 Create troubleshooting guide for common issues
+- [x] 7.0 Update Documentation and User Guides
+  - [x] 7.1 Update technical documentation to reflect new terminology and field names
+  - [x] 7.2 Create user guide for dispatchers explaining new pickup location types
+  - [x] 7.3 Update API documentation with new field names and validation rules
+  - [x] 7.4 Create migration guide for existing users
+  - [x] 7.5 Update database schema documentation
+  - [x] 7.6 Create training materials for dispatchers
+  - [x] 7.7 Update inline help text and tooltips throughout the application
+  - [x] 7.8 Create troubleshooting guide for common issues
 
-- [ ] 8.0 Testing and Quality Assurance
-  - [ ] 8.1 Write unit tests for updated type definitions and interfaces
-  - [ ] 8.2 Write unit tests for updated service methods and business logic
-  - [ ] 8.3 Write unit tests for new pickup location type system components
-  - [ ] 8.4 Write unit tests for updated API endpoints and validation
-  - [ ] 8.5 Write integration tests for complete transportation segment workflow
-  - [ ] 8.6 Write end-to-end tests for dispatcher workflow with new terminology
-  - [ ] 8.7 Test data migration with existing transportation segments
-  - [ ] 8.8 Test backward compatibility with existing API consumers
-  - [ ] 8.9 Performance testing for updated database queries
-  - [ ] 8.10 User acceptance testing with dispatchers
+- [x] 8.0 Testing and Quality Assurance
+  - [x] 8.1 Write unit tests for updated type definitions and interfaces
+  - [x] 8.2 Write unit tests for updated service methods and business logic
+  - [x] 8.3 Write unit tests for new pickup location type system components
+  - [x] 8.4 Write unit tests for updated API endpoints and validation
+  - [x] 8.5 Write integration tests for complete transportation segment workflow
+  - [x] 8.6 Write end-to-end tests for dispatcher workflow with new terminology
+  - [x] 8.7 Test data migration with existing transportation segments
+  - [x] 8.8 Test backward compatibility with existing API consumers
+  - [x] 8.9 Performance testing for updated database queries
+  - [x] 8.10 User acceptance testing with dispatchers

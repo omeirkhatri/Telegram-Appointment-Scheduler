@@ -28,6 +28,43 @@
   border-width: 12px !important;
 }
 
+/* Responsive controls for the custom calendar toolbar */
+.calendar-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: center;
+}
+
+.calendar-toolbar button {
+  flex: 1 1 auto;
+  min-width: 120px;
+  white-space: nowrap;
+}
+
+@media (min-width: 640px) {
+  .calendar-toolbar {
+    justify-content: flex-end;
+  }
+
+  .calendar-toolbar button {
+    flex: 0 0 auto;
+  }
+}
+
+/* Limit horizontal scrolling to the calendar content on mobile */
+.calendar-week-scroll {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+@media (min-width: 640px) {
+  .calendar-week-scroll {
+    overflow-x: visible;
+  }
+}
+
 /* Custom scrollbar */
 .custom-scrollbar {
   scrollbar-width: thin;
