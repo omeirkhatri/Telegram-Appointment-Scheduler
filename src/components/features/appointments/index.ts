@@ -1,4 +1,5 @@
 export * from "./calendar";
+export * from "./SegmentEditor";
 export * from "./filters";
 export * from "./print";
 

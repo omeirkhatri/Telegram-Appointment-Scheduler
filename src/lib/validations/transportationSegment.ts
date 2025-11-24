@@ -18,6 +18,16 @@ export const transportationSegmentStatusSchema = z.enum([
   'cancelled',
 ] as const);
 
+export const transportationSegmentAssignmentModeSchema = z.enum([
+  'assign_now',
+  'assign_later',
+] as const);
+
+export const transportationQueueEscalationStateSchema = z.enum([
+  'normal',
+  'escalated',
+] as const);
+
 const isoDateTimeStringSchema = z
   .string()
   .min(1, 'Timestamp is required')
@@ -83,6 +93,30 @@ const sharedTransportationSegmentFields = {
   requires_follow_up: z.boolean().optional(),
   status: transportationSegmentStatusSchema.optional(),
   manual_override: z.boolean().optional(),
+  // New assignment mode fields
+  assignment_mode: transportationSegmentAssignmentModeSchema.optional(),
+  priority: z
+    .number()
+    .int('Priority must be an integer')
+    .min(0, 'Priority cannot be negative')
+    .max(100, 'Priority cannot exceed 100')
+    .nullable()
+    .optional(),
+  recommended_driver_ids: z
+    .array(z.string().uuid('Invalid driver ID'))
+    .max(10, 'Cannot recommend more than 10 drivers')
+    .optional(),
+  recommendation_metadata: z
+    .record(z.unknown())
+    .optional(),
+  queue_rank: z
+    .number()
+    .int('Queue rank must be an integer')
+    .min(0, 'Queue rank cannot be negative')
+    .nullable()
+    .optional(),
+  escalation_state: transportationQueueEscalationStateSchema.optional(),
+  escalation_deadline: isoDateTimeStringSchema.nullable().optional(),
 } as const;
 
 const withTransportationSegmentFormRefinements = <Schema extends z.ZodTypeAny>(schema: Schema) =>
@@ -158,4 +192,23 @@ export const transportationSegmentFiltersSchema = z.object({
   segment_type: transportationSegmentTypeSchema.optional(),
   status: transportationSegmentStatusSchema.optional(),
   requires_follow_up: z.boolean().optional(),
+  // New filter options
+  assignment_mode: transportationSegmentAssignmentModeSchema.optional(),
+  unassigned_only: z.boolean().optional(),
+  start_after: isoDateTimeStringSchema.optional(),
+  start_before: isoDateTimeStringSchema.optional(),
+});
+
+// Driver capacity API validation schema
+export const driverCapacityQuerySchema = z.object({
+  start_date: isoDateTimeStringSchema.optional(),
+  end_date: isoDateTimeStringSchema.optional(),
+  window_hours: z
+    .number()
+    .int('Window hours must be an integer')
+    .min(24, 'Window hours must be at least 24')
+    .max(72, 'Window hours cannot exceed 72')
+    .default(24),
+  include_unassigned: z.boolean().default(false),
+  service_line: z.string().max(100, 'Service line name too long').optional(),
 });

@@ -1,3 +1,5 @@
+import { isDriverAssignmentOverhaulEnabled } from '@/lib/featureFlags';
+import { transportationSegmentFiltersSchema, transportationSegmentFormSchema } from '@/lib/validations/transportationSegment';
 import { transportationSegmentService } from '@/services/transportationSegmentService';
 import type { CreateTransportationSegment, TransportationSegmentFilters } from '@/types/transportationSegment';
 import { isValidPickupLocationType, requiresPickupLocationReference } from '@/types/transportationSegment';
@@ -7,30 +9,48 @@ import { NextRequest, NextResponse } from 'next/server';
 // GET /api/transportation-segments - Get all transportation segments with optional filtering
 export async function GET(request: NextRequest) {
   try {
+    // Check if driver assignment overhaul is enabled
+    if (!isDriverAssignmentOverhaulEnabled()) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Transportation segments API is disabled. Feature flag DRIVER_ASSIGNMENT_OVERHAUL is not enabled.',
+        },
+        { status: 403 },
+      );
+    }
+
     const { searchParams } = new URL(request.url);
 
-    // Parse filters from query parameters
-    const filters: TransportationSegmentFilters = {};
+    // Parse and validate filters from query parameters
+    const rawFilters: Record<string, any> = {};
 
-    if (searchParams.has('appointment_id')) {
-      filters.appointment_id = searchParams.get('appointment_id')!;
+    // Extract all query parameters
+    for (const [key, value] of searchParams.entries()) {
+      if (key === 'requires_follow_up' || key === 'unassigned_only') {
+        rawFilters[key] = value === 'true';
+      } else if (value) {
+        rawFilters[key] = value;
+      }
     }
 
-    if (searchParams.has('driver_id')) {
-      filters.driver_id = searchParams.get('driver_id')!;
+    // Validate filters using schema
+    const validationResult = transportationSegmentFiltersSchema.safeParse(rawFilters);
+    if (!validationResult.success) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Invalid filter parameters',
+          details: validationResult.error.errors.map(err => ({
+            field: err.path.join('.'),
+            message: err.message,
+          })),
+        },
+        { status: 400 },
+      );
     }
 
-    if (searchParams.has('segment_type')) {
-      filters.segment_type = searchParams.get('segment_type') as any;
-    }
-
-    if (searchParams.has('status')) {
-      filters.status = searchParams.get('status') as any;
-    }
-
-    if (searchParams.has('requires_follow_up')) {
-      filters.requires_follow_up = searchParams.get('requires_follow_up') === 'true';
-    }
+    const filters: TransportationSegmentFilters = validationResult.data;
 
     const segments = await transportationSegmentService.getTransportationSegments(filters);
 
@@ -54,6 +74,17 @@ export async function GET(request: NextRequest) {
 // POST /api/transportation-segments - Create a new transportation segment
 export async function POST(request: NextRequest) {
   try {
+    // Check if driver assignment overhaul is enabled
+    if (!isDriverAssignmentOverhaulEnabled()) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Transportation segments API is disabled. Feature flag DRIVER_ASSIGNMENT_OVERHAUL is not enabled.',
+        },
+        { status: 403 },
+      );
+    }
+
     const body = await request.json();
 
     // Check for legacy fields and log warning
@@ -85,15 +116,36 @@ export async function POST(request: NextRequest) {
       requires_follow_up: body.requires_follow_up,
       status: body.status || 'draft',
       manual_override: body.manual_override,
+      // New assignment mode fields
+      assignment_mode: body.assignment_mode || 'assign_now',
+      priority: body.priority || null,
+      recommended_driver_ids: body.recommended_driver_ids || [],
+      recommendation_metadata: body.recommendation_metadata || {},
     };
 
-    // Validate required fields
+    // Validate segment data using schema
+    const validationResult = transportationSegmentFormSchema.safeParse(segmentData);
+    if (!validationResult.success) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Validation failed',
+          details: validationResult.error.errors.map(err => ({
+            field: err.path.join('.'),
+            message: err.message,
+          })),
+        },
+        { status: 400 },
+      );
+    }
+
+    // Additional business logic validation
     const validationErrors = validateSegmentData(segmentData);
     if (validationErrors.length > 0) {
       return NextResponse.json(
         {
           success: false,
-          error: 'Validation failed',
+          error: 'Business logic validation failed',
           details: validationErrors,
         },
         { status: 400 },

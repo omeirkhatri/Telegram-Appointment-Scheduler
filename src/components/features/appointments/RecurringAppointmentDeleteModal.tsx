@@ -1,7 +1,6 @@
 'use client';
 
-import { Button } from '@/components/ui/Button';
-import { Card } from '@/components/ui/Card';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui';
 import { useToastContext } from '@/components/ui/ToastContainer';
 import type { Appointment } from '@/types';
 import { Calendar, Clock, Trash2, User } from 'lucide-react';
@@ -27,7 +26,7 @@ export function RecurringAppointmentDeleteModal({
 
   // Auto-select "all_future" only for base recurring appointments without any occurrence indicators
   useEffect(() => {
-    if (isOpen && !appointment.id.includes('_occurrence_') && 
+    if (isOpen && !appointment.id.includes('_occurrence_') &&
         !(appointment.custom_fields as any)?.is_recurring_generated &&
         !(appointment.custom_fields as any)?.is_recurring_occurrence &&
         !(appointment.custom_fields as any)?.base_appointment_id &&
@@ -36,8 +35,6 @@ export function RecurringAppointmentDeleteModal({
       setSelectedOption('all_future');
     }
   }, [isOpen, appointment.id, appointment.custom_fields, appointment.recurring_rule]);
-
-  if (!isOpen) return null;
 
   const handleDelete = async () => {
     if (!selectedOption) {
@@ -63,18 +60,19 @@ export function RecurringAppointmentDeleteModal({
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <Card className="w-full max-w-md mx-4">
-        <div className="p-6">
-          <div className="flex items-center space-x-3 mb-6">
+    <AlertDialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
+      <AlertDialogContent className="max-w-md">
+        <AlertDialogHeader>
+          <AlertDialogTitle className="flex items-center space-x-3">
             <div className="p-2 bg-red-100 rounded-lg">
               <Trash2 className="w-6 h-6 text-red-600" />
             </div>
-            <div>
-              <h2 className="text-xl font-semibold text-gray-900">Delete Recurring Appointment</h2>
-              <p className="text-sm text-gray-600">Choose how to delete this appointment</p>
-            </div>
-          </div>
+            <span>Delete Recurring Appointment</span>
+          </AlertDialogTitle>
+          <AlertDialogDescription>
+            Choose how to delete this appointment
+          </AlertDialogDescription>
+        </AlertDialogHeader>
 
           {/* Appointment Details */}
           <div className="bg-gray-50 rounded-lg p-4 mb-6">
@@ -102,17 +100,17 @@ export function RecurringAppointmentDeleteModal({
           <div className="space-y-4 mb-6">
             <div className="space-y-3">
               <h3 className="font-medium text-gray-900">
-                {(appointment.id.includes('_occurrence_') || 
+                {(appointment.id.includes('_occurrence_') ||
                   (appointment.custom_fields as any)?.is_recurring_generated ||
                   (appointment.custom_fields as any)?.is_recurring_occurrence ||
                   (appointment.custom_fields as any)?.base_appointment_id ||
                   appointment.recurring_rule)
-                  ? 'How would you like to delete this appointment?' 
+                  ? 'How would you like to delete this appointment?'
                   : 'How would you like to delete this recurring appointment series?'}
               </h3>
 
               {/* Show "this_occurrence" option for all recurring appointments */}
-              {(appointment.id.includes('_occurrence_') || 
+              {(appointment.id.includes('_occurrence_') ||
                 (appointment.custom_fields as any)?.is_recurring_generated ||
                 (appointment.custom_fields as any)?.is_recurring_occurrence ||
                 (appointment.custom_fields as any)?.base_appointment_id ||
@@ -146,8 +144,8 @@ export function RecurringAppointmentDeleteModal({
                 />
                 <div className="flex-1">
                   <div className="font-medium text-gray-900">
-                    {appointment.id.includes('_occurrence_') 
-                      ? 'This and all future occurrences' 
+                    {appointment.id.includes('_occurrence_')
+                      ? 'This and all future occurrences'
                       : 'Delete all future occurrences'}
                   </div>
                   <div className="text-sm text-gray-600">
@@ -173,27 +171,19 @@ export function RecurringAppointmentDeleteModal({
             </div>
           </div>
 
-          {/* Action Buttons */}
-          <div className="flex space-x-3">
-            <Button
-              variant="outline"
-              onClick={handleClose}
-              disabled={isLoading}
-              className="flex-1"
-            >
-              Cancel
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={handleDelete}
-              disabled={!selectedOption || isLoading}
-              className="flex-1"
-            >
-              {isLoading ? 'Deleting...' : 'Delete Appointment'}
-            </Button>
-          </div>
-        </div>
-      </Card>
-    </div>
+        <AlertDialogFooter>
+          <AlertDialogCancel onClick={handleClose} disabled={isLoading}>
+            Cancel
+          </AlertDialogCancel>
+          <AlertDialogAction
+            onClick={handleDelete}
+            disabled={!selectedOption || isLoading}
+            className="bg-red-600 hover:bg-red-700 focus:ring-red-500"
+          >
+            {isLoading ? 'Deleting...' : 'Delete Appointment'}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 }

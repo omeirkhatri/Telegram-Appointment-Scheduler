@@ -14,7 +14,7 @@ import {
     validateAppointmentStaffData,
 } from '@/types/appointmentStaff';
 import { appointmentService } from './appointmentService';
-import { getGoogleCalendarService } from './googleCalendarService';
+// Load Google Calendar service dynamically only on the server when needed
 
 export class AppointmentStaffService {
   // Get all appointment staff assignments with optional filtering
@@ -578,7 +578,8 @@ export class AppointmentStaffService {
     try {
       console.log(`📅 Syncing appointment ${appointment.id} to ${staffAssignments.length} staff calendars`);
 
-      const googleCalendarService = getGoogleCalendarService();
+    const { getGoogleCalendarService } = await import('./googleCalendarService');
+    const googleCalendarService = getGoogleCalendarService();
 
       // Sync to each staff member's calendar
       for (const assignment of staffAssignments) {

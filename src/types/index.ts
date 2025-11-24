@@ -4,7 +4,7 @@ export type { Database, Inserts, Tables, Updates } from '@/lib/supabase';
 // Re-export environment types
 export type { Config, Env } from '@/lib/env';
 
-// Application-specific types
+// Application-specific types (deprecated - use UserProfile from user.ts)
 export interface User {
   id: string;
   email: string;
@@ -34,6 +34,10 @@ export * from './auditTrail';
 export * from './reports';
 // Export timezone shared types
 export * from './timezone';
+// Export lead management types
+export * from './lead';
+// Export user types
+export * from './user';
 
 
 // Form types

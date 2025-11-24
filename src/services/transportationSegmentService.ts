@@ -11,8 +11,9 @@ import type {
 import { isValidPickupLocationType, requiresPickupLocationReference } from '@/types/transportationSegment';
 import { appointmentStaffService } from './appointmentStaffService';
 import { auditTrailService } from './auditTrailService';
-import { getGoogleCalendarService } from './googleCalendarService';
+// Load server-only calendar service dynamically in server paths
 import { telegramNotificationService } from './telegramNotificationService';
+import { vendorNotificationService } from './vendorNotificationService';
 
 export class TransportationSegmentService {
   // Check if transportation segments feature is enabled
@@ -32,8 +33,7 @@ export class TransportationSegmentService {
       .select(`
         *,
         driver:driver_id(id, first_name, last_name, staff_type, specialization, phone, email)
-      `)
-      .order('planned_start', { ascending: true });
+      `);
 
     // Apply filters
     if (filters?.appointment_id) {
@@ -55,6 +55,26 @@ export class TransportationSegmentService {
     if (filters?.requires_follow_up !== undefined) {
       query = query.eq('requires_follow_up', filters.requires_follow_up);
     }
+
+    if (filters?.assignment_mode) {
+      query = query.eq('assignment_mode', filters.assignment_mode);
+    }
+
+    if (filters?.unassigned_only) {
+      query = query.is('driver_id', null);
+    }
+
+    if (filters?.start_after) {
+      query = query.gte('planned_start', filters.start_after);
+    }
+
+    if (filters?.start_before) {
+      query = query.lte('planned_start', filters.start_before);
+    }
+
+    // Order by priority and planned start time for queue management
+    query = query.order('priority', { ascending: false, nullsLast: true })
+                 .order('planned_start', { ascending: true });
 
     const { data, error } = await query;
 
@@ -120,9 +140,29 @@ export class TransportationSegmentService {
     // Validate segment data
     this.validateSegmentData(segmentData);
 
+    // Set default assignment mode if not provided
+    if (!segmentData.assignment_mode) {
+      segmentData.assignment_mode = segmentData.driver_id ? 'assign_now' : 'assign_later';
+    }
+
+    // Set default priority if not provided
+    if (segmentData.priority === undefined || segmentData.priority === null) {
+      segmentData.priority = this.calculateDefaultPriority(segmentData);
+    }
+
+    // Set default status based on assignment mode
+    if (!segmentData.status) {
+      segmentData.status = segmentData.assignment_mode === 'assign_now' ? 'scheduled' : 'draft';
+    }
+
     // Check for conflicts if driver is assigned
     if (segmentData.driver_id && segmentData.planned_start && segmentData.planned_end) {
       await this.checkDriverConflicts(segmentData.driver_id, segmentData.planned_start, segmentData.planned_end, segmentData.id);
+    }
+
+    // Set escalation deadline for assign_later segments
+    if (segmentData.assignment_mode === 'assign_later' && segmentData.planned_start) {
+      segmentData.escalation_deadline = this.calculateEscalationDeadline(segmentData.planned_start);
     }
 
     const { data, error } = await supabase
@@ -171,6 +211,27 @@ export class TransportationSegmentService {
       this.validateSegmentData({ ...currentSegment, ...updates });
     }
 
+    // Handle assignment mode changes
+    if (updates.assignment_mode && updates.assignment_mode !== currentSegment.assignment_mode) {
+      if (updates.assignment_mode === 'assign_now' && !updates.driver_id && !currentSegment.driver_id) {
+        throw new Error('Driver ID is required when changing to assign_now mode');
+      }
+
+      // Update status based on assignment mode
+      if (!updates.status) {
+        updates.status = updates.assignment_mode === 'assign_now' ? 'scheduled' : 'draft';
+      }
+    }
+
+    // Update escalation deadline if assignment mode or timing changed
+    if (updates.assignment_mode === 'assign_later' ||
+        (updates.planned_start && currentSegment.assignment_mode === 'assign_later')) {
+      const plannedStart = updates.planned_start ?? currentSegment.planned_start;
+      if (plannedStart) {
+        updates.escalation_deadline = this.calculateEscalationDeadline(plannedStart);
+      }
+    }
+
     // Check for conflicts if driver or timing changed
     if (updates.driver_id || updates.planned_start || updates.planned_end) {
       const driverId = updates.driver_id ?? currentSegment.driver_id;
@@ -210,12 +271,81 @@ export class TransportationSegmentService {
       await this.deleteCalendarEventForSegment(data);
     }
 
-    // Send notification to driver
+    // Send notification to driver based on the type of change
     if (data.driver_id) {
-      await telegramNotificationService.sendTransportationSegmentNotificationsToDrivers(data, 'updated');
+      // Determine notification type based on what changed
+      let notificationType: 'created' | 'updated' | 'cancelled' = 'updated';
+
+      // If driver was just assigned (was null, now has value)
+      if (!currentSegment.driver_id && data.driver_id) {
+        notificationType = 'created';
+      }
+      // If driver was reassigned (had different driver before)
+      else if (currentSegment.driver_id && data.driver_id && currentSegment.driver_id !== data.driver_id) {
+        notificationType = 'updated'; // Reassignment
+      }
+
+      await telegramNotificationService.sendTransportationSegmentNotificationsToDrivers(data, notificationType);
     }
 
+    // Send cancellation notification to previous driver if driver was reassigned
+    if (currentSegment.driver_id && data.driver_id && currentSegment.driver_id !== data.driver_id) {
+      const previousDriverSegment = { ...currentSegment, driver_id: currentSegment.driver_id };
+      await telegramNotificationService.sendTransportationSegmentNotificationsToDrivers(previousDriverSegment, 'cancelled');
+    }
+
+    // Send vendor notifications for segment updates
+    await this.sendVendorNotificationsForSegment(data, 'updated');
+
     return data;
+  }
+
+  /**
+   * Send vendor notifications for a transportation segment
+   */
+  private async sendVendorNotificationsForSegment(
+    segment: TransportationSegment,
+    changeType: 'created' | 'updated' | 'cancelled'
+  ): Promise<void> {
+    try {
+      // Check if this is a vendor segment (no driver_id and has vendor transport mode)
+      if (!segment.driver_id && segment.travel_mode &&
+          ['vendor', 'public_transport', 'taxi', 'uber'].includes(segment.travel_mode)) {
+
+        console.log(`🚗 Sending vendor notification for segment ${segment.id} (${segment.travel_mode})`);
+
+        // Convert segment to vendor segment data format
+        const vendorSegmentData = {
+          id: segment.id,
+          appointment_id: segment.appointment_id,
+          segment_type: segment.segment_type,
+          title: segment.title,
+          planned_start: segment.planned_start,
+          planned_end: segment.planned_end,
+          travel_mode: segment.travel_mode,
+          origin: segment.origin,
+          destination: segment.destination,
+          estimated_travel_minutes: segment.estimated_travel_minutes,
+          estimated_distance_km: segment.estimated_distance_km,
+          instructions: segment.instructions
+        };
+
+        // Send vendor notification
+        const result = await vendorNotificationService.sendVendorNotificationsForSegment(
+          vendorSegmentData,
+          changeType
+        );
+
+        if (result.success) {
+          console.log(`✅ Vendor notification sent successfully for segment ${segment.id}`);
+        } else {
+          console.warn(`⚠️ Vendor notification failed for segment ${segment.id}:`, result.results);
+        }
+      }
+    } catch (error) {
+      console.error(`❌ Error sending vendor notification for segment ${segment.id}:`, error);
+      // Don't throw error to prevent breaking the main operation
+    }
   }
 
   // Delete a transportation segment
@@ -302,7 +432,7 @@ export class TransportationSegmentService {
       .from('transportation_segments')
       .select('*')
       .eq('driver_id', driverId)
-      .eq('status', 'scheduled')
+      .in('status', ['scheduled', 'in_progress'])
       .or(`and(planned_start.lt.${plannedEnd},planned_end.gt.${plannedStart})`);
 
     if (excludeSegmentId) {
@@ -318,6 +448,41 @@ export class TransportationSegmentService {
     const conflictingSegments = data || [];
     return {
       hasConflict: conflictingSegments.length > 0,
+      conflictingSegments
+    };
+  }
+
+  // Check for potential conflicts with unassigned segments (for queue management)
+  async checkUnassignedSegmentConflicts(
+    plannedStart: string,
+    plannedEnd: string,
+    excludeSegmentId?: string
+  ): Promise<{ hasPotentialConflicts: boolean; conflictingSegments: TransportationSegment[] }> {
+    if (!this.isFeatureEnabled()) {
+      return { hasPotentialConflicts: false, conflictingSegments: [] };
+    }
+
+    let query = supabase
+      .from('transportation_segments')
+      .select('*')
+      .is('driver_id', null)
+      .eq('assignment_mode', 'assign_later')
+      .in('status', ['draft', 'scheduled'])
+      .or(`and(planned_start.lt.${plannedEnd},planned_end.gt.${plannedStart})`);
+
+    if (excludeSegmentId) {
+      query = query.neq('id', excludeSegmentId);
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      throw new Error(`Failed to check unassigned segment conflicts: ${error.message}`);
+    }
+
+    const conflictingSegments = data || [];
+    return {
+      hasPotentialConflicts: conflictingSegments.length > 0,
       conflictingSegments
     };
   }
@@ -625,6 +790,18 @@ export class TransportationSegmentService {
       throw new Error('Travel mode cannot be empty');
     }
 
+    // Validate assignment mode and driver requirements
+    if (data.assignment_mode === 'assign_now' && !data.driver_id) {
+      throw new Error('Driver ID is required when assignment mode is assign_now');
+    }
+
+    // Validate priority range
+    if (data.priority !== undefined && data.priority !== null) {
+      if (data.priority < 1 || data.priority > 100) {
+        throw new Error('Priority must be between 1 and 100');
+      }
+    }
+
     // Validate pickup location type and reference
     if (data.pickup_location_type) {
       if (!isValidPickupLocationType(data.pickup_location_type)) {
@@ -794,6 +971,370 @@ export class TransportationSegmentService {
   }
 
   // =============================================================================
+  // QUEUE MANAGEMENT & ESCALATION
+  // =============================================================================
+
+  /**
+   * Get unassigned segments for the queue
+   */
+  async getUnassignedSegments(filters?: {
+    start_after?: string;
+    start_before?: string;
+    priority_min?: number;
+    escalation_state?: TransportationQueueEscalationState;
+  }): Promise<TransportationSegment[]> {
+    if (!this.isFeatureEnabled()) {
+      console.log('Transportation segments feature is disabled');
+      return [];
+    }
+
+    let query = supabase
+      .from('transportation_segments')
+      .select(`
+        *,
+        driver:driver_id(id, first_name, last_name, staff_type, specialization, phone, email)
+      `)
+      .is('driver_id', null)
+      .eq('assignment_mode', 'assign_later')
+      .in('status', ['draft', 'scheduled']);
+
+    if (filters?.start_after) {
+      query = query.gte('planned_start', filters.start_after);
+    }
+
+    if (filters?.start_before) {
+      query = query.lte('planned_start', filters.start_before);
+    }
+
+    if (filters?.priority_min !== undefined) {
+      query = query.gte('priority', filters.priority_min);
+    }
+
+    if (filters?.escalation_state) {
+      query = query.eq('escalation_state', filters.escalation_state);
+    }
+
+    // Order by priority (descending) then by planned start time (ascending)
+    query = query.order('priority', { ascending: false, nullsLast: true })
+                 .order('planned_start', { ascending: true });
+
+    const { data, error } = await query;
+
+    if (error) {
+      throw new Error(`Failed to fetch unassigned segments: ${error.message}`);
+    }
+
+    return data || [];
+  }
+
+  /**
+   * Get segments that need escalation (past their deadline)
+   */
+  async getEscalatedSegments(): Promise<TransportationSegment[]> {
+    if (!this.isFeatureEnabled()) {
+      console.log('Transportation segments feature is disabled');
+      return [];
+    }
+
+    const now = new Date().toISOString();
+
+    const { data, error } = await supabase
+      .from('transportation_segments')
+      .select(`
+        *,
+        driver:driver_id(id, first_name, last_name, staff_type, specialization, phone, email)
+      `)
+      .is('driver_id', null)
+      .eq('assignment_mode', 'assign_later')
+      .in('status', ['draft', 'scheduled'])
+      .lt('escalation_deadline', now)
+      .order('escalation_deadline', { ascending: true });
+
+    if (error) {
+      throw new Error(`Failed to fetch escalated segments: ${error.message}`);
+    }
+
+    return data || [];
+  }
+
+  /**
+   * Update escalation state for segments
+   */
+  async updateEscalationStates(): Promise<{ updated: number; escalated: number }> {
+    if (!this.isFeatureEnabled()) {
+      console.log('Transportation segments feature is disabled');
+      return { updated: 0, escalated: 0 };
+    }
+
+    const now = new Date().toISOString();
+    let updated = 0;
+    let escalated = 0;
+
+    try {
+      // Get segments that need escalation
+      const segmentsToEscalate = await this.getEscalatedSegments();
+
+      for (const segment of segmentsToEscalate) {
+        if (segment.escalation_state !== 'escalated') {
+          await this.updateTransportationSegment(segment.id, {
+            escalation_state: 'escalated'
+          });
+          escalated++;
+        }
+        updated++;
+      }
+
+      console.log(`✅ Updated escalation states: ${updated} segments processed, ${escalated} escalated`);
+      return { updated, escalated };
+    } catch (error) {
+      console.error('❌ Failed to update escalation states:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Calculate default priority for a segment
+   */
+  private calculateDefaultPriority(segmentData: CreateTransportationSegment): number {
+    let priority = 50; // Base priority
+
+    // Increase priority for urgent segments
+    if (segmentData.requires_follow_up) {
+      priority += 20;
+    }
+
+    // Increase priority based on segment type
+    switch (segmentData.segment_type) {
+      case 'pickup':
+        priority += 10;
+        break;
+      case 'dropoff':
+        priority += 5;
+        break;
+      case 'metro_assist':
+        priority += 15;
+        break;
+      case 'stay_with_staff':
+        priority += 5;
+        break;
+      case 'custom':
+        priority += 0;
+        break;
+    }
+
+    // Increase priority for segments starting soon
+    if (segmentData.planned_start) {
+      const startTime = new Date(segmentData.planned_start);
+      const now = new Date();
+      const hoursUntilStart = (startTime.getTime() - now.getTime()) / (1000 * 60 * 60);
+
+      if (hoursUntilStart < 24) {
+        priority += 20;
+      } else if (hoursUntilStart < 48) {
+        priority += 10;
+      } else if (hoursUntilStart < 72) {
+        priority += 5;
+      }
+    }
+
+    // Ensure priority is within bounds
+    return Math.max(1, Math.min(100, priority));
+  }
+
+  /**
+   * Calculate escalation deadline (6 hours before planned start)
+   */
+  private calculateEscalationDeadline(plannedStart: string): string {
+    const startTime = new Date(plannedStart);
+    const escalationTime = new Date(startTime.getTime() - (6 * 60 * 60 * 1000)); // 6 hours before
+    return escalationTime.toISOString();
+  }
+
+  /**
+   * Assign a driver to a segment and update queue
+   */
+  async assignDriverToSegment(
+    segmentId: string,
+    driverId: string,
+    userId: string,
+    userName: string,
+    overrideReason?: string
+  ): Promise<TransportationSegment> {
+    if (!this.isFeatureEnabled()) {
+      throw new Error('Transportation segments feature is disabled');
+    }
+
+    const segment = await this.getTransportationSegment(segmentId);
+    if (!segment) {
+      throw new Error('Transportation segment not found');
+    }
+
+    if (segment.driver_id) {
+      throw new Error('Segment already has a driver assigned');
+    }
+
+    // Check for conflicts
+    if (segment.planned_start && segment.planned_end) {
+      const conflicts = await this.checkDriverConflicts(driverId, segment.planned_start, segment.planned_end);
+      if (conflicts.hasConflict) {
+        throw new Error(`Driver has conflicts: ${conflicts.conflictingSegments.map(s => s.id).join(', ')}`);
+      }
+    }
+
+    // Update segment with driver assignment
+    const updatedSegment = await this.updateTransportationSegment(segmentId, {
+      driver_id: driverId,
+      assignment_mode: 'assign_now',
+      status: 'scheduled',
+      escalation_state: 'normal',
+      escalation_deadline: null
+    });
+
+    // Send assignment notification to the new driver
+    if (updatedSegment.driver_id) {
+      await telegramNotificationService.sendTransportationSegmentNotificationsToDrivers(updatedSegment, 'created');
+    }
+
+    // Send vendor notifications if this is a vendor segment
+    await this.sendVendorNotificationsForSegment(updatedSegment, 'created');
+
+    // Record manual override if provided
+    if (overrideReason) {
+      await this.recordManualOverride(
+        segmentId,
+        segment.appointment_id,
+        userId,
+        userName,
+        'driver_reassignment_override',
+        'manual_requirement',
+        undefined,
+        driverId,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        {
+          warnings_acknowledged: ['Driver assigned manually']
+        },
+        overrideReason,
+        false
+      );
+    }
+
+    return updatedSegment;
+  }
+
+  /**
+   * Unassign driver from segment and return to queue
+   */
+  async unassignDriverFromSegment(
+    segmentId: string,
+    userId: string,
+    userName: string,
+    reason: string
+  ): Promise<TransportationSegment> {
+    if (!this.isFeatureEnabled()) {
+      throw new Error('Transportation segments feature is disabled');
+    }
+
+    const segment = await this.getTransportationSegment(segmentId);
+    if (!segment) {
+      throw new Error('Transportation segment not found');
+    }
+
+    if (!segment.driver_id) {
+      throw new Error('Segment has no driver assigned');
+    }
+
+    const previousDriverId = segment.driver_id;
+
+    // Send cancellation notification to the driver before unassigning
+    if (segment.driver_id) {
+      await telegramNotificationService.sendTransportationSegmentNotificationsToDrivers(segment, 'cancelled');
+    }
+
+    // Send vendor notifications for cancellation
+    await this.sendVendorNotificationsForSegment(segment, 'cancelled');
+
+    // Update segment to remove driver assignment
+    const updatedSegment = await this.updateTransportationSegment(segmentId, {
+      driver_id: null,
+      assignment_mode: 'assign_later',
+      status: 'draft',
+      escalation_deadline: segment.planned_start ? this.calculateEscalationDeadline(segment.planned_start) : null
+    });
+
+    // Record manual override
+    await this.recordManualOverride(
+      segmentId,
+      segment.appointment_id,
+      userId,
+      userName,
+      'driver_reassignment_override',
+      'manual_requirement',
+      previousDriverId,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      {
+        warnings_acknowledged: ['Driver unassigned manually']
+      },
+      reason,
+      false
+    );
+
+    return updatedSegment;
+  }
+
+  /**
+   * Get queue statistics
+   */
+  async getQueueStatistics(): Promise<{
+    total_unassigned: number;
+    escalated: number;
+    by_priority: Record<string, number>;
+    by_segment_type: Record<string, number>;
+    next_escalation: string | null;
+  }> {
+    if (!this.isFeatureEnabled()) {
+      return {
+        total_unassigned: 0,
+        escalated: 0,
+        by_priority: {},
+        by_segment_type: {},
+        next_escalation: null
+      };
+    }
+
+    const unassignedSegments = await this.getUnassignedSegments();
+    const escalatedSegments = await this.getEscalatedSegments();
+
+    const byPriority: Record<string, number> = {};
+    const bySegmentType: Record<string, number> = {};
+
+    unassignedSegments.forEach(segment => {
+      const priorityKey = segment.priority ? segment.priority.toString() : 'null';
+      byPriority[priorityKey] = (byPriority[priorityKey] || 0) + 1;
+      bySegmentType[segment.segment_type] = (bySegmentType[segment.segment_type] || 0) + 1;
+    });
+
+    // Find next escalation deadline
+    const nextEscalation = unassignedSegments
+      .filter(s => s.escalation_deadline && s.escalation_state !== 'escalated')
+      .sort((a, b) => new Date(a.escalation_deadline!).getTime() - new Date(b.escalation_deadline!).getTime())[0];
+
+    return {
+      total_unassigned: unassignedSegments.length,
+      escalated: escalatedSegments.length,
+      by_priority: byPriority,
+      by_segment_type: bySegmentType,
+      next_escalation: nextEscalation?.escalation_deadline || null
+    };
+  }
+
+  // =============================================================================
   // CALENDAR EVENT MANAGEMENT
   // =============================================================================
 
@@ -847,6 +1388,7 @@ export class TransportationSegmentService {
       }
 
       // Create calendar event
+      const { getGoogleCalendarService } = await import('./googleCalendarService');
       const googleCalendarService = getGoogleCalendarService();
       if (!googleCalendarService.isInitialized) {
         console.log('⚠️ Google Calendar service not initialized, skipping event creation');
@@ -1215,6 +1757,229 @@ export class TransportationSegmentService {
         error: error instanceof Error ? error.message : 'Unknown error'
       };
     }
+  }
+
+  /**
+   * Get aggregated driver capacity and availability metrics for capacity planning
+   */
+  async getDriverCapacityMetrics(options: {
+    startDate: string;
+    endDate: string;
+    windowHours: number;
+    includeUnassigned?: boolean;
+    serviceLine?: string;
+  }): Promise<{
+    driverCapacity: Array<{
+      driverId: string;
+      driverName: string;
+      totalHours: number;
+      bookedHours: number;
+      availableHours: number;
+      utilizationPercentage: number;
+      segments: Array<{
+        id: string;
+        title: string;
+        plannedStart: string;
+        plannedEnd: string;
+        segmentType: string;
+        status: string;
+        priority: number | null;
+      }>;
+      travelGaps: Array<{
+        startTime: string;
+        endTime: string;
+        durationMinutes: number;
+      }>;
+    }>;
+    unassignedSegments: Array<{
+      id: string;
+      title: string;
+      plannedStart: string;
+      plannedEnd: string;
+      segmentType: string;
+      priority: number | null;
+      escalationState: string;
+      appointmentId: string;
+    }>;
+    summary: {
+      totalDrivers: number;
+      totalSegments: number;
+      unassignedSegments: number;
+      averageUtilization: number;
+      escalationCount: number;
+      modeDistribution: Record<string, number>;
+    };
+  }> {
+    try {
+      if (!this.isFeatureEnabled()) {
+        console.log('Transportation segments feature is disabled');
+        return {
+          driverCapacity: [],
+          unassignedSegments: [],
+          summary: {
+            totalDrivers: 0,
+            totalSegments: 0,
+            unassignedSegments: 0,
+            averageUtilization: 0,
+            escalationCount: 0,
+            modeDistribution: {},
+          },
+        };
+      }
+
+      // Get all segments in the time window
+      const segments = await this.getTransportationSegments({
+        start_after: options.startDate,
+        start_before: options.endDate,
+      });
+
+      // Get unassigned segments
+      const unassignedSegments = await this.getUnassignedSegments({
+        start_after: options.startDate,
+        start_before: options.endDate,
+      });
+
+      // Get escalated segments
+      const escalatedSegments = await this.getEscalatedSegments();
+
+      // Group segments by driver
+      const segmentsByDriver = new Map<string, any[]>();
+      const driverInfo = new Map<string, { name: string; totalHours: number }>();
+
+      segments.forEach(segment => {
+        if (segment.driver_id) {
+          if (!segmentsByDriver.has(segment.driver_id)) {
+            segmentsByDriver.set(segment.driver_id, []);
+            driverInfo.set(segment.driver_id, {
+              name: segment.driver ? `${segment.driver.first_name} ${segment.driver.last_name}` : 'Unknown Driver',
+              totalHours: 0,
+            });
+          }
+          segmentsByDriver.get(segment.driver_id)!.push(segment);
+        }
+      });
+
+      // Calculate capacity metrics for each driver
+      const driverCapacity = Array.from(segmentsByDriver.entries()).map(([driverId, driverSegments]) => {
+        const info = driverInfo.get(driverId)!;
+
+        // Calculate total booked hours
+        const bookedHours = driverSegments.reduce((total, segment) => {
+          if (segment.planned_start && segment.planned_end) {
+            const start = new Date(segment.planned_start);
+            const end = new Date(segment.planned_end);
+            const durationHours = (end.getTime() - start.getTime()) / (1000 * 60 * 60);
+            return total + durationHours;
+          }
+          return total;
+        }, 0);
+
+        // Calculate travel gaps
+        const travelGaps = this.calculateTravelGaps(driverSegments, options.startDate, options.endDate);
+
+        // Calculate utilization (assuming 8-hour work day)
+        const totalHours = options.windowHours;
+        const availableHours = Math.max(0, totalHours - bookedHours);
+        const utilizationPercentage = totalHours > 0 ? (bookedHours / totalHours) * 100 : 0;
+
+        return {
+          driverId,
+          driverName: info.name,
+          totalHours,
+          bookedHours: Math.round(bookedHours * 100) / 100,
+          availableHours: Math.round(availableHours * 100) / 100,
+          utilizationPercentage: Math.round(utilizationPercentage * 100) / 100,
+          segments: driverSegments.map(segment => ({
+            id: segment.id,
+            title: segment.title,
+            plannedStart: segment.planned_start || '',
+            plannedEnd: segment.planned_end || '',
+            segmentType: segment.segment_type,
+            status: segment.status,
+            priority: segment.priority,
+          })),
+          travelGaps,
+        };
+      });
+
+      // Calculate mode distribution
+      const modeDistribution: Record<string, number> = {};
+      segments.forEach(segment => {
+        const mode = segment.travel_mode || 'unknown';
+        modeDistribution[mode] = (modeDistribution[mode] || 0) + 1;
+      });
+
+      // Calculate summary metrics
+      const totalDrivers = driverCapacity.length;
+      const totalSegments = segments.length;
+      const unassignedCount = unassignedSegments.length;
+      const averageUtilization = totalDrivers > 0
+        ? driverCapacity.reduce((sum, driver) => sum + driver.utilizationPercentage, 0) / totalDrivers
+        : 0;
+      const escalationCount = escalatedSegments.length;
+
+      return {
+        driverCapacity,
+        unassignedSegments: unassignedSegments.map(segment => ({
+          id: segment.id,
+          title: segment.title,
+          plannedStart: segment.planned_start || '',
+          plannedEnd: segment.planned_end || '',
+          segmentType: segment.segment_type,
+          priority: segment.priority,
+          escalationState: segment.escalation_state || 'normal',
+          appointmentId: segment.appointment_id,
+        })),
+        summary: {
+          totalDrivers,
+          totalSegments,
+          unassignedSegments: unassignedCount,
+          averageUtilization: Math.round(averageUtilization * 100) / 100,
+          escalationCount,
+          modeDistribution,
+        },
+      };
+    } catch (error) {
+      console.error('Error getting driver capacity metrics:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Calculate travel gaps between segments for a driver
+   */
+  private calculateTravelGaps(
+    segments: any[],
+    startDate: string,
+    endDate: string
+  ): Array<{ startTime: string; endTime: string; durationMinutes: number }> {
+    const gaps: Array<{ startTime: string; endTime: string; durationMinutes: number }> = [];
+
+    // Sort segments by planned start time
+    const sortedSegments = segments
+      .filter(segment => segment.planned_start && segment.planned_end)
+      .sort((a, b) => new Date(a.planned_start).getTime() - new Date(b.planned_start).getTime());
+
+    // Find gaps between consecutive segments
+    for (let i = 0; i < sortedSegments.length - 1; i++) {
+      const currentSegment = sortedSegments[i];
+      const nextSegment = sortedSegments[i + 1];
+
+      const currentEnd = new Date(currentSegment.planned_end);
+      const nextStart = new Date(nextSegment.planned_start);
+
+      // If there's a gap of more than 15 minutes, record it
+      const gapMinutes = (nextStart.getTime() - currentEnd.getTime()) / (1000 * 60);
+      if (gapMinutes > 15) {
+        gaps.push({
+          startTime: currentEnd.toISOString(),
+          endTime: nextStart.toISOString(),
+          durationMinutes: Math.round(gapMinutes),
+        });
+      }
+    }
+
+    return gaps;
   }
 }
 

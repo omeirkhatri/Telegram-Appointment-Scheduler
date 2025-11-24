@@ -43,6 +43,9 @@ export function TransportationSegmentOverrideHistory({
       travel_buffer_insufficient: 'Insufficient Travel Buffer',
       manual_requirement: 'Manual Requirement',
       emergency_override: 'Emergency Override',
+      patient_preference: 'Patient Preference',
+      vehicle_requirement: 'Vehicle Requirement',
+      other: 'Other',
     };
     return labels[reason] || reason;
   };
@@ -54,6 +57,9 @@ export function TransportationSegmentOverrideHistory({
       travel_buffer_insufficient: 'bg-orange-100 text-orange-800 border-orange-200',
       manual_requirement: 'bg-blue-100 text-blue-800 border-blue-200',
       emergency_override: 'bg-red-100 text-red-800 border-red-200',
+      patient_preference: 'bg-blue-100 text-blue-800 border-blue-200',
+      vehicle_requirement: 'bg-purple-100 text-purple-800 border-purple-200',
+      other: 'bg-gray-100 text-gray-800 border-gray-200',
     };
     return colors[reason] || 'bg-gray-100 text-gray-800 border-gray-200';
   };

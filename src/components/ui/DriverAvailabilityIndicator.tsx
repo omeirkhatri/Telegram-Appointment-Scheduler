@@ -1,6 +1,5 @@
 'use client';
 
-import type { Staff } from '@/types';
 import type { TransportationSegment } from '@/types/transportationSegment';
 import { useEffect, useState } from 'react';
 
@@ -11,11 +10,90 @@ export interface DriverAvailabilityStatus {
   travelGap?: number; // in minutes
 }
 
+export function evaluateDriverAvailability(
+  driverId: string,
+  segment: TransportationSegment,
+  allSegments: TransportationSegment[],
+): DriverAvailabilityStatus | null {
+  if (!driverId || !segment.planned_start || !segment.planned_end) {
+    return null;
+  }
+
+  try {
+    const otherSegments = allSegments.filter(s =>
+      s.driver_id === driverId &&
+      s.id !== segment.id &&
+      s.status !== 'cancelled',
+    );
+
+    const segmentStart = new Date(segment.planned_start);
+    const segmentEnd = new Date(segment.planned_end);
+
+    const conflicts: string[] = [];
+    let minTravelGap = Infinity;
+
+    for (const otherSegment of otherSegments) {
+      if (!otherSegment.planned_start || !otherSegment.planned_end) {
+        continue;
+      }
+
+      const otherStart = new Date(otherSegment.planned_start);
+      const otherEnd = new Date(otherSegment.planned_end);
+
+      const overlaps =
+        (segmentStart >= otherStart && segmentStart < otherEnd) ||
+        (segmentEnd > otherStart && segmentEnd <= otherEnd) ||
+        (segmentStart <= otherStart && segmentEnd >= otherEnd);
+
+      if (overlaps) {
+        conflicts.push(`Overlaps with ${otherSegment.segment_type} segment`);
+      }
+
+      const gapBefore = Math.abs(segmentStart.getTime() - otherEnd.getTime()) / (1000 * 60);
+      const gapAfter = Math.abs(otherStart.getTime() - segmentEnd.getTime()) / (1000 * 60);
+      const minGap = Math.min(gapBefore, gapAfter);
+
+      if (minGap < minTravelGap) {
+        minTravelGap = minGap;
+      }
+    }
+
+    let status: DriverAvailabilityStatus['status'];
+    let message: string;
+
+    if (conflicts.length > 0) {
+      status = 'conflict';
+      message = `Driver has ${conflicts.length} scheduling conflict${conflicts.length > 1 ? 's' : ''}`;
+    } else if (minTravelGap < 30) {
+      status = 'tight_schedule';
+      message = `Tight schedule - only ${Math.round(minTravelGap)} minutes between segments`;
+    } else if (minTravelGap < 60) {
+      status = 'available';
+      message = `Available with ${Math.round(minTravelGap)} minutes buffer`;
+    } else {
+      status = 'available';
+      message = 'Driver is available';
+    }
+
+    return {
+      status,
+      message,
+      conflicts,
+      travelGap: Number.isFinite(minTravelGap) ? minTravelGap : undefined,
+    };
+  } catch (error) {
+    console.error('Error checking driver availability:', error);
+    return {
+      status: 'unavailable',
+      message: 'Unable to check availability',
+    };
+  }
+}
+
 interface DriverAvailabilityIndicatorProps {
   driverId: string;
   segment: TransportationSegment;
   allSegments: TransportationSegment[];
-  drivers: Staff[];
   onOverrideConfirm?: (segment: TransportationSegment) => void;
   className?: string;
 }
@@ -24,7 +102,6 @@ export function DriverAvailabilityIndicator({
   driverId,
   segment,
   allSegments,
-  drivers,
   onOverrideConfirm,
   className = '',
 }: DriverAvailabilityIndicatorProps) {
@@ -32,99 +109,20 @@ export function DriverAvailabilityIndicator({
   const [isChecking, setIsChecking] = useState(false);
   const [showOverrideDialog, setShowOverrideDialog] = useState(false);
 
-  const driver = drivers.find(d => d.id === driverId);
-
-  // Check driver availability
   useEffect(() => {
-    if (!driverId || !segment.planned_start || !segment.planned_end) {
+    if (!driverId) {
       setAvailabilityStatus(null);
       return;
     }
 
     setIsChecking(true);
-
-    // Simulate availability check (in real implementation, this would call the API)
-    const checkAvailability = async () => {
-      try {
-        // Get other segments for the same driver
-        const otherSegments = allSegments.filter(s =>
-          s.driver_id === driverId &&
-          s.id !== segment.id &&
-          s.status !== 'cancelled'
-        );
-
-        const segmentStart = new Date(segment.planned_start);
-        const segmentEnd = new Date(segment.planned_end);
-
-        // Check for conflicts
-        const conflicts: string[] = [];
-        let minTravelGap = Infinity;
-
-        for (const otherSegment of otherSegments) {
-          if (!otherSegment.planned_start || !otherSegment.planned_end) continue;
-
-          const otherStart = new Date(otherSegment.planned_start);
-          const otherEnd = new Date(otherSegment.planned_end);
-
-          // Check for time overlap
-          if (
-            (segmentStart >= otherStart && segmentStart < otherEnd) ||
-            (segmentEnd > otherStart && segmentEnd <= otherEnd) ||
-            (segmentStart <= otherStart && segmentEnd >= otherEnd)
-          ) {
-            conflicts.push(`Overlaps with ${otherSegment.segment_type} segment`);
-          }
-
-          // Check travel time gaps
-          const gapBefore = Math.abs(segmentStart.getTime() - otherEnd.getTime()) / (1000 * 60);
-          const gapAfter = Math.abs(otherStart.getTime() - segmentEnd.getTime()) / (1000 * 60);
-          const minGap = Math.min(gapBefore, gapAfter);
-
-          if (minGap < minTravelGap) {
-            minTravelGap = minGap;
-          }
-        }
-
-        // Determine availability status
-        let status: DriverAvailabilityStatus['status'];
-        let message: string;
-
-        if (conflicts.length > 0) {
-          status = 'conflict';
-          message = `Driver has ${conflicts.length} scheduling conflict${conflicts.length > 1 ? 's' : ''}`;
-        } else if (minTravelGap < 30) {
-          status = 'tight_schedule';
-          message = `Tight schedule - only ${Math.round(minTravelGap)} minutes between segments`;
-        } else if (minTravelGap < 60) {
-          status = 'available';
-          message = `Available with ${Math.round(minTravelGap)} minutes buffer`;
-        } else {
-          status = 'available';
-          message = 'Driver is available';
-        }
-
-        setAvailabilityStatus({
-          status,
-          message,
-          conflicts,
-          travelGap: minTravelGap,
-        });
-      } catch (error) {
-        console.error('Error checking driver availability:', error);
-        setAvailabilityStatus({
-          status: 'unavailable',
-          message: 'Unable to check availability',
-        });
-      } finally {
-        setIsChecking(false);
-      }
-    };
-
-    checkAvailability();
+    const availability = evaluateDriverAvailability(driverId, segment, allSegments);
+    setAvailabilityStatus(availability);
+    setIsChecking(false);
   }, [driverId, segment, allSegments]);
 
   const handleOverrideConfirm = () => {
-    if (onOverrideConfirm) {
+    if (onOverrideConfirm && segment) {
       onOverrideConfirm(segment);
     }
     setShowOverrideDialog(false);

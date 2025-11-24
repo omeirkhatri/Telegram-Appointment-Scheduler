@@ -1,5 +1,37 @@
 // Transportation segment domain types shared across services and UI
 import type { Staff } from './staff';
+import type { TransportationSegmentAssignmentMode } from './supabase';
+
+export interface TransportationRecommendationEntry {
+  driver_id: string;
+  score?: number;
+  reasons?: string[];
+  tags?: string[];
+  rank?: number;
+  eta_minutes?: number;
+  conflicts?: string[];
+  [key: string]: unknown;
+}
+
+export interface TransportationRecommendationOverride {
+  driver_id?: string;
+  recommended_driver_id?: string;
+  reason?: string;
+  note?: string;
+  recorded_at?: string;
+}
+
+export interface TransportationRecommendationMetadata extends Record<string, unknown> {
+  generated_at?: string;
+  scoring_model?: string;
+  factors?: Record<string, unknown>;
+  recommendations?: TransportationRecommendationEntry[];
+  drivers?: TransportationRecommendationEntry[];
+  suggestions?: TransportationRecommendationEntry[];
+  override?: TransportationRecommendationOverride | null;
+}
+
+export type TransportationQueueEscalationState = 'normal' | 'escalated';
 
 export type TransportationSegmentType =
   | 'pickup'
@@ -55,6 +87,13 @@ export interface TransportationSegment {
   status: TransportationSegmentStatus;
   manual_override?: boolean | null;
   google_event_id?: string | null;
+  assignment_mode: TransportationSegmentAssignmentMode;
+  priority: number | null;
+  recommended_driver_ids: string[];
+  recommendation_metadata: TransportationRecommendationMetadata;
+  queue_rank?: number | null;
+  escalation_state?: TransportationQueueEscalationState;
+  escalation_deadline?: string | null;
   created_at: string;
   updated_at: string;
   driver?: Staff;
@@ -79,6 +118,10 @@ export interface CreateTransportationSegment {
   requires_follow_up?: boolean | null;
   status?: TransportationSegmentStatus;
   manual_override?: boolean | null;
+  assignment_mode?: TransportationSegmentAssignmentMode;
+  priority?: number | null;
+  recommended_driver_ids?: string[];
+  recommendation_metadata?: TransportationRecommendationMetadata;
 }
 
 export interface UpdateTransportationSegment {
@@ -100,6 +143,13 @@ export interface UpdateTransportationSegment {
   requires_follow_up?: boolean;
   status?: TransportationSegmentStatus;
   manual_override?: boolean;
+  assignment_mode?: TransportationSegmentAssignmentMode;
+  priority?: number | null;
+  recommended_driver_ids?: string[];
+  recommendation_metadata?: TransportationRecommendationMetadata;
+  queue_rank?: number | null;
+  escalation_state?: TransportationQueueEscalationState;
+  escalation_deadline?: string | null;
 }
 
 export interface TransportationSegmentFilters {
@@ -108,6 +158,10 @@ export interface TransportationSegmentFilters {
   segment_type?: TransportationSegmentType;
   status?: TransportationSegmentStatus;
   requires_follow_up?: boolean;
+  assignment_mode?: TransportationSegmentAssignmentMode;
+  unassigned_only?: boolean;
+  start_after?: string;
+  start_before?: string;
 }
 
 export function getTransportationSegmentTypeLabel(type: TransportationSegmentType): string {

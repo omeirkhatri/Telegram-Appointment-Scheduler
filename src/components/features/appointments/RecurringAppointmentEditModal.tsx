@@ -1,7 +1,6 @@
 'use client';
 
-import { Button } from '@/components/ui/Button';
-import { Card } from '@/components/ui/Card';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui';
 import { useToastContext } from '@/components/ui/ToastContainer';
 import type { Appointment } from '@/types';
 import { Calendar, Clock, User } from 'lucide-react';
@@ -25,8 +24,6 @@ export function RecurringAppointmentEditModal({
   const [selectedOption, setSelectedOption] = useState<'this_occurrence' | 'all_future' | 'until_date' | null>(null);
   const [untilDate, setUntilDate] = useState('');
   const { showToast } = useToastContext();
-
-  if (!isOpen) return null;
 
   const handleUpdate = async () => {
     if (!selectedOption) {
@@ -62,18 +59,19 @@ export function RecurringAppointmentEditModal({
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <Card className="w-full max-w-md mx-4">
-        <div className="p-6">
-          <div className="flex items-center space-x-3 mb-6">
+    <AlertDialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
+      <AlertDialogContent className="max-w-md">
+        <AlertDialogHeader>
+          <AlertDialogTitle className="flex items-center space-x-3">
             <div className="p-2 bg-blue-100 rounded-lg">
               <Calendar className="w-6 h-6 text-blue-600" />
             </div>
-            <div>
-              <h2 className="text-xl font-semibold text-gray-900">Edit Recurring Appointment</h2>
-              <p className="text-sm text-gray-600">Choose how to apply your changes</p>
-            </div>
-          </div>
+            <span>Edit Recurring Appointment</span>
+          </AlertDialogTitle>
+          <AlertDialogDescription>
+            Choose how to apply your changes
+          </AlertDialogDescription>
+        </AlertDialogHeader>
 
           {/* Appointment Details */}
           <div className="bg-gray-50 rounded-lg p-4 mb-6">
@@ -160,26 +158,18 @@ export function RecurringAppointmentEditModal({
             </div>
           </div>
 
-          {/* Action Buttons */}
-          <div className="flex space-x-3">
-            <Button
-              variant="outline"
-              onClick={handleClose}
-              disabled={isLoading}
-              className="flex-1"
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={handleUpdate}
-              disabled={!selectedOption || isLoading}
-              className="flex-1"
-            >
-              {isLoading ? 'Updating...' : 'Update Appointment'}
-            </Button>
-          </div>
-        </div>
-      </Card>
-    </div>
+        <AlertDialogFooter>
+          <AlertDialogCancel onClick={handleClose} disabled={isLoading}>
+            Cancel
+          </AlertDialogCancel>
+          <AlertDialogAction
+            onClick={handleUpdate}
+            disabled={!selectedOption || isLoading}
+          >
+            {isLoading ? 'Updating...' : 'Update Appointment'}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 }

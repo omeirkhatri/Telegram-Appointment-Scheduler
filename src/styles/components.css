@@ -32,7 +32,7 @@
 .calendar-toolbar {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
+  gap: 0;
   justify-content: center;
 }
 
@@ -161,11 +161,13 @@
   font-family: inherit;
   background-color: var(--card) !important;
   color: var(--foreground) !important;
+  height: calc(100vh - 140px) !important;
 }
 
 /* FullCalendar main container */
 .fc-view-harness {
   background-color: var(--card) !important;
+  height: 100% !important;
 }
 
 .fc-scroller {

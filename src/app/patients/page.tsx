@@ -1,8 +1,8 @@
 'use client';
 
-import Header from '@/components/layout/Header';
 import { PatientModal } from '@/components/features/patients';
-import { VirtualizedTable, type VirtualizedTableColumn } from '@/components/ui';
+import { PageHeader } from '@/components/layout/PageHeader';
+import { ShadButton as Button, ShadCard as Card, Input, VirtualizedTable, type VirtualizedTableColumn } from '@/components/ui';
 import { useToastContext } from '@/components/ui/ToastContainer';
 import { createPatientShortcuts, useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import type { Patient } from '@/types';
@@ -180,44 +180,36 @@ export default function Patients() {
       width: 120,
       minWidth: 80,
       render: (patient) => (
-        <button
+        <Button
+          variant="ghost"
+          size="icon"
           onClick={(e) => {
             e.stopPropagation();
             handleEditPatient(patient);
           }}
-          className="p-2 text-[--muted-foreground] hover:text-[--foreground] hover:bg-[--accent] rounded-lg transition-colors"
         >
           <MoreHorizontal className="w-4 h-4" />
-        </button>
+        </Button>
       ),
     },
   ];
 
   return (
-    <div className="min-h-screen bg-[--background] text-[--foreground]">
-      {/* Header with Navigation */}
-      <Header currentPage="patients" />
-
-      {/* Main Content - Full Width */}
-      <main className="px-8 py-8 space-y-8">
-        {/* Page Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-[--foreground]">Patients</h1>
-            <p className="text-[--muted-foreground] text-lg mt-1">Manage patient records and information</p>
-          </div>
-          <button
-            onClick={handleAddPatient}
-            className="inline-flex items-center px-4 py-2 bg-[--primary] text-[--primary-foreground] rounded-lg hover:bg-[--primary]/90 transition-colors"
-          >
+    <>
+      <PageHeader
+        title="Patients"
+        description="Manage patient records and information"
+        actions={
+          <Button onClick={handleAddPatient}>
             <Plus className="w-4 h-4 mr-2" />
             Add Patient
-          </button>
-        </div>
+          </Button>
+        }
+      />
 
-        {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          <div className="bg-[--card] border border-[--border] rounded-xl p-6 shadow-lg">
+      {/* Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <Card className="p-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-[--muted-foreground]">Total Patients</p>
@@ -227,8 +219,8 @@ export default function Patients() {
               </div>
               <Users className="w-8 h-8 text-[--medical-blue]" />
             </div>
-          </div>
-          <div className="bg-[--card] border border-[--border] rounded-xl p-6 shadow-lg">
+          </Card>
+        <Card className="p-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-[--muted-foreground]">Active Patients</p>
@@ -238,8 +230,8 @@ export default function Patients() {
               </div>
               <UserCheck className="w-8 h-8 text-[--success]" />
             </div>
-          </div>
-          <div className="bg-[--card] border border-[--border] rounded-xl p-6 shadow-lg">
+          </Card>
+        <Card className="p-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-[--muted-foreground]">New This Month</p>
@@ -253,8 +245,8 @@ export default function Patients() {
               </div>
               <Plus className="w-8 h-8 text-[--warning]" />
             </div>
-          </div>
-          <div className="bg-[--card] border border-[--border] rounded-xl p-6 shadow-lg">
+          </Card>
+        <Card className="p-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-[--muted-foreground]">With ID Documents</p>
@@ -264,58 +256,59 @@ export default function Patients() {
               </div>
               <UserCheck className="w-8 h-8 text-[--success]" />
             </div>
-          </div>
-        </div>
+          </Card>
+      </div>
 
-        {/* Search and filters */}
-        <div className="bg-[--card] border border-[--border] rounded-xl p-6 shadow-lg">
+      {/* Search and filters */}
+      <Card className="p-6">
           <div className="flex flex-col sm:flex-row gap-4">
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[--muted-foreground]" />
-              <input
+              <Input
                 ref={searchInputRef}
                 type="text"
                 placeholder="Search patients..."
-                className="w-full pl-10 pr-4 py-3 border border-[--border] rounded-lg bg-[--muted] text-[--foreground] placeholder-[--muted-foreground] focus:outline-none focus:ring-2 focus:ring-[--ring] focus:border-transparent"
+                className="w-full pl-10"
               />
             </div>
-            <button className="inline-flex items-center px-4 py-3 border border-[--border] rounded-lg hover:bg-[--accent] transition-colors text-[--muted-foreground] hover:text-[--foreground]">
+            <Button variant="outline">
               <Filter className="w-4 h-4 mr-2" />
               Filter
-            </button>
+            </Button>
           </div>
-        </div>
+        </Card>
 
-        {/* Error Display */}
-        {error && (
-          <div className="bg-[--card] border border-[--border] rounded-xl p-6 shadow-lg">
-            <div className="bg-[--destructive]/10 border border-[--destructive]/20 rounded-lg p-4">
-              <p className="text-[--destructive] font-medium">Error loading patients</p>
-              <p className="text-[--destructive]/80 text-sm mt-1">{error}</p>
-              <button
-                onClick={fetchPatients}
-                className="mt-2 px-3 py-1 bg-[--destructive] text-[--destructive-foreground] rounded text-sm hover:bg-[--destructive]/90 transition-colors"
-              >
-                Retry
-              </button>
-            </div>
+      {/* Error Display */}
+      {error && (
+        <Card className="p-6">
+          <div className="bg-[--destructive]/10 border border-[--destructive]/20 rounded-lg p-4">
+            <p className="text-[--destructive] font-medium">Error loading patients</p>
+            <p className="text-[--destructive]/80 text-sm mt-1">{error}</p>
+            <Button
+              onClick={fetchPatients}
+              variant="destructive"
+              size="sm"
+              className="mt-2"
+            >
+              Retry
+            </Button>
           </div>
-        )}
+        </Card>
+      )}
 
-        {/* Virtualized Patients Table */}
-        <VirtualizedTable
-          data={patients}
-          columns={columns}
-          height={600}
-          itemHeight={80}
-          loading={isLoading}
-          loadingMessage="Loading patients..."
-          emptyMessage="No patients found"
-          onRowClick={handleEditPatient}
-          getRowKey={(patient) => patient.id}
-          enableKeyboardNavigation={true}
-        />
-      </main>
+      {/* Virtualized Patients Table */}
+      <VirtualizedTable
+        data={patients}
+        columns={columns}
+        height={600}
+        itemHeight={80}
+        loading={isLoading}
+        loadingMessage="Loading patients..."
+        emptyMessage="No patients found"
+        onRowClick={handleEditPatient}
+        getRowKey={(patient) => patient.id}
+        enableKeyboardNavigation={true}
+      />
 
       {/* Patient Modal */}
       <PatientModal
@@ -324,6 +317,6 @@ export default function Patients() {
         onSuccess={handlePatientSuccess}
         initialPatient={editingPatient || undefined}
       />
-    </div>
+    </>
   );
 }

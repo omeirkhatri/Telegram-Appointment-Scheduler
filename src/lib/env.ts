@@ -23,6 +23,11 @@ const clientEnvSchema = z.object({
   // Optional public variables
   NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: z.string().optional(),
   NEXT_PUBLIC_GOOGLE_CALENDAR_SYNC_ENABLED: z.string().transform(val => val === 'true').optional(),
+
+  // Driver Assignment Overhaul Feature Flags (client-side)
+  NEXT_PUBLIC_DRIVER_ASSIGNMENT_OVERHAUL_ENABLED: z.string().transform(val => val === 'true').optional(),
+  NEXT_PUBLIC_DRIVER_ASSIGNMENT_OVERHAUL_UI_ENABLED: z.string().transform(val => val === 'true').optional(),
+  NEXT_PUBLIC_DRIVER_ASSIGNMENT_OVERHAUL_CAPACITY_PLANNER_ENABLED: z.string().transform(val => val === 'true').optional(),
 });
 
 // Full environment schema for server-side validation
@@ -64,6 +69,20 @@ const serverEnvSchema = clientEnvSchema.extend({
   GOOGLE_CALENDAR_EMAIL_FROM_NAME: z.string().optional(),
   GOOGLE_CALENDAR_SYNC_ENABLED: z.string().transform(val => val === 'true').optional(),
 
+  // Driver Assignment Overhaul Feature Flags
+  DRIVER_ASSIGNMENT_OVERHAUL_ENABLED: z.string().transform(val => val === 'true').optional(),
+  DRIVER_ASSIGNMENT_OVERHAUL_UI_ENABLED: z.string().transform(val => val === 'true').optional(),
+  DRIVER_ASSIGNMENT_OVERHAUL_CAPACITY_PLANNER_ENABLED: z.string().transform(val => val === 'true').optional(),
+  DRIVER_ASSIGNMENT_OVERHAUL_ASSISTIVE_ENGINE_ENABLED: z.string().transform(val => val === 'true').optional(),
+  DRIVER_ASSIGNMENT_OVERHAUL_ANALYTICS_ENABLED: z.string().transform(val => val === 'true').optional(),
+  DRIVER_ASSIGNMENT_OVERHAUL_ESCALATION_ENABLED: z.string().transform(val => val === 'true').optional(),
+
+  // Google Sheets Lead Integration Configuration
+  GOOGLE_SHEETS_LEAD_SHEET_ID: z.string().optional(),
+  GOOGLE_SHEETS_LEAD_RANGE: z.string().default('Sheet1!A:F'),
+  GOOGLE_SHEETS_CREDENTIALS_PATH: z.string().optional(),
+  LEAD_SYNC_INTERVAL_MINUTES: z.string().transform(Number).default(30),
+
   // Deployment Configuration
   PORT: z.string().transform(Number).default(3000),
   HEALTH_CHECK_PATH: z.string().default('/api/health'),
@@ -92,6 +111,9 @@ function collectEnvForValidation(): Record<string, string | undefined> {
     NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
     NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY,
     NEXT_PUBLIC_GOOGLE_CALENDAR_SYNC_ENABLED: process.env.NEXT_PUBLIC_GOOGLE_CALENDAR_SYNC_ENABLED,
+    NEXT_PUBLIC_DRIVER_ASSIGNMENT_OVERHAUL_ENABLED: process.env.NEXT_PUBLIC_DRIVER_ASSIGNMENT_OVERHAUL_ENABLED,
+    NEXT_PUBLIC_DRIVER_ASSIGNMENT_OVERHAUL_UI_ENABLED: process.env.NEXT_PUBLIC_DRIVER_ASSIGNMENT_OVERHAUL_UI_ENABLED,
+    NEXT_PUBLIC_DRIVER_ASSIGNMENT_OVERHAUL_CAPACITY_PLANNER_ENABLED: process.env.NEXT_PUBLIC_DRIVER_ASSIGNMENT_OVERHAUL_CAPACITY_PLANNER_ENABLED,
   };
 }
 
@@ -259,6 +281,52 @@ function getConfig() {
           } catch (error) {
             throw new Error('Invalid Google Calendar service account key format');
           }
+        },
+      },
+
+      // Google Sheets Lead Integration configuration
+      googleSheets: {
+        sheetId: 'GOOGLE_SHEETS_LEAD_SHEET_ID' in env ? env.GOOGLE_SHEETS_LEAD_SHEET_ID : undefined,
+        range: 'GOOGLE_SHEETS_LEAD_RANGE' in env ? env.GOOGLE_SHEETS_LEAD_RANGE : 'Sheet1!A:F',
+        credentialsPath: 'GOOGLE_SHEETS_CREDENTIALS_PATH' in env ? env.GOOGLE_SHEETS_CREDENTIALS_PATH : undefined,
+        syncIntervalMinutes: 'LEAD_SYNC_INTERVAL_MINUTES' in env ? env.LEAD_SYNC_INTERVAL_MINUTES : 30,
+
+        // Runtime validation helpers
+        isConfigured: () => {
+          return 'GOOGLE_SHEETS_LEAD_SHEET_ID' in env &&
+                 !!env.GOOGLE_SHEETS_LEAD_SHEET_ID &&
+                 'GOOGLE_SHEETS_CREDENTIALS_PATH' in env &&
+                 !!env.GOOGLE_SHEETS_CREDENTIALS_PATH;
+        },
+
+        validateConfig: () => {
+          if (!('GOOGLE_SHEETS_LEAD_SHEET_ID' in env) || !env.GOOGLE_SHEETS_LEAD_SHEET_ID) {
+            throw new Error('GOOGLE_SHEETS_LEAD_SHEET_ID is required for Google Sheets integration');
+          }
+          if (!('GOOGLE_SHEETS_CREDENTIALS_PATH' in env) || !env.GOOGLE_SHEETS_CREDENTIALS_PATH) {
+            throw new Error('GOOGLE_SHEETS_CREDENTIALS_PATH is required for Google Sheets integration');
+          }
+          return true;
+        },
+      },
+
+      // Driver Assignment Overhaul configuration
+      driverAssignmentOverhaul: {
+        enabled: 'NEXT_PUBLIC_DRIVER_ASSIGNMENT_OVERHAUL_ENABLED' in env ? env.NEXT_PUBLIC_DRIVER_ASSIGNMENT_OVERHAUL_ENABLED : false,
+        uiEnabled: 'NEXT_PUBLIC_DRIVER_ASSIGNMENT_OVERHAUL_UI_ENABLED' in env ? env.NEXT_PUBLIC_DRIVER_ASSIGNMENT_OVERHAUL_UI_ENABLED : false,
+        capacityPlannerEnabled: 'NEXT_PUBLIC_DRIVER_ASSIGNMENT_OVERHAUL_CAPACITY_PLANNER_ENABLED' in env ? env.NEXT_PUBLIC_DRIVER_ASSIGNMENT_OVERHAUL_CAPACITY_PLANNER_ENABLED : false,
+        assistiveEngineEnabled: 'DRIVER_ASSIGNMENT_OVERHAUL_ASSISTIVE_ENGINE_ENABLED' in env ? env.DRIVER_ASSIGNMENT_OVERHAUL_ASSISTIVE_ENGINE_ENABLED : false,
+        analyticsEnabled: 'DRIVER_ASSIGNMENT_OVERHAUL_ANALYTICS_ENABLED' in env ? env.DRIVER_ASSIGNMENT_OVERHAUL_ANALYTICS_ENABLED : false,
+        escalationEnabled: 'DRIVER_ASSIGNMENT_OVERHAUL_ESCALATION_ENABLED' in env ? env.DRIVER_ASSIGNMENT_OVERHAUL_ESCALATION_ENABLED : false,
+
+        // Runtime validation helpers
+        isEnabled: () => {
+          return 'DRIVER_ASSIGNMENT_OVERHAUL_ENABLED' in env && env.DRIVER_ASSIGNMENT_OVERHAUL_ENABLED === true;
+        },
+
+        validateConfig: () => {
+          // No specific validation required for feature flags
+          return true;
         },
       },
 

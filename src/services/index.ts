@@ -26,11 +26,7 @@ export {
     getEmailService,
     resetEmailService
 } from './emailService';
-export {
-    default as GoogleCalendarService,
-    getGoogleCalendarService,
-    resetGoogleCalendarService
-} from './googleCalendarService';
+// Do not re-export GoogleCalendarService to avoid client bundling
 
 // Error Handling and Monitoring Services
 export { errorLoggingService } from './errorLoggingService';

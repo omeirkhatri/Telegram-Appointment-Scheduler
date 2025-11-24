@@ -1,11 +1,10 @@
 'use client';
 
-import { PatientForm } from './PatientForm';
-import { ErrorMessage } from '@/components/ui';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, ErrorMessage } from '@/components/ui';
 import { useToastContext } from '@/components/ui/ToastContainer';
 import type { Patient } from '@/types';
-import { X } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { PatientForm } from './PatientForm';
 
 interface PatientModalProps {
   isOpen: boolean;
@@ -75,38 +74,19 @@ export function PatientModal({
     onClose();
   };
 
-  if (!isOpen) return null;
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-black/50 backdrop-blur-sm"
-        onClick={handleCancel}
-      />
+    <Dialog open={isOpen} onOpenChange={(open) => !open && handleCancel()}>
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="text-2xl">
+            {initialPatient?.id ? 'Edit Patient' : 'Add New Patient'}
+          </DialogTitle>
+          <DialogDescription>
+            {initialPatient?.id ? 'Update patient information' : 'Enter patient details to add them to the system'}
+          </DialogDescription>
+        </DialogHeader>
 
-      {/* Modal */}
-      <div className="relative bg-[--card] border border-[--border] rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] mx-4">
-        {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-[--border]">
-          <div>
-            <h2 className="text-2xl font-bold text-[--foreground]">
-              {initialPatient?.id ? 'Edit Patient' : 'Add New Patient'}
-            </h2>
-            <p className="text-[--muted-foreground] mt-1">
-              {initialPatient?.id ? 'Update patient information' : 'Enter patient details to add them to the system'}
-            </p>
-          </div>
-          <button
-            onClick={handleCancel}
-            className="p-2 text-[--muted-foreground] hover:text-[--foreground] hover:bg-[--accent] rounded-lg transition-colors"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
-        {/* Content */}
-        <div className="p-6 overflow-y-auto max-h-[calc(90vh-140px)]">
+        <div className="mt-4">
           {/* Submit error */}
           {submitError && (
             <ErrorMessage
@@ -123,7 +103,7 @@ export function PatientModal({
             isLoading={isSubmitting}
           />
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

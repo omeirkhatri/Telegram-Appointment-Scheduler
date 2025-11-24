@@ -1,6 +1,8 @@
+import { AppLayout } from '@/components/layout/AppLayout';
 import { KeyboardShortcutsProvider } from '@/components/providers/KeyboardShortcutsProvider';
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
 import { ToastProvider } from '@/components/ui/ToastContainer';
+import { AuthProvider } from '@/contexts/AuthContext';
 import { DebugProvider } from '@/hooks/useDebugState';
 import type { Metadata, Viewport } from 'next';
 import './globals.css';
@@ -36,13 +38,17 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <ErrorBoundary>
-          <ToastProvider>
-            <DebugProvider>
-              <KeyboardShortcutsProvider>
-                {children}
-              </KeyboardShortcutsProvider>
-            </DebugProvider>
-          </ToastProvider>
+          <AuthProvider>
+            <ToastProvider>
+              <DebugProvider>
+                <KeyboardShortcutsProvider>
+                  <AppLayout>
+                    {children}
+                  </AppLayout>
+                </KeyboardShortcutsProvider>
+              </DebugProvider>
+            </ToastProvider>
+          </AuthProvider>
         </ErrorBoundary>
       </body>
     </html>

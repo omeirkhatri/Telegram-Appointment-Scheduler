@@ -27,11 +27,13 @@ interface CustomMultiSelectProps {
   onChange: (values: string[]) => void;
   placeholder: string;
   className?: string;
+  enableSearch?: boolean;
 }
 
-function CustomMultiSelect({ options, values = [], onChange, placeholder, className = '' }: CustomMultiSelectProps) {
+function CustomMultiSelect({ options, values = [], onChange, placeholder, className = '', enableSearch = false }: CustomMultiSelectProps) {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -43,6 +45,17 @@ function CustomMultiSelect({ options, values = [], onChange, placeholder, classN
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  useEffect(() => {
+    if (!isOpen) {
+      setSearchTerm('');
+    }
+  }, [isOpen]);
+
+  const normalizedSearch = searchTerm.trim().toLowerCase();
+  const filteredOptions = !normalizedSearch
+    ? options
+    : options.filter((option) => option.label.toLowerCase().includes(normalizedSearch));
 
   const selectedOptions = options.filter(option => values.includes(option.value));
 
@@ -105,6 +118,17 @@ function CustomMultiSelect({ options, values = [], onChange, placeholder, classN
       {isOpen && (
         <div className="absolute z-10 w-full mt-1 bg-[--card] border border-[--border] rounded-lg shadow-lg">
           <div className="py-1">
+            {enableSearch && (
+              <div className="px-3 pb-2">
+                <input
+                  type="text"
+                  value={searchTerm}
+                  onChange={(event) => setSearchTerm(event.target.value)}
+                  placeholder={`Search ${placeholder.toLowerCase()}`}
+                  className="w-full px-3 py-1.5 text-sm border border-[--border] rounded-md bg-[--muted] text-[--foreground] focus:outline-none focus:ring-2 focus:ring-[--ring] focus:border-transparent"
+                />
+              </div>
+            )}
             <button
               type="button"
               onClick={handleSelectAll}
@@ -113,7 +137,7 @@ function CustomMultiSelect({ options, values = [], onChange, placeholder, classN
               <Check className={`w-4 h-4 ${values.length === options.length ? 'text-[--primary]' : 'text-[--muted-foreground]'}`} />
               <span>All {placeholder.toLowerCase()}</span>
             </button>
-            {options.map((option) => {
+            {filteredOptions.map((option) => {
               const isSelected = values.includes(option.value);
               return (
                 <button
@@ -148,9 +172,6 @@ export function AppointmentFilters({
   staffOptions = [],
   className = '',
 }: AppointmentFiltersProps) {
-  const [isExpanded, setIsExpanded] = useState(false);
-  const [localFilters, setLocalFilters] = useState<AppointmentFilterState>(filters);
-
   const appointmentTypes = [
     { value: 'doctor_on_call', label: 'Doctor on Call', color: getAppointmentTypeColor('doctor_on_call', 'primary') },
     { value: 'lab_test', label: 'Lab Test', color: getAppointmentTypeColor('lab_test', 'primary') },
@@ -173,146 +194,134 @@ export function AppointmentFilters({
     label: `${staff.name} (${staff.staff_type.replace('_', ' ')})`,
     color: '#6b7280', // Gray color for staff
   }));
-
-  // Update local filters when props change
-  useEffect(() => {
-    setLocalFilters(filters);
-  }, [filters]);
-
-  const handleLocalFilterChange = (key: keyof AppointmentFilterState, value: string[] | string | undefined) => {
-    setLocalFilters(prev => ({
-      ...prev,
-      [key]: value,
-    }));
-  };
-
-  const handleApplyFilters = () => {
-    onFiltersChange(localFilters);
-  };
-
-  const handleClearFilters = () => {
-    setLocalFilters({});
-    onClearFilters();
-  };
-
-  const hasActiveFilters = Object.values(localFilters).some(value =>
+  const hasActiveFilters = Object.values(filters).some(value =>
     value !== undefined &&
     value !== '' &&
     (!Array.isArray(value) || value.length > 0)
   );
 
-  const getFilterCount = () => {
-    return Object.values(localFilters).filter(value =>
-      value !== undefined &&
-      value !== '' &&
-      (!Array.isArray(value) || value.length > 0)
-    ).length;
+  const activeCount = Object.values(filters).filter(value =>
+    value !== undefined &&
+    value !== '' &&
+    (!Array.isArray(value) || value.length > 0)
+  ).length;
+
+  const updateFilter = (partial: Partial<AppointmentFilterState>) => {
+    onFiltersChange({
+      ...filters,
+      ...partial,
+    });
+  };
+
+  const handleDateChange = (key: 'dateFrom' | 'dateTo') => (value: string) => {
+    updateFilter({ [key]: value || undefined });
   };
 
   return (
-    <div className={`bg-[--card] border border-[--border] rounded-lg shadow-sm ${className}`}>
-      {/* Filter Header */}
-      <div className="px-3 py-2 border-b border-[--border]">
-        <div className="flex items-center justify-between">
-          <button
-            onClick={() => setIsExpanded(!isExpanded)}
-            className="flex items-center space-x-2 text-[--foreground] hover:text-[--primary] transition-colors group"
-          >
-            <div className="p-1.5 bg-[--primary]/10 rounded-md group-hover:bg-[--primary]/20 transition-colors">
-              <Filter className="w-4 h-4 text-[--primary]" />
-            </div>
-            <div className="flex items-center space-x-2">
-              <span className="font-medium text-sm">Filters</span>
-              {hasActiveFilters && (
-                <span className="bg-[--primary] text-[--primary-foreground] text-xs font-medium px-2 py-0.5 rounded-full">
-                  {getFilterCount()}
-                </span>
-              )}
-            </div>
-            <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} />
-          </button>
-          {hasActiveFilters && (
-            <button
-              onClick={handleClearFilters}
-              className="flex items-center space-x-1 text-[--muted-foreground] hover:text-[--error] transition-colors px-2 py-1 rounded-md hover:bg-[--error]/10"
-            >
-              <X className="w-3 h-3" />
-              <span className="text-xs font-medium">Clear</span>
-            </button>
-          )}
+    <div className={`flex h-full flex-col bg-[--card] border border-[--border] rounded-lg shadow-sm ${className}`}>
+      <div className="flex items-start justify-between gap-2 border-b border-[--border] px-4 py-3">
+        <div>
+          <div className="flex items-center gap-2 text-sm font-medium text-[--foreground]">
+            <Filter className="h-4 w-4 text-[--primary]" />
+            Filter Appointments
+            {hasActiveFilters && (
+              <span className="rounded-full bg-[--primary] px-2 py-0.5 text-xs font-semibold text-[--primary-foreground]">
+                {activeCount}
+              </span>
+            )}
+          </div>
+          <p className="mt-1 text-xs text-[--muted-foreground]">
+            Narrow down the list to focus on a staff member or a specific schedule window.
+          </p>
         </div>
+        {hasActiveFilters && (
+          <button
+            onClick={onClearFilters}
+            className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-[--muted-foreground] transition-colors hover:bg-[--error]/10 hover:text-[--error]"
+          >
+            <X className="h-3 w-3" />
+            Clear all
+          </button>
+        )}
       </div>
 
-      {/* Filter Content */}
-      {isExpanded && (
-        <div className="p-2">
-          {/* Compact Filter Row with Inline Apply Button */}
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-2 items-center">
-            {/* Staff Filter */}
+      <div className="flex-1 overflow-y-auto px-4 py-3 space-y-4">
+        <section>
+          <div className="mb-2 flex items-center justify-between">
             <div>
-              <CustomMultiSelect
-                options={staffDropdownOptions}
-                values={localFilters.staffIds || []}
-                onChange={(values) => handleLocalFilterChange('staffIds', values)}
-                placeholder="Staff Member"
-              />
+              <p className="text-xs font-semibold uppercase tracking-wide text-[--muted-foreground]">Staff schedule</p>
+              <p className="text-xs text-[--muted-foreground]">
+                Select one or more staff members to focus the calendar on their appointments.
+              </p>
             </div>
+          </div>
+          <CustomMultiSelect
+            options={staffDropdownOptions}
+            values={filters.staffIds || []}
+            onChange={(values) => updateFilter({ staffIds: values.length ? values : undefined })}
+            placeholder="Staff members"
+            className="text-sm"
+            enableSearch
+          />
+        </section>
 
-            {/* Appointment Type Filter */}
-            <div>
-              <CustomMultiSelect
-                options={appointmentTypes}
-                values={localFilters.appointmentTypes || []}
-                onChange={(values) => handleLocalFilterChange('appointmentTypes', values)}
-                placeholder="Appointment Type"
-              />
-            </div>
+        <section>
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[--muted-foreground]">Appointment type</p>
+          <CustomMultiSelect
+            options={appointmentTypes}
+            values={filters.appointmentTypes || []}
+            onChange={(values) => updateFilter({ appointmentTypes: values.length ? values : undefined })}
+            placeholder="Appointment types"
+            className="text-sm"
+          />
+        </section>
 
-            {/* Status Filter */}
-            <div>
-              <CustomMultiSelect
-                options={statusOptions}
-                values={localFilters.statuses || []}
-                onChange={(values) => handleLocalFilterChange('statuses', values)}
-                placeholder="Status"
-              />
-            </div>
+        <section>
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[--muted-foreground]">Status</p>
+          <CustomMultiSelect
+            options={statusOptions}
+            values={filters.statuses || []}
+            onChange={(values) => updateFilter({ statuses: values.length ? values : undefined })}
+            placeholder="Statuses"
+            className="text-sm"
+          />
+        </section>
 
-            {/* Date Range */}
-            <div>
-              <div className="grid grid-cols-2 gap-2">
-                <div className="relative">
-                  <Calendar className="absolute left-2 top-1/2 transform -translate-y-1/2 w-3 h-3 text-[--muted-foreground]" />
-                  <input
-                    type="date"
-                    value={localFilters.dateFrom || ''}
-                    onChange={(e) => handleLocalFilterChange('dateFrom', e.target.value || undefined)}
-                    className="w-full pl-7 pr-2 py-1.5 text-xs border border-[--border] rounded-lg bg-[--card] text-[--foreground] focus:outline-none focus:ring-2 focus:ring-[--ring] focus:border-transparent"
-                    placeholder="From"
-                  />
-                </div>
-                <div className="relative">
-                  <Calendar className="absolute left-2 top-1/2 transform -translate-y-1/2 w-3 h-3 text-[--muted-foreground]" />
-                  <input
-                    type="date"
-                    value={localFilters.dateTo || ''}
-                    onChange={(e) => handleLocalFilterChange('dateTo', e.target.value || undefined)}
-                    className="w-full pl-7 pr-2 py-1.5 text-xs border border-[--border] rounded-lg bg-[--card] text-[--foreground] focus:outline-none focus:ring-2 focus:ring-[--ring] focus:border-transparent"
-                    placeholder="To"
-                  />
-                </div>
+        <section>
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[--muted-foreground]">Date range</p>
+          <div className="grid grid-cols-2 gap-2">
+            <label className="relative flex flex-col text-xs text-[--muted-foreground]">
+              <span className="mb-1 font-medium text-[--foreground]">From</span>
+              <div className="relative">
+                <Calendar className="absolute left-2 top-1/2 h-3 w-3 -translate-y-1/2 text-[--muted-foreground]" />
+                <input
+                  type="date"
+                  value={filters.dateFrom || ''}
+                  onChange={(event) => handleDateChange('dateFrom')(event.target.value)}
+                  className="w-full rounded-lg border border-[--border] bg-[--card] pl-7 pr-2 py-1.5 text-xs text-[--foreground] focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[--ring]"
+                />
               </div>
-            </div>
+            </label>
+            <label className="relative flex flex-col text-xs text-[--muted-foreground]">
+              <span className="mb-1 font-medium text-[--foreground]">To</span>
+              <div className="relative">
+                <Calendar className="absolute left-2 top-1/2 h-3 w-3 -translate-y-1/2 text-[--muted-foreground]" />
+                <input
+                  type="date"
+                  value={filters.dateTo || ''}
+                  onChange={(event) => handleDateChange('dateTo')(event.target.value)}
+                  className="w-full rounded-lg border border-[--border] bg-[--card] pl-7 pr-2 py-1.5 text-xs text-[--foreground] focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[--ring]"
+                />
+              </div>
+            </label>
+          </div>
+        </section>
+      </div>
 
-            {/* Apply Button - Inline */}
-            <div className="flex justify-end">
-              <button
-                onClick={handleApplyFilters}
-                className="px-4 py-1.5 bg-[--primary] text-[--primary-foreground] text-sm font-medium rounded-lg hover:bg-[--primary]/90 focus:outline-none focus:ring-2 focus:ring-[--ring] focus:ring-offset-2 transition-colors"
-              >
-                Apply
-              </button>
-            </div>
+      {hasActiveFilters && (
+        <div className="border-t border-[--border] px-4 py-3">
+          <div className="text-xs text-[--muted-foreground]">
+            Showing appointments that match the selected filters.
           </div>
         </div>
       )}

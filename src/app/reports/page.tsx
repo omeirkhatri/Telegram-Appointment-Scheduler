@@ -1,18 +1,20 @@
 'use client';
 
-import Header from '@/components/layout/Header';
 import { ReportsDashboard } from '@/components/features/reports';
+import { PageHeader } from '@/components/layout/PageHeader';
 
 export default function ReportsPage() {
   return (
-    <div className="min-h-screen bg-[--background] text-[--foreground]">
-      {/* Header with Navigation */}
-      <Header currentPage="reports" />
+    <>
+      <PageHeader
+        title="Reports"
+        description="Generate and view system reports"
+      />
 
       {/* Main Content */}
-      <main className="px-8 py-8">
+      <main className="px-4 py-8">
         <ReportsDashboard />
       </main>
-    </div>
+    </>
   );
 }

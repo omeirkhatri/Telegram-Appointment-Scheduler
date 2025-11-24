@@ -4,7 +4,7 @@ import { supabase } from '@/lib/supabase';
 import type { CreateStaff, Staff, StaffFilters, UpdateStaff } from '@/types';
 import { getCalendarVerificationService } from './calendarVerificationService';
 import { getEmailService } from './emailService';
-import { getGoogleCalendarService } from './googleCalendarService';
+// Import server-only calendar service dynamically when needed to avoid bundling in client
 
 export class StaffService {
   // Get all staff with optional filtering
@@ -304,6 +304,7 @@ export class StaffService {
         operationStatus: 'pending'
       });
 
+      const { getGoogleCalendarService } = await import('./googleCalendarService');
       const googleCalendarService = getGoogleCalendarService();
       const emailService = getEmailService();
 
@@ -437,6 +438,7 @@ export class StaffService {
       if (staff.google_calendar_id && updates.email && updates.email !== staff.email) {
         console.log(`📅 Updating calendar sharing for staff ${staffId} with new email ${updates.email}`);
 
+        const { getGoogleCalendarService } = await import('./googleCalendarService');
         const googleCalendarService = getGoogleCalendarService();
 
         // Share calendar with new email

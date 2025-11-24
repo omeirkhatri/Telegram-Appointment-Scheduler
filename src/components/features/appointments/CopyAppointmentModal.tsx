@@ -1,13 +1,13 @@
 'use client';
 
 import { AppointmentAuditTrail } from '@/components/audit';
-import { AppointmentForm } from './AppointmentForm';
-import { ErrorMessage, LoadingOverlay } from '@/components/ui';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, ErrorMessage, LoadingOverlay } from '@/components/ui';
 import { formatBulkCopyPattern, generateBulkCopyDates, getDefaultBulkCopyConfig, validateBulkCopyConfig } from '@/lib/bulkCopyUtils';
 import type { Appointment, AppointmentStaffWithDetails, Patient, Staff } from '@/types';
 import type { BulkCopyConfig, BulkCopyProgress, BulkCopyResult } from '@/types/bulkCopy';
-import { Calendar, Copy, FileText, Settings, UserMinus, UserPlus, Users, X } from 'lucide-react';
+import { Calendar, Copy, FileText, Settings, UserMinus, UserPlus, Users } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { AppointmentForm } from './AppointmentForm';
 
 interface CopyAppointmentModalProps {
   isOpen: boolean;
@@ -259,32 +259,23 @@ export function CopyAppointmentModal({
     // Keep all other fields as they were
   };
 
-  if (!isOpen) return null;
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-black/50 backdrop-blur-sm"
-        onClick={handleCancel}
-      />
-
-      {/* Modal */}
-      <div className="relative bg-[--card] border border-[--border] rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden">
-        {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-[--border]">
-          <div>
-            <h2 className="text-2xl font-bold text-[--foreground]">
-              Copy Appointment
-            </h2>
-            <p className="text-[--muted-foreground] mt-1">
-              Create a copy of this appointment. Please set a new date and time.
-            </p>
-            <div className="mt-2 text-sm text-[--muted-foreground]">
+    <Dialog open={isOpen} onOpenChange={(open) => !open && handleCancel()}>
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden">
+        <DialogHeader>
+          <DialogTitle className="text-2xl">
+            Copy Appointment
+          </DialogTitle>
+          <DialogDescription>
+            Create a copy of this appointment. Please set a new date and time.
+            <div className="mt-2 text-sm">
               <span className="font-medium">Source:</span> {sourceAppointment.appointment_type.replace('_', ' ')} on {sourceAppointment.appointment_date}
             </div>
-          </div>
-          <div className="flex items-center space-x-2">
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="mt-4">
+          <div className="flex items-center space-x-2 mb-4">
             <button
               onClick={() => setShowAuditTrail(true)}
               className="p-2 text-[--muted-foreground] hover:text-[--foreground] hover:bg-[--accent] rounded-lg transition-colors"
@@ -292,14 +283,7 @@ export function CopyAppointmentModal({
             >
               <FileText className="w-5 h-5" />
             </button>
-            <button
-              onClick={handleCancel}
-              className="p-2 text-[--muted-foreground] hover:text-[--foreground] hover:bg-[--accent] rounded-lg transition-colors"
-            >
-              <X className="w-5 h-5" />
-            </button>
           </div>
-        </div>
 
         {/* Copy Mode Selection */}
         <div className="p-6 border-b border-[--border]">
@@ -766,7 +750,8 @@ export function CopyAppointmentModal({
             </div>
           )}
         </div>
-      </div>
+        </div>
+      </DialogContent>
 
       {/* Audit Trail Modal */}
       <AppointmentAuditTrail
@@ -774,6 +759,6 @@ export function CopyAppointmentModal({
         isOpen={showAuditTrail}
         onClose={() => setShowAuditTrail(false)}
       />
-    </div>
+    </Dialog>
   );
 }

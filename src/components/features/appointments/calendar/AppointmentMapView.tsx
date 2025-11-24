@@ -917,7 +917,11 @@ export function AppointmentMapView({
                   align-items: center;
                   justify-content: center;
                   font-size: 9px;
-                ">📍</div>
+                ">
+                  <svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+                  </svg>
+                </div>
                 <span style="font-size: 10px; color: #6b7280; font-weight: 500;">Address</span>
               </div>
               <div style="font-size: 11px; color: #111827; margin-left: 18px; line-height: 1.2;">
@@ -944,7 +948,11 @@ export function AppointmentMapView({
                   align-items: center;
                   justify-content: center;
                   font-size: 9px;
-                ">📝</div>
+                ">
+                  <svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"/>
+                  </svg>
+                </div>
                 <span style="font-size: 10px; color: #6b7280; font-weight: 500;">Notes</span>
               </div>
               <div style="font-size: 11px; color: #111827; margin-left: 18px; line-height: 1.2;">
@@ -1916,7 +1924,11 @@ export function AppointmentMapView({
               pointerEvents: 'auto'
             }}
           >
-            📍 Fit to Map
+            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+            </svg>
+            Fit to Map
           </button>
 
           {/* Clustering Statistics */}

@@ -21,7 +21,7 @@ import {
 } from '@/types/appointment';
 import { appointmentStaffService } from './appointmentStaffService';
 import { getCompatibleUnifiedCalendarSyncService } from './compatibleUnifiedCalendarSyncService';
-import { getGoogleCalendarService } from './googleCalendarService';
+// Avoid bundling server-only googleapis into client; import dynamically on server
 import { telegramNotificationService } from './telegramNotificationService';
 import { transportationSegmentService } from './transportationSegmentService';
 
@@ -307,12 +307,13 @@ export class AppointmentService {
       timestamp: new Date().toISOString(),
     });
 
-    // Prepare appointment data with new recurring fields
+    // Set default driver assignment status based on transportation type
     const appointmentInsertData = {
       ...appointmentData,
       is_recurring_base: !!appointmentData.recurring_rule, // Mark as base if it has a recurring rule
       recurring_group_id: null, // Will be set by the base appointment
-      recurring_occurrence_number: null // Will be set by the base appointment
+      recurring_occurrence_number: null, // Will be set by the base appointment
+      driver_assignment_status: this.determineDriverAssignmentStatus(appointmentData)
     };
 
     const { data, error } = await supabase
@@ -323,6 +324,16 @@ export class AppointmentService {
 
     if (error) {
       throw new Error(`Failed to create appointment: ${error.message}`);
+    }
+
+    // Sync driver assignment status with transportation segments if feature is enabled
+    if (isFeatureEnabled('TRANSPORTATION_SEGMENTS_ENABLED')) {
+      try {
+        await this.syncDriverAssignmentStatusWithSegments(data.id);
+      } catch (syncError) {
+        console.error(`❌ Failed to sync driver assignment status for appointment ${data.id}:`, syncError);
+        // Don't throw error as this is a secondary operation
+      }
     }
 
     // Send same-day appointment notifications if applicable
@@ -369,6 +380,18 @@ export class AppointmentService {
       throw new Error('Invalid recurring rule');
     }
 
+    // Get current appointment to check for changes that affect driver assignment status
+    const currentAppointment = await this.getAppointment(id);
+    if (!currentAppointment) {
+      throw new Error('Appointment not found');
+    }
+
+    // Determine if driver assignment status needs to be updated
+    const shouldUpdateDriverStatus = this.shouldUpdateDriverAssignmentStatus(currentAppointment, updates);
+    if (shouldUpdateDriverStatus) {
+      updates.driver_assignment_status = this.determineDriverAssignmentStatus({ ...currentAppointment, ...updates });
+    }
+
     const { data, error } = await supabase
       .from('appointments')
       .update(updates)
@@ -378,6 +401,16 @@ export class AppointmentService {
 
     if (error) {
       throw new Error(`Failed to update appointment: ${error.message}`);
+    }
+
+    // Sync driver assignment status with transportation segments if feature is enabled
+    if (isFeatureEnabled('TRANSPORTATION_SEGMENTS_ENABLED') && shouldUpdateDriverStatus) {
+      try {
+        await this.syncDriverAssignmentStatusWithSegments(data.id);
+      } catch (syncError) {
+        console.error(`❌ Failed to sync driver assignment status for appointment ${data.id}:`, syncError);
+        // Don't throw error as this is a secondary operation
+      }
     }
 
     // Note: Reschedule notifications are handled by the API route to avoid duplicates
@@ -1455,6 +1488,192 @@ export class AppointmentService {
   }
 
   // =============================================================================
+  // DRIVER ASSIGNMENT STATUS MANAGEMENT
+  // =============================================================================
+
+  /**
+   * Determine driver assignment status based on appointment data
+   */
+  private determineDriverAssignmentStatus(appointmentData: CreateAppointment | UpdateAppointment): 'not_required' | 'pending' | 'assigned' | 'completed' {
+    // If transportation type is not driver, no driver required
+    if (appointmentData.transportation_type !== 'driver') {
+      return 'not_required';
+    }
+
+    // If driver_id is provided, driver is assigned
+    if (appointmentData.driver_id) {
+      return 'assigned';
+    }
+
+    // If transportation type is driver but no driver_id, it's pending
+    return 'pending';
+  }
+
+  /**
+   * Check if driver assignment status should be updated based on changes
+   */
+  private shouldUpdateDriverAssignmentStatus(
+    currentAppointment: Appointment,
+    updates: Partial<UpdateAppointment>
+  ): boolean {
+    // Check if any fields that affect driver assignment status have changed
+    const relevantFields = ['transportation_type', 'driver_id'];
+    return relevantFields.some(field => updates.hasOwnProperty(field));
+  }
+
+  /**
+   * Sync driver assignment status with transportation segments
+   */
+  private async syncDriverAssignmentStatusWithSegments(appointmentId: string): Promise<void> {
+    try {
+      console.log(`🔄 Syncing driver assignment status with transportation segments for appointment ${appointmentId}`);
+
+      // Get the appointment to check current status
+      const appointment = await this.getAppointment(appointmentId);
+      if (!appointment) {
+        console.log(`⚠️ Appointment ${appointmentId} not found, skipping sync`);
+        return;
+      }
+
+      // Get all transportation segments for this appointment
+      const segments = await transportationSegmentService.getSegmentsForAppointment(appointmentId);
+
+      if (segments.length === 0) {
+        console.log(`ℹ️ No transportation segments found for appointment ${appointmentId}`);
+        return;
+      }
+
+      // Check if any segments have drivers assigned
+      const assignedSegments = segments.filter(segment => segment.driver_id);
+      const unassignedSegments = segments.filter(segment => !segment.driver_id);
+
+      let newStatus: 'not_required' | 'pending' | 'assigned' | 'completed';
+
+      if (appointment.transportation_type !== 'driver') {
+        newStatus = 'not_required';
+      } else if (assignedSegments.length === segments.length) {
+        // All segments have drivers assigned
+        newStatus = 'assigned';
+      } else if (assignedSegments.length > 0) {
+        // Some segments have drivers, some don't - still pending
+        newStatus = 'pending';
+      } else {
+        // No segments have drivers assigned
+        newStatus = 'pending';
+      }
+
+      // Update appointment status if it has changed
+      if (appointment.driver_assignment_status !== newStatus) {
+        await supabase
+          .from('appointments')
+          .update({ driver_assignment_status: newStatus })
+          .eq('id', appointmentId);
+
+        console.log(`✅ Updated driver assignment status for appointment ${appointmentId}: ${appointment.driver_assignment_status} → ${newStatus}`);
+      } else {
+        console.log(`ℹ️ Driver assignment status for appointment ${appointmentId} is already correct: ${newStatus}`);
+      }
+
+    } catch (error) {
+      console.error(`❌ Failed to sync driver assignment status for appointment ${appointmentId}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Reconcile legacy driver_id usage with new segment-based assignments
+   */
+  async reconcileLegacyDriverAssignment(appointmentId: string): Promise<void> {
+    try {
+      console.log(`🔄 Reconciling legacy driver assignment for appointment ${appointmentId}`);
+
+      const appointment = await this.getAppointment(appointmentId);
+      if (!appointment) {
+        console.log(`⚠️ Appointment ${appointmentId} not found, skipping reconciliation`);
+        return;
+      }
+
+      // If appointment has legacy driver_id but no transportation segments, create default segments
+      if (appointment.driver_id && appointment.transportation_type === 'driver') {
+        const segments = await transportationSegmentService.getSegmentsForAppointment(appointmentId);
+
+        if (segments.length === 0) {
+          console.log(`📝 Creating default transportation segments for legacy appointment ${appointmentId}`);
+
+          // Create default pickup and dropoff segments
+          const appointmentDateTime = new Date(`${appointment.appointment_date}T${appointment.start_time}`);
+          const pickupTime = new Date(appointmentDateTime.getTime() - (30 * 60 * 1000)); // 30 minutes before
+          const dropoffTime = new Date(appointmentDateTime.getTime() + (appointment.duration_minutes * 60 * 1000) + (30 * 60 * 1000)); // 30 minutes after
+
+          // Create pickup segment
+          await transportationSegmentService.createTransportationSegment({
+            appointment_id: appointmentId,
+            segment_type: 'pickup',
+            title: 'Pickup',
+            planned_start: pickupTime.toISOString(),
+            planned_end: appointmentDateTime.toISOString(),
+            driver_id: appointment.driver_id,
+            assignment_mode: 'assign_now',
+            status: 'scheduled',
+            pickup_location_type: 'office'
+          });
+
+          // Create dropoff segment
+          await transportationSegmentService.createTransportationSegment({
+            appointment_id: appointmentId,
+            segment_type: 'dropoff',
+            title: 'Dropoff',
+            planned_start: new Date(appointmentDateTime.getTime() + (appointment.duration_minutes * 60 * 1000)).toISOString(),
+            planned_end: dropoffTime.toISOString(),
+            driver_id: appointment.driver_id,
+            assignment_mode: 'assign_now',
+            status: 'scheduled',
+            pickup_location_type: 'custom'
+          });
+
+          console.log(`✅ Created default transportation segments for legacy appointment ${appointmentId}`);
+        }
+      }
+
+      // Sync the driver assignment status
+      await this.syncDriverAssignmentStatusWithSegments(appointmentId);
+
+    } catch (error) {
+      console.error(`❌ Failed to reconcile legacy driver assignment for appointment ${appointmentId}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get appointments with driver assignment status information
+   */
+  async getAppointmentsWithDriverStatus(filters?: AppointmentFilters): Promise<Appointment[]> {
+    const appointments = await this.getAppointments(filters);
+
+    // If transportation segments feature is enabled, enhance with segment information
+    if (isFeatureEnabled('TRANSPORTATION_SEGMENTS_ENABLED')) {
+      for (const appointment of appointments) {
+        try {
+          const segments = await transportationSegmentService.getSegmentsForAppointment(appointment.id);
+          const assignedSegments = segments.filter(s => s.driver_id);
+          const unassignedSegments = segments.filter(s => !s.driver_id);
+
+          // Add segment information to appointment
+          (appointment as any).transportation_segments = segments;
+          (appointment as any).assigned_segments_count = assignedSegments.length;
+          (appointment as any).unassigned_segments_count = unassignedSegments.length;
+          (appointment as any).total_segments_count = segments.length;
+        } catch (error) {
+          console.error(`❌ Failed to get segments for appointment ${appointment.id}:`, error);
+          // Continue with other appointments even if one fails
+        }
+      }
+    }
+
+    return appointments;
+  }
+
+  // =============================================================================
   // CALENDAR OPERATIONS
   // =============================================================================
 
@@ -1552,6 +1771,7 @@ export class AppointmentService {
         googleCalendarId: staff.google_calendar_id
       });
 
+      const { getGoogleCalendarService } = await import('./googleCalendarService');
       const googleCalendarService = getGoogleCalendarService();
 
       // Calculate event times

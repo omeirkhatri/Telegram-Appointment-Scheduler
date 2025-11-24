@@ -142,23 +142,68 @@ async function getUtilizationReport(dateFrom: string, dateTo: string) {
 
 // Get overrides report
 async function getOverridesReport(dateFrom: string, dateTo: string) {
-  // Get override audit data
-  const { data: overrides, error } = await supabase
-    .from('transportation_segment_override_audit')
-    .select(`
-      *,
-      segment:transportation_segments(id, title, segment_type, planned_start, planned_end),
-      appointment:appointments(id, patient:patients(name))
-    `)
-    .gte('created_at', `${dateFrom}T00:00:00Z`)
-    .lte('created_at', `${dateTo}T23:59:59Z`)
-    .order('created_at', { ascending: false });
+  // Get override audit data - fallback to transportation_segments if audit table doesn't exist
+  let overrideData = [];
 
-  if (error) {
-    throw new Error(`Failed to fetch override data: ${error.message}`);
+  try {
+    const { data: overrides, error } = await supabase
+      .from('transportation_segment_override_audit')
+      .select(`
+        *,
+        segment:transportation_segments(id, title, segment_type, planned_start, planned_end),
+        appointment:appointments(id, patient:patients(name))
+      `)
+      .gte('created_at', `${dateFrom}T00:00:00Z`)
+      .lte('created_at', `${dateTo}T23:59:59Z`)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.warn('Override audit table not found, falling back to transportation_segments:', error.message);
+      // Fallback to transportation_segments table for manual overrides
+      const { data: segments, error: segmentsError } = await supabase
+        .from('transportation_segments')
+        .select(`
+          id,
+          title,
+          segment_type,
+          planned_start,
+          planned_end,
+          manual_override,
+          updated_at
+        `)
+        .eq('manual_override', true)
+        .gte('updated_at', `${dateFrom}T00:00:00Z`)
+        .lte('updated_at', `${dateTo}T23:59:59Z`)
+        .order('updated_at', { ascending: false });
+
+      if (segmentsError) {
+        throw new Error(`Failed to fetch override data: ${segmentsError.message}`);
+      }
+
+      // Transform segments data to match expected format
+      overrideData = (segments || []).map(segment => ({
+        id: segment.id,
+        override_reason: 'Manual Override',
+        operation_type: 'Manual Assignment',
+        user_name: 'System',
+        created_at: segment.updated_at,
+        requires_follow_up: false,
+        segment: {
+          id: segment.id,
+          title: segment.title,
+          segment_type: segment.segment_type,
+          planned_start: segment.planned_start,
+          planned_end: segment.planned_end
+        }
+      }));
+    } else {
+      overrideData = overrides || [];
+    }
+  } catch (error) {
+    console.error('Error fetching override data:', error);
+    // Return empty data structure if both queries fail
+    overrideData = [];
   }
-
-  const overrideData = overrides || [];
 
   // Group by override reason
   const byReason = overrideData.reduce((acc, override) => {

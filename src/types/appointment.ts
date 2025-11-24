@@ -4,6 +4,7 @@ import type { TransportationSegment } from './transportationSegment';
 export type AppointmentType = 'doctor_on_call' | 'lab_test' | 'teleconsultation' | 'physiotherapy' | 'caregiver' | 'iv_therapy';
 export type AppointmentStatus = 'scheduled' | 'confirmed' | 'completed' | 'cancelled';
 export type TransportationType = 'driver' | 'self_transport';
+export type DriverAssignmentStatus = 'not_required' | 'pending' | 'assigned' | 'completed';
 
 export interface Appointment {
   id: string;
@@ -25,6 +26,8 @@ export interface Appointment {
   recurring_group_id?: string;
   is_recurring_base?: boolean;
   recurring_occurrence_number?: number;
+  service_contract_id?: string;
+  driver_assignment_status?: DriverAssignmentStatus;
   created_at: string;
   updated_at: string;
   // Patient data (populated when fetching appointments)
@@ -84,6 +87,8 @@ export interface CreateAppointment {
   recurring_group_id?: string;
   is_recurring_base?: boolean;
   recurring_occurrence_number?: number;
+  service_contract_id?: string;
+  driver_assignment_status?: DriverAssignmentStatus;
 }
 
 // Appointment update type (all fields optional except id)
@@ -107,6 +112,8 @@ export interface UpdateAppointment {
   recurring_group_id?: string;
   is_recurring_base?: boolean;
   recurring_occurrence_number?: number;
+  service_contract_id?: string;
+  driver_assignment_status?: DriverAssignmentStatus;
 }
 
 // Appointment search/filter options

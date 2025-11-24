@@ -1,8 +1,8 @@
 'use client';
 
 import { StaffModal } from '@/components/features/staff';
-import Header from '@/components/layout/Header';
-import { VirtualizedTable, type VirtualizedTableColumn } from '@/components/ui';
+import { PageHeader } from '@/components/layout/PageHeader';
+import { ShadButton as Button, ShadCard as Card, Input, VirtualizedTable, type VirtualizedTableColumn } from '@/components/ui';
 import { useToastContext } from '@/components/ui/ToastContainer';
 import { useStaff } from '@/hooks';
 import { createStaffShortcuts, useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
@@ -320,46 +320,36 @@ export default function StaffPage() {
       width: 60,
       minWidth: 50,
       render: (member) => (
-        <button
+        <Button
+          variant="ghost"
+          size="icon"
           onClick={(e) => {
             e.stopPropagation();
             handleEditStaff(member);
           }}
-          className="p-1.5 sm:p-2 text-[--muted-foreground] hover:text-[--foreground] hover:bg-[--accent] rounded-lg transition-colors"
         >
-          <MoreHorizontal className="w-3 h-3 sm:w-4 sm:h-4" />
-        </button>
+          <MoreHorizontal className="w-4 h-4" />
+        </Button>
       ),
     },
   ];
 
   return (
-    <div className="min-h-screen bg-[--background] text-[--foreground]">
-      {/* Header with Navigation */}
-      <Header currentPage="staff" />
+    <>
+      <PageHeader
+        title="Staff"
+        description="Manage healthcare staff and schedules"
+        actions={
+          <Button onClick={handleAddStaff} data-testid="new-staff-button">
+            <Plus className="w-4 h-4 mr-2" />
+            Add Staff
+          </Button>
+        }
+      />
 
-      {/* Main Content - Full Width */}
-      <main className="px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8 space-y-4 sm:space-y-6 lg:space-y-8">
-        {/* Page Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-[--foreground]">Staff</h1>
-            <p className="text-[--muted-foreground] text-sm sm:text-lg mt-1">Manage healthcare staff and schedules</p>
-          </div>
-          <button
-            onClick={handleAddStaff}
-            data-testid="new-staff-button"
-            className="inline-flex items-center px-3 sm:px-4 py-2 bg-[--primary] text-[--primary-foreground] rounded-lg hover:bg-[--primary]/90 transition-colors text-sm sm:text-base self-start sm:self-auto"
-          >
-            <Plus className="w-4 h-4 mr-1 sm:mr-2" />
-            <span className="hidden sm:inline">Add Staff</span>
-            <span className="sm:hidden">Add</span>
-          </button>
-        </div>
-
-        {/* Stats */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
-          <div className="bg-[--card] border border-[--border] rounded-xl p-3 sm:p-4 lg:p-6 shadow-lg">
+      {/* Stats */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+        <Card className="p-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-[--muted-foreground]">Total Staff</p>
@@ -367,8 +357,8 @@ export default function StaffPage() {
               </div>
               <Users className="w-8 h-8 text-[--medical-blue]" />
             </div>
-          </div>
-          <div className="bg-[--card] border border-[--border] rounded-xl p-6 shadow-lg">
+          </Card>
+        <Card className="p-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-[--muted-foreground]">Calendar Verified</p>
@@ -376,8 +366,8 @@ export default function StaffPage() {
               </div>
               <CheckCircle className="w-8 h-8 text-green-600" />
             </div>
-          </div>
-          <div className="bg-[--card] border border-[--border] rounded-xl p-6 shadow-lg">
+          </Card>
+        <Card className="p-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-[--muted-foreground]">Calendar Pending</p>
@@ -385,8 +375,8 @@ export default function StaffPage() {
               </div>
               <Clock className="w-8 h-8 text-yellow-600" />
             </div>
-          </div>
-          <div className="bg-[--card] border border-[--border] rounded-xl p-6 shadow-lg">
+          </Card>
+        <Card className="p-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-[--muted-foreground]">Calendar Failed</p>
@@ -394,22 +384,22 @@ export default function StaffPage() {
               </div>
               <XCircle className="w-8 h-8 text-red-600" />
             </div>
-          </div>
-        </div>
+          </Card>
+      </div>
 
-        {/* Search and filters */}
-        <div className="bg-[--card] border border-[--border] rounded-xl p-4 sm:p-6 shadow-lg">
-          <div className="flex flex-col gap-3 sm:gap-4">
+      {/* Search and filters */}
+      <Card className="p-6">
+          <div className="flex flex-col gap-4">
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[--muted-foreground]" />
-              <input
+              <Input
                 ref={searchInputRef}
                 type="text"
                 placeholder="Search staff..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 data-testid="staff-search"
-                className="w-full pl-10 pr-4 py-2.5 sm:py-3 border border-[--border] rounded-lg bg-[--muted] text-[--foreground] placeholder-[--muted-foreground] focus:outline-none focus:ring-2 focus:ring-[--ring] focus:border-transparent text-sm sm:text-base"
+                className="w-full pl-10"
               />
             </div>
             <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
@@ -427,70 +417,52 @@ export default function StaffPage() {
                   <option value="not_required">Not Required</option>
                 </select>
               </div>
-              <button
+              <Button
+                variant="outline"
                 onClick={() => {
                   setSearchTerm('');
                   setCalendarStatusFilter('all');
                 }}
-                className="inline-flex items-center justify-center px-3 sm:px-4 py-2.5 sm:py-3 border border-[--border] rounded-lg hover:bg-[--accent] transition-colors text-[--muted-foreground] hover:text-[--foreground] text-sm sm:text-base"
               >
-                <Filter className="w-4 h-4 mr-1 sm:mr-2" />
-                <span className="hidden sm:inline">Clear Filters</span>
-                <span className="sm:hidden">Clear</span>
-              </button>
+                <Filter className="w-4 h-4 mr-2" />
+                Clear Filters
+              </Button>
             </div>
           </div>
-        </div>
+        </Card>
 
-        {/* Error Display */}
-        {error && (
-          <div className="bg-[--card] border border-[--border] rounded-xl p-6 shadow-lg">
-            <div className="bg-[--destructive]/10 border border-[--destructive]/20 rounded-lg p-4">
-              <p className="text-[--destructive] font-medium">Error loading staff</p>
-              <p className="text-[--destructive]/80 text-sm mt-1">{error}</p>
-            </div>
+      {/* Error Display */}
+      {error && (
+        <Card className="p-6">
+          <div className="bg-[--destructive]/10 border border-[--destructive]/20 rounded-lg p-4">
+            <p className="text-[--destructive] font-medium">Error loading staff</p>
+            <p className="text-[--destructive]/80 text-sm mt-1">{error}</p>
           </div>
-        )}
+        </Card>
+      )}
 
-        {/* Virtualized Staff Table */}
-        <div className="sm:hidden">
-          <VirtualizedTable
-            data={filteredStaff}
-            columns={columns}
-            height={400}
-            itemHeight={60}
-            loading={isLoading || !isClient}
-            loadingMessage="Loading staff members..."
-            emptyMessage="No staff members found"
-            onRowClick={handleEditStaff}
-            getRowKey={(member) => member.id}
-            enableKeyboardNavigation={true}
-          />
-        </div>
-        <div className="hidden sm:block">
-          <VirtualizedTable
-            data={filteredStaff}
-            columns={columns}
-            height={600}
-            itemHeight={80}
-            loading={isLoading || !isClient}
-            loadingMessage="Loading staff members..."
-            emptyMessage="No staff members found"
-            onRowClick={handleEditStaff}
-            getRowKey={(member) => member.id}
-            enableKeyboardNavigation={true}
-          />
-        </div>
+      {/* Virtualized Staff Table */}
+      <VirtualizedTable
+        data={filteredStaff}
+        columns={columns}
+        height={600}
+        itemHeight={80}
+        loading={isLoading || !isClient}
+        loadingMessage="Loading staff members..."
+        emptyMessage="No staff members found"
+        onRowClick={handleEditStaff}
+        getRowKey={(member) => member.id}
+        enableKeyboardNavigation={true}
+      />
 
-        {/* Staff Modal */}
-        <StaffModal
-          isOpen={isModalOpen}
-          onClose={handleModalClose}
-          onSuccess={handleModalSuccess}
-          onVerificationSuccess={refresh}
-          initialStaff={selectedStaff || undefined}
-        />
-      </main>
-    </div>
+      {/* Staff Modal */}
+      <StaffModal
+        isOpen={isModalOpen}
+        onClose={handleModalClose}
+        onSuccess={handleModalSuccess}
+        onVerificationSuccess={refresh}
+        initialStaff={selectedStaff || undefined}
+      />
+    </>
   );
 }

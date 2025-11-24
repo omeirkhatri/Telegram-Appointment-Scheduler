@@ -742,6 +742,15 @@ export class TelegramNotificationService {
     // Driver information
     message += `\n👨‍💼 <b>Assigned Driver:</b> ${driver.first_name} ${driver.last_name}\n`;
 
+    // Add context based on change type
+    if (changeType === 'created') {
+      message += `\n✅ <b>You have been assigned to this transportation segment.</b>\n`;
+    } else if (changeType === 'updated') {
+      message += `\n🔄 <b>This transportation segment has been updated.</b>\n`;
+    } else if (changeType === 'cancelled') {
+      message += `\n❌ <b>This transportation segment has been cancelled.</b>\n`;
+    }
+
     return message;
   }
 
@@ -767,13 +776,13 @@ export class TelegramNotificationService {
   private getSegmentChangeAction(changeType: 'created' | 'updated' | 'cancelled'): string {
     switch (changeType) {
       case 'created':
-        return 'New Transportation Segment';
+        return 'New Transportation Assignment';
       case 'updated':
-        return 'Transportation Segment Updated';
+        return 'Transportation Assignment Updated';
       case 'cancelled':
-        return 'Transportation Segment Cancelled';
+        return 'Transportation Assignment Cancelled';
       default:
-        return 'Transportation Segment';
+        return 'Transportation Assignment';
     }
   }
 

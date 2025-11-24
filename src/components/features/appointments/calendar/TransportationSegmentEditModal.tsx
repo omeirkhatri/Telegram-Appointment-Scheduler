@@ -1,8 +1,6 @@
 'use client';
 
-import { Badge } from '@/components/ui/Badge';
-import { Button } from '@/components/ui/Button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
+import { Badge, Button, Card, CardContent, CardHeader, CardTitle, Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui';
 import type { TransportationSegment, TransportationSegmentStatus, TransportationSegmentType } from '@/types/transportationSegment';
 import {
     AlertTriangle,
@@ -12,8 +10,7 @@ import {
     Loader2,
     MapPin,
     Navigation,
-    Save,
-    XCircle
+    Save
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
@@ -220,36 +217,20 @@ export function TransportationSegmentEditModal({
   }, [isOpen]);
 
   if (!segment) return null;
-  if (!isOpen) return null;
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-black/50 backdrop-blur-sm"
-        onClick={handleClose}
-      />
-
-      {/* Modal */}
-      <div className="relative bg-[--card] border border-[--border] rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] mx-4 flex flex-col">
-        {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-[--border]">
-          <div className="flex items-center space-x-2">
+    <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
+      <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col">
+        <DialogHeader>
+          <DialogTitle className="flex items-center space-x-2">
             <Edit className="w-5 h-5" />
-            <h2 className="text-xl font-bold text-[--foreground]">Edit Transportation Segment</h2>
+            <span>Edit Transportation Segment</span>
             {hasChanges && (
               <Badge variant="outline" className="ml-2 text-orange-600 border-orange-300">
                 Unsaved Changes
               </Badge>
             )}
-          </div>
-          <button
-            onClick={handleClose}
-            className="p-2 text-[--muted-foreground] hover:text-[--foreground] hover:bg-[--accent] rounded-lg transition-colors"
-          >
-            <XCircle className="w-5 h-5" />
-          </button>
-        </div>
+          </DialogTitle>
+        </DialogHeader>
 
         <div className="flex-1 overflow-y-auto p-6">
           <div className="space-y-6">
@@ -500,7 +481,7 @@ export function TransportationSegmentEditModal({
             </Button>
           </div>
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

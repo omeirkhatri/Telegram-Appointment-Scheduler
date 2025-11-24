@@ -13,6 +13,7 @@ import listPlugin from '@fullcalendar/list';
 import FullCalendar from '@fullcalendar/react';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import { isSameMonth } from 'date-fns';
+import { CalendarRange, Clock, Filter, Grid3X3, List, Map, Plus, Table } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AppointmentMapView } from './AppointmentMapView';
 
@@ -94,6 +95,13 @@ interface AppointmentCalendarProps {
     dateFrom?: string;
     dateTo?: string;
   };
+  onToggleFilters?: () => void;
+  filtersActiveCount?: number;
+  isFilterPanelOpen?: boolean;
+  onCreateAppointment?: () => void;
+  filterSummaries?: string[];
+  onClearFilters?: () => void;
+  onSwitchToTable?: () => void;
 }
 
 export function AppointmentCalendar({
@@ -109,6 +117,13 @@ export function AppointmentCalendar({
   onEventDrop,
   onEventResize,
   filters = {},
+  onToggleFilters,
+  filtersActiveCount = 0,
+  isFilterPanelOpen = false,
+  onCreateAppointment,
+  filterSummaries,
+  onClearFilters,
+  onSwitchToTable,
 }: AppointmentCalendarProps) {
   const calendarRef = useRef<FullCalendar>(null);
   const [currentView, setCurrentView] = useState<CalendarViewType>(initialView);
@@ -348,7 +363,9 @@ export function AppointmentCalendar({
 
   // Filter appointments by current date for day and map views
   const getAppointmentsForCurrentDate = useCallback(() => {
+    // For week and month views, show all appointments
     if (currentView !== 'map' && currentView !== 'timeGridDay') return appointments;
+    // For day and map views, filter by current date
     const currentDateString = currentDate.toISOString().split('T')[0];
     return appointments.filter(appointment => appointment.appointment_date === currentDateString);
   }, [appointments, currentDate, currentView]);
@@ -356,7 +373,7 @@ export function AppointmentCalendar({
   const filteredAppointments = getAppointmentsForCurrentDate();
 
   // Convert appointments to calendar events
-  const events = appointments.map((appointment) => {
+  const events = filteredAppointments.map((appointment) => {
     // Convert start_time from HH:MM:SS to HH:MM format for proper date parsing
     const timeOnly = appointment.start_time.includes(':')
       ? appointment.start_time.split(':').slice(0, 2).join(':')
@@ -610,11 +627,11 @@ export function AppointmentCalendar({
     };
   };
 
-  const viewButtonClass = (isActive: boolean) =>
-    `px-1.5 py-1 text-xs font-medium rounded-md transition-colors sm:px-3 sm:py-2 sm:text-sm sm:rounded-lg ${
+  const iconButtonClass = (isActive: boolean) =>
+    `p-2 rounded-md transition-colors ${
       isActive
         ? 'bg-[--primary] text-[--primary-foreground]'
-        : 'text-[--foreground] hover:bg-[--accent]'
+        : 'text-[--muted-foreground] hover:text-[--foreground] hover:bg-[--accent]'
     }`;
 
   const shouldEnableHorizontalScroll = isCompactLayout && currentView === 'timeGridWeek';
@@ -639,8 +656,9 @@ export function AppointmentCalendar({
   return (
     <div data-testid="calendar-container" className="bg-[--card] rounded-lg shadow-sm border border-[--border] calendar-container">
       {/* Custom Header Toolbar */}
-      <div className="flex flex-col gap-4 p-4 border-b border-[--border] lg:flex-row lg:items-center lg:justify-between">
-        <div className="flex flex-wrap items-center gap-2">
+      <div className="flex flex-col gap-4 p-4 border-b border-[--border]">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex flex-wrap items-center gap-2">
           {/* Date Navigation Buttons */}
           <button
             onClick={() => {
@@ -818,9 +836,9 @@ export function AppointmentCalendar({
               </div>
             )}
           </div>
-        </div>
+          </div>
 
-        <div className="flex items-center justify-center flex-1 min-w-0">
+          <div className="flex items-center justify-center flex-1 min-w-0">
           {/* Month display for month view - centered */}
           {currentView === 'dayGridMonth' && (
             <div className="text-lg font-semibold text-[--foreground]">
@@ -894,30 +912,93 @@ export function AppointmentCalendar({
             </div>
           )}
 
+          </div>
+
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            <div className="inline-flex items-center gap-1 rounded-full border border-[--border] bg-[--card]/90 text-[11px] font-medium shadow-sm">
+              <button onClick={() => changeView('dayGridMonth')} className={iconButtonClass(currentView === 'dayGridMonth')} title="Month View">
+                <Grid3X3 className="w-4 h-4" />
+              </button>
+              <button onClick={() => changeView('timeGridWeek')} className={iconButtonClass(currentView === 'timeGridWeek')} title="Week View">
+                <CalendarRange className="w-4 h-4" />
+              </button>
+              <button onClick={() => changeView('timeGridDay')} className={iconButtonClass(currentView === 'timeGridDay')} title="Day View">
+                <Clock className="w-4 h-4" />
+              </button>
+              <button onClick={() => changeView('listDay')} className={iconButtonClass(currentView === 'listDay' || currentView === 'listWeek')} title="List View">
+                <List className="w-4 h-4" />
+              </button>
+              <button onClick={() => changeView('map')} className={iconButtonClass(currentView === 'map')} title="Map View">
+                <Map className="w-4 h-4" />
+              </button>
+            </div>
+
+            {onSwitchToTable && (
+              <button
+                onClick={onSwitchToTable}
+                className="inline-flex items-center gap-2 rounded-full border border-[--border] px-3 py-1 text-sm font-medium text-[--muted-foreground] transition-colors hover:bg-[--accent] hover:text-[--foreground]"
+                title="Open table view"
+              >
+                <Table className="h-4 w-4" />
+                <span className="hidden sm:inline">Table View</span>
+              </button>
+            )}
+
+            {onToggleFilters && (
+              <button
+                onClick={onToggleFilters}
+                className={`inline-flex items-center gap-2 rounded-full border border-[--border] px-3 py-1 text-sm font-medium transition-colors ${
+                  isFilterPanelOpen
+                    ? 'bg-[--primary] text-[--primary-foreground]'
+                    : 'bg-[--card]/90 text-[--muted-foreground] hover:text-[--foreground]'
+                }`}
+                title={isFilterPanelOpen ? 'Hide filters' : 'Show filters'}
+              >
+                <Filter className="h-4 w-4" />
+                <span className="hidden sm:inline">Filters</span>
+                {filtersActiveCount > 0 && (
+                  <span className={`inline-flex h-5 min-w-[1.5rem] items-center justify-center rounded-full text-[10px] font-semibold ${
+                    isFilterPanelOpen ? 'bg-white/20 text-[--primary-foreground]' : 'bg-[--primary] text-[--primary-foreground]'
+                  }`}>
+                    {filtersActiveCount}
+                  </span>
+                )}
+              </button>
+            )}
+
+            {onCreateAppointment && (
+              <button
+                onClick={onCreateAppointment}
+                className="inline-flex items-center gap-2 rounded-full bg-[--primary] px-3 py-1.5 text-sm font-medium text-[--primary-foreground] shadow-sm transition-transform hover:scale-[1.02]"
+                title="New appointment"
+              >
+                <Plus className="h-4 w-4" />
+                <span className="hidden sm:inline">New Appointment</span>
+              </button>
+            )}
+          </div>
         </div>
 
-        <div className="calendar-toolbar flex items-center justify-center gap-0.5 sm:gap-2 sm:justify-end">
-          <button onClick={() => changeView('dayGridMonth')} className={viewButtonClass(currentView === 'dayGridMonth')}>
-            <span className="hidden sm:inline">Month</span>
-            <span className="sm:hidden text-xs">📅</span>
-          </button>
-          <button onClick={() => changeView('timeGridWeek')} className={viewButtonClass(currentView === 'timeGridWeek')}>
-            <span className="hidden sm:inline">Week</span>
-            <span className="sm:hidden text-xs">📊</span>
-          </button>
-          <button onClick={() => changeView('timeGridDay')} className={viewButtonClass(currentView === 'timeGridDay')}>
-            <span className="hidden sm:inline">Day</span>
-            <span className="sm:hidden text-xs">📋</span>
-          </button>
-          <button onClick={() => changeView('listDay')} className={viewButtonClass(currentView === 'listDay' || currentView === 'listWeek')}>
-            <span className="hidden sm:inline">List</span>
-            <span className="sm:hidden text-xs">📝</span>
-          </button>
-          <button onClick={() => changeView('map')} className={viewButtonClass(currentView === 'map')}>
-            <span className="hidden sm:inline">Map</span>
-            <span className="sm:hidden text-xs">🗺️</span>
-          </button>
-        </div>
+        {filterSummaries && filterSummaries.length > 0 && (
+          <div className="flex flex-wrap items-center justify-end gap-2 text-xs text-[--foreground]">
+            {filterSummaries.map(summary => (
+              <span
+                key={summary}
+                className="inline-flex items-center gap-2 rounded-full border border-[--border]/70 bg-[--card]/90 px-3 py-1 shadow-sm"
+              >
+                {summary}
+              </span>
+            ))}
+            {onClearFilters && (
+              <button
+                onClick={onClearFilters}
+                className="rounded-full border border-[--border]/70 px-3 py-1 text-[10px] font-semibold text-[--muted-foreground] transition-colors hover:bg-[--accent] hover:text-[--foreground]"
+              >
+                Clear
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Custom day header for List view - always show */}
@@ -940,7 +1021,7 @@ export function AppointmentCalendar({
 
       {/* Map View */}
       {currentView === 'map' ? (
-        <div>
+        <div className="w-full h-full">
 
           {/* Debug: Log appointments being passed to map (commented out to reduce console noise) */}
           {/* {console.log('Appointments being passed to AppointmentMapView (with expanded recurring):', mapAppointments.map(apt => ({
@@ -962,7 +1043,7 @@ export function AppointmentCalendar({
             refetch={refetchMap}
             onAppointmentClick={onEventClick}
             onAppointmentRightClick={onEventRightClick}
-            height="625px"
+            height="calc(100vh - 140px)"
             searchFilters={{
               appointment_types: filters.appointmentType ? [filters.appointmentType as any] : undefined,
               statuses: filters.status ? [filters.status as any] : undefined,

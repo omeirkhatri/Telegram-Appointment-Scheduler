@@ -39,7 +39,18 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Mac files
 ._*
+.DS_Store
 
 # Backup directory
 data-export/
+
+# Reports and logs
+/config/reports/
+/logs/
+
+# Old backups (keep recent only)
+/data-export/*
+!/data-export/latest_backup

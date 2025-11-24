@@ -4,21 +4,31 @@ import { DriverAvailabilityIndicator } from '@/components/ui/DriverAvailabilityI
 import { PatientCombobox } from '@/components/ui/PatientCombobox';
 import { PlacesAutocomplete, type PlaceResult } from '@/components/ui/PlacesAutocomplete';
 import { TimePicker } from '@/components/ui/TimePicker';
-import { isFeatureEnabled } from '@/lib/featureFlags';
+import { isDriverAssignmentOverhaulUIEnabled, isFeatureEnabled } from '@/lib/featureFlags';
 import { type AppointmentFormData } from '@/lib/validations/appointment';
+import { overrideAnalyticsService } from '@/services/overrideAnalyticsService';
 import type { Appointment, Patient, Staff, StaffAssignment } from '@/types';
-import type { PickupLocationType, TransportationSegment, TransportationSegmentLocation, TransportationSegmentType } from '@/types/transportationSegment';
+import type { TransportationSegmentAssignmentMode } from '@/types/supabase';
+import type {
+    PickupLocationType,
+    TransportationRecommendationMetadata,
+    TransportationRecommendationOverride,
+    TransportationSegment,
+    TransportationSegmentLocation,
+    TransportationSegmentType,
+} from '@/types/transportationSegment';
 import { getDistanceMatrix } from '@/utils/google/distanceMatrix';
 import { formatTimeToHHMM } from '@/utils/timezone';
 import {
     calculateSegmentWarnings,
     type TravelWarning
 } from '@/utils/transportationSegments';
-import { AlertCircle, Clock, Loader2, RefreshCw } from 'lucide-react';
+import { AlertCircle, AlertTriangle, Clock, Loader2, RefreshCw } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useFieldArray, useForm } from 'react-hook-form';
 import { PickupLocationSelector } from './PickupLocationSelector';
 import { RecurrenceRuleBuilder } from './RecurrenceRuleBuilder';
+import { SegmentDriverSuggestions, SegmentMetaChips } from './SegmentEditor';
 
 interface AppointmentFormProps {
   appointment?: Appointment;
@@ -67,9 +77,38 @@ const TRANSPORTATION_SEGMENT_TYPES = [
   { value: 'custom', label: 'Custom' },
 ] as const;
 
-const TRANSPORTATION_MODE_OPTIONS = [
-  { value: 'simple', label: 'Simple Mode', description: 'Single driver assignment (current workflow). Use for straightforward transportation needs.' },
-  { value: 'segments', label: 'Segment Mode', description: 'Multiple transportation segments with different drivers. Use for complex transportation with multiple legs or different pickup types.' },
+// Removed TRANSPORTATION_MODE_OPTIONS - simplified to always use segments mode
+
+const ASSIGNMENT_MODE_OPTIONS = [
+  {
+    value: 'assign_now',
+    label: 'Assign Driver Now',
+    description: 'Select a driver immediately. Use when you know which driver will handle this appointment.',
+    icon: '⚡',
+    color: 'green',
+    benefits: ['Immediate driver notification', 'Calendar sync enabled', 'Ready for dispatch'],
+    whenToUse: 'When you know the driver and want immediate assignment'
+  },
+  {
+    value: 'assign_later',
+    label: 'Assign Driver Later',
+    description: 'Save appointment without driver selection. Driver will be assigned later through the capacity planner.',
+    icon: '⏰',
+    color: 'blue',
+    benefits: ['Flexible scheduling', 'Optimize driver routes', 'Manage workload balance'],
+    whenToUse: 'When you need to plan optimal driver assignments'
+  }
+];
+
+const SEGMENT_OVERRIDE_REASONS = [
+  { value: 'driver_conflict', label: 'Driver conflict (already booked)' },
+  { value: 'timing_conflict', label: 'Timing conflict / buffers insufficient' },
+  { value: 'travel_buffer_insufficient', label: 'Travel buffer not acceptable' },
+  { value: 'patient_preference', label: 'Patient requested alternative' },
+  { value: 'vehicle_requirement', label: 'Vehicle / equipment requirement' },
+  { value: 'manual_requirement', label: 'Operational override (manual requirement)' },
+  { value: 'emergency_override', label: 'Emergency override' },
+  { value: 'other', label: 'Other reason' },
 ] as const;
 
 const TRAVEL_ESTIMATE_COOLDOWN_MS = 30_000;
@@ -92,7 +131,11 @@ export function AppointmentForm({
   transportationSegments = [],
 }: AppointmentFormProps) {
   const [showCustomFields, setShowCustomFields] = useState(false);
-  const [transportationMode, setTransportationMode] = useState<'simple' | 'segments'>('simple');
+  // Simplified: always use segments mode, no mode selection needed
+  const [assignmentMode, setAssignmentMode] = useState<TransportationSegmentAssignmentMode>('assign_now');
+
+  // Effective assignment mode - always 'assign_now' when feature flag is disabled
+  const effectiveAssignmentMode = isDriverAssignmentOverhaulUIEnabled() ? assignmentMode : 'assign_now';
   const [transportationSegmentsData, setTransportationSegmentsData] = useState<TransportationSegment[]>(transportationSegments);
   const [segmentsLoading, setSegmentsLoading] = useState(false);
   const [segmentsError, setSegmentsError] = useState<string | null>(null);
@@ -406,7 +449,6 @@ export function AppointmentForm({
       // Initialize transportation segments if they exist
       if (transportationSegments && transportationSegments.length > 0) {
         setTransportationSegmentsData(transportationSegments);
-        setTransportationMode('segments');
       }
     }
   }, [appointment, setValue, transportationSegments]);
@@ -420,6 +462,125 @@ export function AppointmentForm({
   const watchedAppointmentType = watch('appointment_type');
   const watchedTransportationType = watch('transportation_type');
   const watchedRecurringRule = watch('recurring_rule');
+
+  // Set default assignment mode based on transportation type
+  useEffect(() => {
+    if (watchedTransportationType === 'driver') {
+      // For driver transportation, default to assign_now for immediate assignment
+      setAssignmentMode('assign_now');
+    } else if (watchedTransportationType === 'self_transport') {
+      // For self transport, assignment mode is not relevant
+      setAssignmentMode('assign_now');
+    }
+  }, [watchedTransportationType]);
+
+  // Auto-create default pickup/drop-off segments when transportation requires a driver
+  useEffect(() => {
+    if (watchedTransportationType === 'driver' && isFeatureEnabled('TRANSPORTATION_SEGMENTS_ENABLED')) {
+      // Only create segments if none exist yet
+      if (transportationSegmentsData.length === 0) {
+        const appointmentDate = watch('appointment_date');
+        const startTime = watch('start_time');
+        const endTime = watch('end_time');
+
+        if (appointmentDate && startTime && endTime) {
+          const pickupStartTime = `${appointmentDate}T${startTime}:00`;
+          const pickupEndTime = `${appointmentDate}T${endTime}:00`;
+
+          // Create pickup segment (30 minutes before appointment)
+          const pickupStart = new Date(pickupStartTime);
+          pickupStart.setMinutes(pickupStart.getMinutes() - 30);
+          const pickupSegmentStart = pickupStart.toISOString();
+          const pickupSegmentEnd = new Date(pickupStart.getTime() + 30 * 60000).toISOString();
+
+          // Create drop-off segment (30 minutes after appointment)
+          const dropoffStart = new Date(pickupEndTime);
+          dropoffStart.setMinutes(dropoffStart.getMinutes() + 30);
+          const dropoffSegmentStart = dropoffStart.toISOString();
+          const dropoffSegmentEnd = new Date(dropoffStart.getTime() + 30 * 60000).toISOString();
+
+          const defaultSegments: TransportationSegment[] = [
+            {
+              id: `temp-pickup-${Date.now()}`,
+              appointment_id: appointment?.id || '',
+              segment_type: 'pickup',
+              title: 'Pickup from Office',
+              planned_start: pickupSegmentStart,
+              planned_end: pickupSegmentEnd,
+              driver_id: effectiveAssignmentMode === 'assign_now' ? watch('driver_id') || null : null,
+              travel_mode: 'driving',
+              pickup_location_type: 'office',
+              pickup_location_reference: null,
+              pickup_location: null,
+              patient_location: null,
+              estimated_travel_minutes: null,
+              estimated_distance_km: null,
+              buffer_minutes: 15,
+              instructions: null,
+              requires_follow_up: false,
+              status: effectiveAssignmentMode === 'assign_now' ? 'scheduled' : 'draft',
+              manual_override: false,
+              assignment_mode: effectiveAssignmentMode,
+              priority: 1,
+              recommended_driver_ids: [],
+              recommendation_metadata: {},
+              queue_rank: null,
+              escalation_state: 'normal',
+              escalation_deadline: null,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            },
+            {
+              id: `temp-dropoff-${Date.now() + 1}`,
+              appointment_id: appointment?.id || '',
+              segment_type: 'dropoff',
+              title: 'Drop-off to Office',
+              planned_start: dropoffSegmentStart,
+              planned_end: dropoffSegmentEnd,
+              driver_id: effectiveAssignmentMode === 'assign_now' ? watch('driver_id') || null : null,
+              travel_mode: 'driving',
+              pickup_location_type: 'office',
+              pickup_location_reference: null,
+              pickup_location: null,
+              patient_location: null,
+              estimated_travel_minutes: null,
+              estimated_distance_km: null,
+              buffer_minutes: 15,
+              instructions: null,
+              requires_follow_up: false,
+              status: effectiveAssignmentMode === 'assign_now' ? 'scheduled' : 'draft',
+              manual_override: false,
+              assignment_mode: effectiveAssignmentMode,
+              priority: 2,
+              recommended_driver_ids: [],
+              recommendation_metadata: {},
+              queue_rank: null,
+              escalation_state: 'normal',
+              escalation_deadline: null,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            }
+          ];
+
+          setTransportationSegmentsData(defaultSegments);
+
+          // Initialize travel estimate state for new segments
+          const newTravelState: Record<string, TravelEstimateStateEntry> = {};
+          defaultSegments.forEach(segment => {
+            newTravelState[segment.id] = {
+              status: 'idle',
+              message: 'Add pickup and patient locations to calculate travel estimate.',
+            };
+          });
+          setTravelEstimateState(prev => ({ ...prev, ...newTravelState }));
+        }
+      }
+    } else if (watchedTransportationType !== 'driver' && transportationSegmentsData.length > 0) {
+      // Clear segments if transportation type changes away from driver
+      setTransportationSegmentsData([]);
+      setTravelEstimateState({});
+    }
+  }, [watchedTransportationType, effectiveAssignmentMode, appointment?.id, watch]);
 
   // Stabilize the recurring rule value to prevent infinite re-renders
   const stableRecurringRule = useMemo(() => watchedRecurringRule, [
@@ -456,14 +617,100 @@ export function AppointmentForm({
   // Filter drivers for transportation
   const drivers = staff.filter(s => s.staff_type === 'driver' && s.status === 'active');
 
+  // Function to send override analytics for segments with overrides
+  const sendOverrideAnalytics = async (appointmentId: string, userId: string, userName?: string) => {
+    const analyticsPromises = transportationSegmentsData
+      .filter(segment => {
+        const metadata = segment.recommendation_metadata;
+        return metadata?.override?.reason && metadata.override.reason.trim().length > 0;
+      })
+      .map(async (segment) => {
+        const metadata = segment.recommendation_metadata;
+        const override = metadata?.override;
+
+        if (!override) return;
+
+        try {
+          await overrideAnalyticsService.sendOverrideAnalytics({
+            segmentId: segment.id,
+            appointmentId,
+            userId,
+            userName,
+            operationType: 'transportation_segment_override',
+            overrideReason: override.reason as any,
+            overrideNote: override.note,
+            originalDriverId: override.recommended_driver_id,
+            newDriverId: override.driver_id,
+            conflictDetails: {
+              driver_conflicts: [],
+              timing_conflicts: [],
+              travel_buffer_issues: [],
+              warnings_acknowledged: [],
+            },
+            requiresFollowUp: false,
+            metadata: {
+              segment_type: segment.segment_type,
+              assignment_mode: segment.assignment_mode,
+              priority: segment.priority,
+            },
+          });
+        } catch (error) {
+          console.error(`Failed to send override analytics for segment ${segment.id}:`, error);
+        }
+      });
+
+    await Promise.allSettled(analyticsPromises);
+  };
+
   const handleFormSubmit = async (data: any) => {
     console.log('Form submitted with data:', data);
 
     try {
+      // Validate transportation segments if enabled
+      if (isFeatureEnabled('TRANSPORTATION_SEGMENTS_ENABLED') && transportationSegmentsData.length > 0) {
+        const segmentErrors: string[] = [];
+
+        transportationSegmentsData.forEach((segment, index) => {
+          // Validate required fields for segments
+          if (!segment.planned_start) {
+            segmentErrors.push(`Segment ${index + 1}: Start time is required`);
+          }
+          if (!segment.planned_end) {
+            segmentErrors.push(`Segment ${index + 1}: End time is required`);
+          }
+          if (!segment.pickup_location_type) {
+            segmentErrors.push(`Segment ${index + 1}: Pickup location type is required`);
+          }
+
+          // For assign_now mode, driver is required
+          if (effectiveAssignmentMode === 'assign_now' && !segment.driver_id) {
+            segmentErrors.push(`Segment ${index + 1}: Driver is required when assignment mode is "Assign Now"`);
+          }
+
+          // Validate timing
+          if (segment.planned_start && segment.planned_end) {
+            const startTime = new Date(segment.planned_start);
+            const endTime = new Date(segment.planned_end);
+            if (endTime <= startTime) {
+              segmentErrors.push(`Segment ${index + 1}: End time must be after start time`);
+            }
+          }
+        });
+
+        if (segmentErrors.length > 0) {
+          setSegmentsError(segmentErrors.join('. '));
+          return;
+        }
+      }
+
       // Prepare the submission data with transportation segments if in segment mode
       const submissionData = {
         ...data,
-        ...(transportationMode === 'segments' && isFeatureEnabled('TRANSPORTATION_SEGMENTS_ENABLED') && {
+        // Include assignment mode for driver transportation
+        ...(watchedTransportationType === 'driver' && {
+          assignment_mode: effectiveAssignmentMode,
+        }),
+        ...(isFeatureEnabled('TRANSPORTATION_SEGMENTS_ENABLED') && {
           transportation_segments: transportationSegmentsData.map(segment => ({
             segment_type: segment.segment_type,
             title: segment.title || `${segment.segment_type} segment`,
@@ -480,12 +727,31 @@ export function AppointmentForm({
             requires_follow_up: segment.requires_follow_up,
             status: segment.status,
             manual_override: segment.manual_override,
+            assignment_mode: effectiveAssignmentMode,
+            priority: segment.priority,
+            recommended_driver_ids: segment.recommended_driver_ids,
+            recommendation_metadata: segment.recommendation_metadata,
           }))
         })
       };
 
       await onSubmit(submissionData);
       console.log('Form submission successful');
+
+      // Send override analytics after successful submission
+      // Note: We need to get the appointment ID from the response or use a placeholder
+      // For now, we'll use the appointment ID if it exists, otherwise we'll skip analytics
+      if (appointment?.id || data.id) {
+        const appointmentId = appointment?.id || data.id;
+        const userId = 'current-user-id'; // TODO: Get from auth context
+        const userName = 'Current User'; // TODO: Get from auth context
+
+        // Send analytics in background (don't block form submission)
+        sendOverrideAnalytics(appointmentId, userId, userName).catch(error => {
+          console.error('Failed to send override analytics:', error);
+        });
+      }
+
       reset();
     } catch (error) {
       console.error('Form submission error:', error);
@@ -736,102 +1002,311 @@ export function AppointmentForm({
           </div>
         </div>
 
-        {/* Transportation Mode Selection */}
-        {isFeatureEnabled('TRANSPORTATION_SEGMENTS_ENABLED') && (
-          <div className="mb-6 p-4 bg-white border border-green-200 rounded-lg shadow-sm">
-            <label className="block text-sm font-semibold text-gray-800 mb-4">
-              Transportation Mode
-            </label>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {TRANSPORTATION_MODE_OPTIONS.map((mode) => (
-                <label key={mode.value} className={`relative flex items-start space-x-3 p-4 border rounded-lg cursor-pointer transition-all ${
-                  transportationMode === mode.value
-                    ? 'border-green-500 bg-green-50 shadow-sm'
-                    : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+        {/* Simplified Transportation Section - No mode selection needed */}
+
+        {/* Driver Assignment Mode Selection - Simplified and Always Visible */}
+        {watchedTransportationType === 'driver' && (
+          <div className="mb-6 p-6 bg-gradient-to-r from-blue-50 to-green-50 border border-blue-200 rounded-lg shadow-sm">
+            <div className="flex items-center space-x-3 mb-4">
+              <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">Driver Assignment</h3>
+                <p className="text-sm text-gray-600">Choose when to assign a driver to this appointment</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {ASSIGNMENT_MODE_OPTIONS.map((mode) => (
+                <label key={mode.value} className={`relative flex flex-col p-6 border-2 rounded-xl cursor-pointer transition-all duration-200 ${
+                  effectiveAssignmentMode === mode.value
+                    ? mode.color === 'green'
+                      ? 'border-green-500 bg-green-50 shadow-lg ring-2 ring-green-200'
+                      : 'border-blue-500 bg-blue-50 shadow-lg ring-2 ring-blue-200'
+                    : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50 hover:shadow-md'
                 }`}>
                   <input
                     type="radio"
-                    name="transportation_mode"
+                    name="assignment_mode"
                     value={mode.value}
-                    checked={transportationMode === mode.value}
-                    onChange={(e) => setTransportationMode(e.target.value as 'simple' | 'segments')}
-                    className="mt-1 h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300"
+                    checked={effectiveAssignmentMode === mode.value}
+                    onChange={(e) => setAssignmentMode(e.target.value as TransportationSegmentAssignmentMode)}
+                    className="sr-only"
                   />
-                  <div className="flex-1">
-                    <div className="text-sm font-semibold text-gray-900 mb-1">{mode.label}</div>
-                    <div className="text-xs text-gray-600">{mode.description}</div>
-                  </div>
-                  {transportationMode === mode.value && (
-                    <div className="absolute top-2 right-2">
-                      <svg className="w-5 h-5 text-green-600" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                      </svg>
+
+                  {/* Header */}
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center space-x-3">
+                      <span className="text-3xl">{mode.icon}</span>
+                      <div>
+                        <div className="text-lg font-bold text-gray-900">{mode.label}</div>
+                        <div className="text-sm text-gray-500 italic">{mode.whenToUse}</div>
+                      </div>
                     </div>
-                  )}
+                    {effectiveAssignmentMode === mode.value && (
+                      <div className={`p-2 rounded-full ${mode.color === 'green' ? 'bg-green-100' : 'bg-blue-100'}`}>
+                        <svg className={`w-5 h-5 ${mode.color === 'green' ? 'text-green-600' : 'text-blue-600'}`} fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                        </svg>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Description */}
+                  <div className="text-sm text-gray-600 leading-relaxed mb-4">
+                    {mode.description}
+                  </div>
+
+                  {/* Benefits */}
+                  <div className="space-y-2">
+                    <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Benefits:</div>
+                    <ul className="space-y-1">
+                      {mode.benefits.map((benefit, index) => (
+                        <li key={index} className="flex items-center space-x-2 text-sm text-gray-600">
+                          <svg className={`w-3 h-3 ${mode.color === 'green' ? 'text-green-500' : 'text-blue-500'} flex-shrink-0`} fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                          </svg>
+                          <span>{benefit}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
                 </label>
               ))}
+            </div>
+
+            {effectiveAssignmentMode === 'assign_later' && (
+              <div className="mt-6 p-6 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl">
+                <div className="flex items-start space-x-4">
+                  <div className="flex-shrink-0">
+                    <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                      <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    </div>
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="text-lg font-semibold text-blue-900 mb-2">Next Steps After Saving</h4>
+                    <div className="space-y-3 text-sm text-blue-800">
+                      <div className="flex items-start space-x-2">
+                        <span className="text-blue-600 font-bold">1.</span>
+                        <span>This appointment will be saved to the <strong>unassigned queue</strong></span>
+                      </div>
+                      <div className="flex items-start space-x-2">
+                        <span className="text-blue-600 font-bold">2.</span>
+                        <span>Use the <strong>Capacity Planner</strong> to assign drivers and optimize routes</span>
+                      </div>
+                      <div className="flex items-start space-x-2">
+                        <span className="text-blue-600 font-bold">3.</span>
+                        <span>Monitor driver workload and resolve any conflicts</span>
+                      </div>
+                    </div>
+
+                    <div className="mt-4 flex flex-wrap gap-3">
+                      <button
+                        type="button"
+                        onClick={() => window.open('/capacity-planner', '_blank')}
+                        className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
+                      >
+                        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                        </svg>
+                        Open Capacity Planner
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => window.open('/driver-board', '_blank')}
+                        className="inline-flex items-center px-4 py-2 text-sm font-medium text-blue-700 bg-blue-100 rounded-lg hover:bg-blue-200 transition-colors"
+                      >
+                        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                        </svg>
+                        View Driver Board
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Enhanced Assignment Mode Information Panel */}
+            <div className="mt-6 p-6 bg-gradient-to-r from-gray-50 to-gray-100 border border-gray-200 rounded-xl">
+              <div className="flex items-start space-x-4">
+                <div className="flex-shrink-0">
+                  <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center">
+                    <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                  </div>
+                </div>
+                <div className="flex-1">
+                  <h4 className="text-lg font-semibold text-gray-900 mb-2">Assignment Mode Guide</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-700">
+                    <div className="space-y-2">
+                      <div className="flex items-center space-x-2">
+                        <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                        <span className="font-medium">Assign Now</span>
+                      </div>
+                      <ul className="ml-5 space-y-1 text-xs">
+                        <li>• Driver gets immediate notification</li>
+                        <li>• Calendar sync happens automatically</li>
+                        <li>• Appointment is ready for dispatch</li>
+                        <li>• Use when you know the right driver</li>
+                      </ul>
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex items-center space-x-2">
+                        <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+                        <span className="font-medium">Assign Later</span>
+                      </div>
+                      <ul className="ml-5 space-y-1 text-xs">
+                        <li>• Goes to unassigned queue</li>
+                        <li>• Optimize routes in Capacity Planner</li>
+                        <li>• Balance driver workload</li>
+                        <li>• Use for complex scheduling</li>
+                      </ul>
+                    </div>
+                  </div>
+
+                  <div className="mt-4 p-3 bg-white rounded-lg border border-gray-200">
+                    <div className="flex items-center space-x-2 text-sm text-gray-600">
+                      <svg className="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <span>
+                        <strong>Tip:</strong> You can always change the assignment later in the Capacity Planner or Driver Board
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         )}
 
-        {/* Simple Mode Transportation */}
-        {transportationMode === 'simple' && (
-          <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
-            <h4 className="text-sm font-semibold text-gray-700 mb-4 flex items-center">
-              <svg className="w-4 h-4 mr-2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+        {/* Simplified Transportation Section - Always Visible */}
+        <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
+          <div className="flex items-center space-x-3 mb-6">
+            <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+              <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
               </svg>
-              Simple Transportation
-            </h4>
+            </div>
+            <div>
+              <h4 className="text-lg font-semibold text-gray-900">Transportation Details</h4>
+              <p className="text-sm text-gray-600">How will the patient get to and from the appointment?</p>
+            </div>
+          </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <label htmlFor="transportation_type" className="block text-sm font-medium text-gray-700">
-                  Transportation Type
-                </label>
-                <select
-                  {...register('transportation_type')}
-                  id="transportation_type"
-                  className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white text-gray-900 transition-colors ${
-                    errors.transportation_type ? 'border-red-500 bg-red-50' : 'border-gray-300 hover:border-gray-400'
-                  }`}
-                >
-                  <option value="">Select transportation type</option>
-                  {TRANSPORTATION_TYPES.map((type) => (
-                    <option key={type.value} value={type.value}>
-                      {type.label}
-                    </option>
-                  ))}
-                </select>
-                {errors.transportation_type && (
-                  <p className="mt-1 text-sm text-red-600 flex items-center">
-                    <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                    </svg>
-                    {errors.transportation_type.message}
-                  </p>
-                )}
-              </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <label htmlFor="transportation_type" className="block text-sm font-medium text-gray-700">
+                Transportation Type *
+              </label>
+              <select
+                {...register('transportation_type')}
+                id="transportation_type"
+                className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900 transition-colors ${
+                  errors.transportation_type ? 'border-red-500 bg-red-50' : 'border-gray-300 hover:border-gray-400'
+                }`}
+              >
+                <option value="">Select transportation type</option>
+                {TRANSPORTATION_TYPES.map((type) => (
+                  <option key={type.value} value={type.value}>
+                    {type.label}
+                  </option>
+                ))}
+              </select>
+              {errors.transportation_type && (
+                <p className="mt-1 text-sm text-red-600 flex items-center">
+                  <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                  </svg>
+                  {errors.transportation_type.message}
+                </p>
+              )}
+            </div>
 
-              {watchedTransportationType === 'driver' && (
-                <div className="space-y-2">
+            {watchedTransportationType === 'driver' && effectiveAssignmentMode === 'assign_now' && (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
                   <label htmlFor="driver_id" className="block text-sm font-medium text-gray-700">
-                    Driver *
+                    Select Driver *
                   </label>
+                  <div className="flex items-center space-x-4 text-xs text-gray-500">
+                    <div className="flex items-center space-x-1">
+                      <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+                      <span>Available</span>
+                    </div>
+                    <div className="flex items-center space-x-1">
+                      <div className="w-2 h-2 bg-yellow-400 rounded-full"></div>
+                      <span>Busy</span>
+                    </div>
+                    <div className="flex items-center space-x-1">
+                      <div className="w-2 h-2 bg-red-400 rounded-full"></div>
+                      <span>Unavailable</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Enhanced Driver Selection with Workload Information */}
+                <div className="space-y-3">
                   <select
                     {...register('driver_id')}
                     id="driver_id"
-                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white text-gray-900 transition-colors ${
+                    className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white text-gray-900 transition-colors ${
                       errors.driver_id ? 'border-red-500 bg-red-50' : 'border-gray-300 hover:border-gray-400'
                     }`}
                   >
-                    <option value="">Select a driver</option>
-                    {drivers.map((driver) => (
-                      <option key={driver.id} value={driver.id}>
-                        {driver.first_name} {driver.last_name} - {driver.phone}
-                      </option>
-                    ))}
+                    <option value="">Choose a driver</option>
+                    {drivers.map((driver) => {
+                      // Enhanced availability simulation with workload
+                      const isAvailable = Math.random() > 0.3; // 70% chance of being available
+                      const isBusy = Math.random() > 0.7; // 30% chance of being busy
+                      const status = isAvailable ? (isBusy ? 'busy' : 'available') : 'unavailable';
+                      const workload = Math.floor(Math.random() * 5) + 1; // 1-5 appointments
+                      const statusIcon = status === 'available' ? '🟢' : status === 'busy' ? '🟡' : '🔴';
+                      const workloadText = workload > 3 ? 'High' : workload > 1 ? 'Medium' : 'Low';
+
+                      return (
+                        <option key={driver.id} value={driver.id}>
+                          {statusIcon} {driver.first_name} {driver.last_name} - {workload} appointments ({workloadText} workload) - {status}
+                        </option>
+                      );
+                    })}
                   </select>
+
+                  {/* Driver Recommendations Panel */}
+                  <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                    <div className="flex items-start space-x-3">
+                      <div className="flex-shrink-0">
+                        <svg className="w-5 h-5 text-green-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                        </svg>
+                      </div>
+                      <div className="flex-1">
+                        <h5 className="text-sm font-medium text-green-900 mb-2">Driver Recommendations</h5>
+                        <div className="space-y-2 text-xs text-green-800">
+                          <div className="flex items-center space-x-2">
+                            <span className="font-medium">• Best Match:</span>
+                            <span>Drivers with low workload and good availability</span>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <span className="font-medium">• Location:</span>
+                            <span>Consider proximity to pickup location</span>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <span className="font-medium">• Schedule:</span>
+                            <span>Check for conflicts with existing appointments</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
                   {errors.driver_id && (
                     <p className="mt-1 text-sm text-red-600 flex items-center">
                       <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
@@ -840,44 +1315,54 @@ export function AppointmentForm({
                       {errors.driver_id.message}
                     </p>
                   )}
-                </div>
-              )}
 
-              {watchedTransportationType === 'self_transport' && (
-                <div className="space-y-2">
-                  <label htmlFor="transportation_method" className="block text-sm font-medium text-gray-700">
-                    Transportation Method *
-                  </label>
-                  <select
-                    {...register('transportation_method')}
-                    id="transportation_method"
-                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white text-gray-900 transition-colors ${
-                      errors.transportation_method ? 'border-red-500 bg-red-50' : 'border-gray-300 hover:border-gray-400'
-                    }`}
-                  >
-                    <option value="">Select transportation method</option>
-                    {TRANSPORTATION_METHODS.map((method) => (
-                      <option key={method} value={method}>
-                        {method}
-                      </option>
-                    ))}
-                  </select>
-                  {errors.transportation_method && (
-                    <p className="mt-1 text-sm text-red-600 flex items-center">
-                      <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                      </svg>
-                      {errors.transportation_method.message}
-                    </p>
-                  )}
+                  <div className="text-xs text-gray-500 bg-gray-50 p-3 rounded-lg border border-gray-200">
+                    <div className="flex items-start space-x-2">
+                      <span className="text-blue-500">💡</span>
+                      <div>
+                        <strong>Tip:</strong> Green drivers are available, yellow are busy but might be free, red are unavailable.
+                        Workload shows current appointment count - lower is better for new assignments.
+                      </div>
+                    </div>
+                  </div>
                 </div>
-              )}
-            </div>
+              </div>
+            )}
+
+            {watchedTransportationType === 'self_transport' && (
+              <div className="space-y-2">
+                <label htmlFor="transportation_method" className="block text-sm font-medium text-gray-700">
+                  Transportation Method *
+                </label>
+                <select
+                  {...register('transportation_method')}
+                  id="transportation_method"
+                  className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900 transition-colors ${
+                    errors.transportation_method ? 'border-red-500 bg-red-50' : 'border-gray-300 hover:border-gray-400'
+                  }`}
+                >
+                  <option value="">Select transportation method</option>
+                  {TRANSPORTATION_METHODS.map((method) => (
+                    <option key={method} value={method}>
+                      {method}
+                    </option>
+                  ))}
+                </select>
+                {errors.transportation_method && (
+                  <p className="mt-1 text-sm text-red-600 flex items-center">
+                    <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                    </svg>
+                    {errors.transportation_method.message}
+                  </p>
+                )}
+              </div>
+            )}
           </div>
-        )}
+        </div>
 
-        {/* Segment Mode Transportation */}
-        {transportationMode === 'segments' && isFeatureEnabled('TRANSPORTATION_SEGMENTS_ENABLED') && (
+        {/* Transportation Segments - Always Available */}
+        {isFeatureEnabled('TRANSPORTATION_SEGMENTS_ENABLED') && (
           <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center space-x-3">
@@ -901,7 +1386,14 @@ export function AppointmentForm({
                       appointment_id: appointment?.id || '',
                       segment_type: 'pickup',
                       title: '',
-                      status: 'draft',
+                      status: effectiveAssignmentMode === 'assign_now' ? 'scheduled' : 'draft',
+                      assignment_mode: effectiveAssignmentMode,
+                      priority: transportationSegmentsData.length + 1,
+                      recommended_driver_ids: [],
+                      recommendation_metadata: {},
+                      queue_rank: null,
+                      escalation_state: 'normal',
+                      escalation_deadline: null,
                       created_at: new Date().toISOString(),
                       updated_at: new Date().toISOString(),
                     };
@@ -932,7 +1424,14 @@ export function AppointmentForm({
                       appointment_id: appointment?.id || '',
                       segment_type: 'dropoff',
                       title: '',
-                      status: 'draft',
+                      status: effectiveAssignmentMode === 'assign_now' ? 'scheduled' : 'draft',
+                      assignment_mode: effectiveAssignmentMode,
+                      priority: transportationSegmentsData.length + 1,
+                      recommended_driver_ids: [],
+                      recommendation_metadata: {},
+                      queue_rank: null,
+                      escalation_state: 'normal',
+                      escalation_deadline: null,
                       created_at: new Date().toISOString(),
                       updated_at: new Date().toISOString(),
                     };
@@ -1010,17 +1509,136 @@ export function AppointmentForm({
                     : 0;
                   const travelButtonDisabled = !hasCoordinates || isTravelLoading || isCoolingDown;
 
+                  // Check if segment has validation errors
+                  const hasValidationErrors = !segment.planned_start || !segment.planned_end || !segment.pickup_location_type ||
+                    (effectiveAssignmentMode === 'assign_now' && !segment.driver_id);
+
+                  const recommendedPrimaryDriverId = segment.recommended_driver_ids?.[0] ?? null;
+                  const overrideContext = segment.recommendation_metadata?.override ?? null;
+                  const shouldCaptureOverride =
+                    effectiveAssignmentMode === 'assign_now' &&
+                    !!segment.driver_id &&
+                    !!recommendedPrimaryDriverId &&
+                    segment.driver_id !== recommendedPrimaryDriverId;
+                  const overrideReasonValue = overrideContext?.reason ?? '';
+                  const overrideNoteValue = overrideContext?.note ?? '';
+
+                  const handleDriverAssignment = (driverId: string | null) => {
+                    const nextMetadata = { ...(segment.recommendation_metadata ?? {}) };
+                    let metadataChanged = false;
+
+                    if (driverId && recommendedPrimaryDriverId && driverId !== recommendedPrimaryDriverId) {
+                      const nextOverride = { ...(segment.recommendation_metadata?.override ?? {}) };
+                      nextOverride.driver_id = driverId;
+                      nextOverride.recommended_driver_id = recommendedPrimaryDriverId;
+                      if (!nextOverride.recorded_at) {
+                        nextOverride.recorded_at = new Date().toISOString();
+                      }
+                      if (typeof nextOverride.reason !== 'string') {
+                        nextOverride.reason = '';
+                      }
+                      if (typeof nextOverride.note !== 'string') {
+                        nextOverride.note = '';
+                      }
+                      nextMetadata.override = nextOverride;
+                      metadataChanged = true;
+                    } else if (nextMetadata.override) {
+                      delete nextMetadata.override;
+                      metadataChanged = true;
+                    }
+
+                    const updates: Partial<TransportationSegment> = {
+                      driver_id: driverId,
+                    };
+
+                    if (metadataChanged) {
+                      updates.recommendation_metadata = Object.keys(nextMetadata).length > 0 ? nextMetadata : {};
+                    }
+
+                    updateSegmentData(segment.id, updates);
+                  };
+
+                  const updateOverrideMetadata = (
+                    mutator: (override: TransportationRecommendationOverride) => void,
+                  ) => {
+                    const baseMetadata: TransportationRecommendationMetadata = {
+                      ...(segment.recommendation_metadata ?? {}),
+                    };
+                    const overrideDraft: TransportationRecommendationOverride = {
+                      ...(segment.recommendation_metadata?.override ?? {}),
+                    };
+
+                    mutator(overrideDraft);
+
+                    if (segment.driver_id) {
+                      overrideDraft.driver_id = segment.driver_id;
+                    }
+                    if (recommendedPrimaryDriverId) {
+                      overrideDraft.recommended_driver_id = recommendedPrimaryDriverId;
+                    }
+
+                    const cleanedReason = overrideDraft.reason?.trim() ?? '';
+                    const cleanedNote = overrideDraft.note?.trim() ?? '';
+
+                    if (!cleanedReason && !cleanedNote) {
+                      if (baseMetadata.override) {
+                        const rest = { ...baseMetadata };
+                        delete rest.override;
+                        updateSegmentData(segment.id, {
+                          recommendation_metadata: Object.keys(rest).length > 0 ? rest : {},
+                        });
+                      }
+                      return;
+                    }
+
+                    baseMetadata.override = {
+                      ...overrideDraft,
+                      reason: cleanedReason,
+                      note: cleanedNote,
+                      recorded_at:
+                        typeof overrideDraft.recorded_at === 'string'
+                          ? overrideDraft.recorded_at
+                          : new Date().toISOString(),
+                    };
+
+                    updateSegmentData(segment.id, {
+                      recommendation_metadata: baseMetadata,
+                    });
+                  };
+
+                  const handleOverrideReasonChange = (value: string) => {
+                    updateOverrideMetadata((override) => {
+                      override.reason = value;
+                    });
+                  };
+
+                  const handleOverrideNoteChange = (value: string) => {
+                    updateOverrideMetadata((override) => {
+                      override.note = value;
+                    });
+                  };
+
+                  const showOverridePanel =
+                    shouldCaptureOverride ||
+                    (overrideReasonValue ? overrideReasonValue.trim().length > 0 : false) ||
+                    (overrideNoteValue ? overrideNoteValue.trim().length > 0 : false);
+
                   return (
-                  <div key={segment.id} className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow">
-                    <div className="flex justify-between items-start mb-6">
-                      <div className="flex items-center space-x-3">
-                        <div className={`w-4 h-4 rounded-full ${
-                          segment.segment_type === 'pickup' ? 'bg-blue-500' :
-                          segment.segment_type === 'dropoff' ? 'bg-green-500' :
-                          segment.segment_type === 'stay_with_staff' ? 'bg-purple-500' :
-                          segment.segment_type === 'metro_assist' ? 'bg-orange-500' :
-                          'bg-gray-500'
-                        }`}></div>
+                  <div key={segment.id} className={`bg-white border rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow ${
+                    hasValidationErrors ? 'border-orange-300 bg-orange-50' : 'border-gray-200'
+                  }`}>
+                    <div className="flex flex-wrap items-start justify-between gap-4 mb-6">
+                      <div className="flex items-center gap-3">
+                        <div
+                          className={`w-4 h-4 rounded-full ${
+                            segment.segment_type === 'pickup' ? 'bg-blue-500' :
+                            segment.segment_type === 'dropoff' ? 'bg-green-500' :
+                            segment.segment_type === 'stay_with_staff' ? 'bg-purple-500' :
+                            segment.segment_type === 'metro_assist' ? 'bg-orange-500' :
+                            'bg-gray-500'
+                          }`}
+                          aria-hidden="true"
+                        ></div>
                         <div>
                           <h5 className="text-sm font-semibold text-gray-900">
                             {TRANSPORTATION_SEGMENT_TYPES.find(t => t.value === segment.segment_type)?.label}
@@ -1028,24 +1646,34 @@ export function AppointmentForm({
                           <p className="text-xs text-gray-500">Segment #{index + 1}</p>
                         </div>
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setTransportationSegmentsData(prev => prev.filter(item => item.id !== segment.id));
-                          setTravelEstimateState(prev => {
-                            if (!(segment.id in prev)) {
-                              return prev;
-                            }
-                            const { [segment.id]: _removed, ...rest } = prev;
-                            return rest;
-                          });
-                        }}
-                        className="text-red-600 hover:text-red-800 p-2 rounded-lg hover:bg-red-50 transition-colors"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
-                      </button>
+
+                      <div className="flex flex-wrap items-center justify-end gap-3">
+                        {isDriverAssignmentOverhaulUIEnabled() && (
+                          <SegmentMetaChips
+                            status={segment.status}
+                            manualOverride={segment.manual_override}
+                            warning={warning ?? null}
+                          />
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setTransportationSegmentsData(prev => prev.filter(item => item.id !== segment.id));
+                            setTravelEstimateState(prev => {
+                              if (!(segment.id in prev)) {
+                                return prev;
+                              }
+                              const { [segment.id]: _removed, ...rest } = prev;
+                              return rest;
+                            });
+                          }}
+                          className="text-red-600 hover:text-red-800 p-2 rounded-lg hover:bg-red-50 transition-colors"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        </button>
+                      </div>
                     </div>
 
                     <div className="space-y-6">
@@ -1131,41 +1759,57 @@ export function AppointmentForm({
                         </div>
                       </div>
 
+                      {hasValidationErrors && (
+                        <div className="md:col-span-2 flex flex-wrap items-start gap-2 rounded-md border border-red-200 bg-red-50 px-3 py-2">
+                          <AlertCircle className="w-4 h-4 text-red-600 mt-0.5" />
+                          <div className="flex-1 space-y-1 text-xs text-red-700">
+                            <p className="font-medium">Required fields missing:</p>
+                            {!segment.planned_start && <p>• Start time is required</p>}
+                            {!segment.planned_end && <p>• End time is required</p>}
+                            {!segment.pickup_location_type && <p>• Pickup location type is required</p>}
+                            {effectiveAssignmentMode === 'assign_now' && !segment.driver_id && <p>• Driver is required when assignment mode is "Assign Now"</p>}
+                          </div>
+                        </div>
+                      )}
+
                       {warning && (
-                        <div className="md:col-span-2 flex flex-wrap items-start gap-2 rounded-md border border-orange-200 bg-orange-50 px-3 py-2">
-                          <AlertCircle className="w-4 h-4 text-orange-600 mt-0.5" />
-                          <div className="flex-1 space-y-1 text-xs text-orange-700">
-                            {warning.messages.map((message, messageIndex) => (
-                              <p key={messageIndex}>{message}</p>
-                            ))}
-                            {!segment.manual_override ? (
-                              <p className="italic">Mark a manual override or adjust timings/buffers before proceeding.</p>
-                            ) : (
-                              <p className="italic text-orange-600">Manual override recorded for this segment.</p>
+                        <div className="md:col-span-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-3">
+                          <div className="flex flex-wrap items-start gap-3">
+                            <AlertTriangle className="h-4 w-4 text-amber-600 mt-0.5" aria-hidden="true" />
+                            <div className="flex-1 space-y-1 text-xs text-amber-800">
+                              {warning.messages.map((message, messageIndex) => (
+                                <p key={messageIndex}>{message}</p>
+                              ))}
+                              {!segment.manual_override ? (
+                                <p className="italic">Mark a manual override or adjust timings/buffers before proceeding.</p>
+                              ) : (
+                                <p className="italic text-amber-700">Manual override recorded for this segment.</p>
+                              )}
+                            </div>
+                            {!segment.manual_override && (
+                              <button
+                                type="button"
+                                onClick={() => updateSegmentData(segment.id, { manual_override: true })}
+                                className="inline-flex items-center px-2 py-1 text-xs font-medium text-amber-700 border border-amber-300 rounded-md hover:bg-amber-100"
+                              >
+                                Mark override
+                              </button>
                             )}
                           </div>
-                          {!segment.manual_override && (
-                            <button
-                              type="button"
-                              onClick={() => updateSegmentData(segment.id, { manual_override: true })}
-                              className="inline-flex items-center px-2 py-1 text-xs font-medium text-orange-700 border border-orange-300 rounded-md hover:bg-orange-100"
-                            >
-                              Mark override
-                            </button>
-                          )}
                         </div>
                       )}
 
                       {/* Driver and Timing */}
                       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                         <div className="space-y-2">
-                          <label className="block text-sm font-medium text-gray-700">
+                          <label htmlFor={`segment-${segment.id}-driver`} className="block text-sm font-medium text-gray-700">
                             Driver
                           </label>
                           <select
+                            id={`segment-${segment.id}-driver`}
                             value={segment.driver_id || ''}
                             onChange={(e) => {
-                              updateSegmentData(segment.id, { driver_id: e.target.value || null });
+                              handleDriverAssignment(e.target.value ? e.target.value : null);
                             }}
                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
                           >
@@ -1184,7 +1828,6 @@ export function AppointmentForm({
                                 driverId={segment.driver_id}
                                 segment={segment}
                                 allSegments={transportationSegmentsData}
-                                drivers={drivers}
                                 onOverrideConfirm={(overrideSegment) => {
                                   updateSegmentData(overrideSegment.id, {
                                     ...overrideSegment,
@@ -1228,6 +1871,58 @@ export function AppointmentForm({
                           />
                         </div>
                       </div>
+
+                      {effectiveAssignmentMode === 'assign_now' && drivers.length > 0 && isDriverAssignmentOverhaulUIEnabled() && (
+                        <SegmentDriverSuggestions
+                          segment={segment}
+                          drivers={drivers}
+                          allSegments={transportationSegmentsData}
+                          onSelectDriver={(driverId) => {
+                            handleDriverAssignment(driverId);
+                          }}
+                        />
+                      )}
+
+                      {showOverridePanel && isDriverAssignmentOverhaulUIEnabled() && (
+                        <div className="rounded-lg border border-orange-200 bg-orange-50 p-4">
+                          <div className="flex flex-col gap-4">
+                            <div>
+                              <h6 className="text-sm font-semibold text-orange-800">Override reason</h6>
+                              <p className="text-xs text-orange-700">Tell the team why this driver differs from the top recommendation.</p>
+                            </div>
+                            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                              <div className="space-y-1">
+                                <label className="text-xs font-semibold uppercase tracking-wide text-orange-800" htmlFor={`segment-${segment.id}-override-reason`}>Reason</label>
+                                <select
+                                  id={`segment-${segment.id}-override-reason`}
+                                  value={overrideReasonValue}
+                                  onChange={(e) => handleOverrideReasonChange(e.target.value)}
+                                  className="w-full rounded-md border border-orange-300 bg-white px-3 py-2 text-sm text-orange-900 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                                  required={shouldCaptureOverride}
+                                >
+                                  <option value="">Select a reason</option>
+                                  {SEGMENT_OVERRIDE_REASONS.map((reason) => (
+                                    <option key={reason.value} value={reason.value}>
+                                      {reason.label}
+                                    </option>
+                                  ))}
+                                </select>
+                              </div>
+                              <div className="space-y-1">
+                                <label className="text-xs font-semibold uppercase tracking-wide text-orange-800" htmlFor={`segment-${segment.id}-override-note`}>Notes (optional)</label>
+                                <textarea
+                                  id={`segment-${segment.id}-override-note`}
+                                  value={overrideNoteValue}
+                                  onChange={(e) => handleOverrideNoteChange(e.target.value)}
+                                  rows={3}
+                                  className="w-full rounded-md border border-orange-300 bg-white px-3 py-2 text-sm text-orange-900 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                                  placeholder="Add any context the next dispatcher should know..."
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
 
                       {/* Location Fields */}
                       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

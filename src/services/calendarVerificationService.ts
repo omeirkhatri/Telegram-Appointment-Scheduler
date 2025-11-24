@@ -16,7 +16,7 @@ import {
     VerifyCalendarRequest,
     isVerificationExpired
 } from '@/types/calendar';
-import { getGoogleCalendarService } from './googleCalendarService';
+// Import server-only calendar service dynamically when required
 
 // =============================================================================
 // TYPES AND INTERFACES
@@ -71,7 +71,8 @@ export class CalendarVerificationService {
   };
 
   constructor() {
-    this.googleCalendarService = getGoogleCalendarService();
+    // Lazily load on first use instead of top-level import
+    this.googleCalendarService = null as any;
   }
 
   /**
@@ -474,6 +475,10 @@ export class CalendarVerificationService {
         // Note: Removed attendees array as service accounts cannot invite attendees
       };
 
+      if (!this.googleCalendarService) {
+        const { getGoogleCalendarService } = await import('./googleCalendarService');
+        this.googleCalendarService = getGoogleCalendarService();
+      }
       const result = await this.googleCalendarService.createEvent(testEvent);
 
       if (!result.success) {

@@ -83,13 +83,3 @@ CREATE POLICY "Enable update access for authenticated users" ON transportation_s
 
 CREATE POLICY "Enable delete access for authenticated users" ON transportation_segments
     FOR DELETE USING (true);
-
--- Down Migration
-DROP POLICY IF EXISTS "Enable delete access for authenticated users" ON transportation_segments;
-DROP POLICY IF EXISTS "Enable update access for authenticated users" ON transportation_segments;
-DROP POLICY IF EXISTS "Enable insert access for authenticated users" ON transportation_segments;
-DROP POLICY IF EXISTS "Enable read access for all users" ON transportation_segments;
-DROP TRIGGER IF EXISTS update_transportation_segments_updated_at ON transportation_segments;
-DROP TABLE IF EXISTS transportation_segments;
-DROP TYPE IF EXISTS transportation_segment_status_enum;
-DROP TYPE IF EXISTS transportation_segment_type_enum;

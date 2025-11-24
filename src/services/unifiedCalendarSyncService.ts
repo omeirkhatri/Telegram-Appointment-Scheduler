@@ -5,15 +5,18 @@
  * It eliminates the conflicts between multiple sync systems and provides reliable,
  * event-driven calendar synchronization.
  */
+import 'server-only';
 
-import { createClient } from '@supabase/supabase-js';
+import { getServiceRoleClient } from '@/lib/supabase';
 import { getGoogleCalendarService } from './googleCalendarService';
 
-// Initialize Supabase client
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+// Lazily acquire a server-only Supabase client when needed
+function getServerSupabase() {
+  if (typeof window !== 'undefined') {
+    throw new Error('Server-only Supabase client used on the client');
+  }
+  return getServiceRoleClient();
+}
 
 // Types for sync operations
 export interface SyncResult {
@@ -75,7 +78,7 @@ export class UnifiedCalendarSyncService {
 
     try {
       // Get appointment with staff assignments
-      const { data: appointment, error: appointmentError } = await supabase
+      const { data: appointment, error: appointmentError } = await getServerSupabase()
         .from('appointments')
         .select(`
           *,
@@ -101,7 +104,7 @@ export class UnifiedCalendarSyncService {
       if (appointmentError) {
         // If no staff assignments found, check for driver_id assignments
         if (appointment?.driver_id) {
-          const { data: driverData, error: driverError } = await supabase
+          const { data: driverData, error: driverError } = await getServerSupabase()
             .from('staff')
             .select('id, first_name, last_name, google_calendar_id, email')
             .eq('id', appointment.driver_id)
@@ -158,7 +161,7 @@ export class UnifiedCalendarSyncService {
 
     try {
       // Get appointment with staff assignments that have calendar events
-      const { data: appointment, error: appointmentError } = await supabase
+      const { data: appointment, error: appointmentError } = await getServerSupabase()
         .from('appointments')
         .select(`
           *,
@@ -214,7 +217,7 @@ export class UnifiedCalendarSyncService {
 
     try {
       // Get staff assignments with calendar events for this appointment
-      const { data: assignments, error: assignmentsError } = await supabase
+      const { data: assignments, error: assignmentsError } = await getServerSupabase()
         .from('appointment_staff')
         .select(`
           id,
@@ -268,7 +271,7 @@ export class UnifiedCalendarSyncService {
       console.log('🔄 [UNIFIED] Processing pending calendar syncs...');
 
       // Get pending syncs from database
-      const { data: pendingSyncs, error } = await supabase
+      const { data: pendingSyncs, error } = await getServerSupabase()
         .rpc('get_pending_calendar_syncs', { limit_count: 50 });
 
       if (error) {
@@ -312,7 +315,7 @@ export class UnifiedCalendarSyncService {
 
     try {
       // Get orphaned events from database
-      const { data: orphanedEvents, error } = await supabase
+      const { data: orphanedEvents, error } = await getServerSupabase()
         .rpc('get_orphaned_calendar_events');
 
       if (error) {
@@ -369,7 +372,7 @@ export class UnifiedCalendarSyncService {
    */
   async getHealthStatus(): Promise<SyncHealthStatus> {
     try {
-      const { data: stats, error } = await supabase
+      const { data: stats, error } = await getServerSupabase()
         .rpc('get_calendar_sync_statistics');
 
       if (error) {
@@ -419,7 +422,7 @@ export class UnifiedCalendarSyncService {
    * Get sync statistics
    */
   async getSyncStatistics(): Promise<SyncStatistics> {
-    const { data: stats, error } = await supabase
+    const { data: stats, error } = await getServerSupabase()
       .rpc('get_calendar_sync_statistics');
 
     if (error) {
@@ -465,7 +468,7 @@ export class UnifiedCalendarSyncService {
         });
       } else {
         // Get the existing event ID
-        const { data: assignment } = await supabase
+        const { data: assignment } = await getServerSupabase()
           .from('appointment_staff')
           .select('google_event_id')
           .eq('id', assignmentId)
@@ -514,7 +517,7 @@ export class UnifiedCalendarSyncService {
 
       if (result.success) {
         // Clear the event ID and mark as synced (deleted)
-        await supabase
+        await getServerSupabase()
           .from('appointment_staff')
           .update({
             google_event_id: null,
@@ -569,7 +572,7 @@ export class UnifiedCalendarSyncService {
     eventId?: string,
     error?: string
   ): Promise<void> {
-    await supabase.rpc('update_sync_status', {
+    await getServerSupabase().rpc('update_sync_status', {
       p_appointment_staff_id: assignmentId,
       p_status: status,
       p_event_id: eventId,

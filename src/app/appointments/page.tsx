@@ -3,8 +3,8 @@
 import { AppointmentContextMenu, AppointmentDetailsDrawer, AppointmentModal, CopyAppointmentModal, RecurringAppointmentDeleteModal, RecurringAppointmentEditModal } from '@/components/features/appointments';
 import { AppointmentCalendar } from '@/components/features/appointments/calendar';
 import { AppointmentFilters, type AppointmentFilterState } from '@/components/features/appointments/filters';
-import Header from '@/components/layout/Header';
-import { ErrorMessage, VirtualizedTable, type VirtualizedTableColumn } from '@/components/ui';
+import { PageHeader } from '@/components/layout/PageHeader';
+import { ShadButton as Button, ErrorMessage, FilterButton, ViewToggle, VirtualizedTable, type VirtualizedTableColumn } from '@/components/ui';
 import { useToastContext } from '@/components/ui/ToastContainer';
 import { useAppointmentsForDateRange, useUpdateAppointment } from '@/hooks/useAppointments';
 import { useAppointmentStaffForDateRange } from '@/hooks/useAppointmentStaff';
@@ -14,16 +14,32 @@ import { useStaff } from '@/hooks/useStaff';
 import type { Appointment } from '@/types';
 import { formatTimeToHHMM, getCurrentDubaiTime } from '@/utils/timezone';
 import {
-    Grid3X3,
-    List,
+    Filter,
     MoreHorizontal,
-    Plus,
+    Plus
 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+
+const APPOINTMENT_TYPE_LABELS: Record<string, string> = {
+  doctor_on_call: 'Doctor on Call',
+  lab_test: 'Lab Test',
+  teleconsultation: 'Teleconsultation',
+  physiotherapy: 'Physiotherapy',
+  caregiver: 'Caregiver',
+  iv_therapy: 'IV Therapy',
+};
+
+const STATUS_LABELS: Record<string, string> = {
+  scheduled: 'Scheduled',
+  confirmed: 'Confirmed',
+  completed: 'Completed',
+  cancelled: 'Cancelled',
+};
 
 
 export default function AppointmentsPage() {
   const [viewMode, setViewMode] = useState<'calendar' | 'table'>('calendar');
+  const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(false);
   const { showToast } = useToastContext();
   const [filters, setFilters] = useState<AppointmentFilterState>({});
   const [contextMenu, setContextMenu] = useState<{
@@ -615,6 +631,74 @@ export default function AppointmentsPage() {
     staff_type: s.staff_type,
   }));
 
+  const staffNameById = useMemo(() => {
+    return staffOptions.reduce<Record<string, string>>((acc, item) => {
+      acc[item.id] = item.name;
+      return acc;
+    }, {});
+  }, [staffOptions]);
+
+  const activeFiltersCount = useMemo(() => {
+    return Object.values(filters).filter(value =>
+      value !== undefined &&
+      value !== '' &&
+      (!Array.isArray(value) || value.length > 0)
+    ).length;
+  }, [filters]);
+
+  const filterSummaries = useMemo(() => {
+    const summaries: string[] = [];
+
+    if (filters.staffIds?.length) {
+      const names = filters.staffIds
+        .map((id) => staffNameById[id])
+        .filter((name): name is string => Boolean(name));
+
+      if (names.length === 1) {
+        summaries.push(`Staff: ${names[0]}`);
+      } else if (names.length > 1) {
+        const [first, second, ...rest] = names;
+        if (names.length === 2) {
+          summaries.push(`Staff: ${first}, ${second}`);
+        } else {
+          summaries.push(`Staff: ${first}, ${second} +${rest.length}`);
+        }
+      } else {
+        summaries.push(`Staff (${filters.staffIds.length})`);
+      }
+    }
+
+    if (filters.appointmentTypes?.length) {
+      const labels = filters.appointmentTypes.map(type => APPOINTMENT_TYPE_LABELS[type] || type);
+      if (labels.length <= 2) {
+        summaries.push(`Type: ${labels.join(', ')}`);
+      } else {
+        const [first, second, ...rest] = labels;
+        summaries.push(`Type: ${first}, ${second} +${rest.length}`);
+      }
+    }
+
+    if (filters.statuses?.length) {
+      const labels = filters.statuses.map(status => STATUS_LABELS[status] || status);
+      if (labels.length <= 2) {
+        summaries.push(`Status: ${labels.join(', ')}`);
+      } else {
+        const [first, second, ...rest] = labels;
+        summaries.push(`Status: ${first}, ${second} +${rest.length}`);
+      }
+    }
+
+    if (filters.dateFrom && filters.dateTo) {
+      summaries.push(`Date: ${filters.dateFrom} -> ${filters.dateTo}`);
+    } else if (filters.dateFrom) {
+      summaries.push(`From: ${filters.dateFrom}`);
+    } else if (filters.dateTo) {
+      summaries.push(`Until: ${filters.dateTo}`);
+    }
+
+    return summaries;
+  }, [filters, staffNameById]);
+
   // Define columns for virtualized appointments table
   const appointmentColumns: VirtualizedTableColumn<Appointment>[] = [
     {
@@ -647,7 +731,7 @@ export default function AppointmentsPage() {
         const patientName = patient ? `${patient.name}` : 'Unknown Patient';
         return (
           <div className="flex items-center space-x-3">
-            <div className="w-8 h-8 bg-[--muted] rounded-full flex items-center justify-center">
+            <div className="w-8 h-8 bg-[--muted] rounded-full flex items-center justify-center aspect-square">
               <span className="text-xs font-medium text-[--muted-foreground]">
                 {patientName.split(' ').map(n => n[0]).join('')}
               </span>
@@ -708,156 +792,208 @@ export default function AppointmentsPage() {
       header: 'Actions',
       width: 100,
       render: () => (
-        <button className="p-2 text-[--muted-foreground] hover:text-[--foreground] hover:bg-[--accent] rounded-lg transition-colors">
+        <Button variant="ghost" size="icon">
           <MoreHorizontal className="w-4 h-4" />
-        </button>
+        </Button>
       ),
     },
   ];
 
   return (
-    <div className="min-h-screen bg-[--background] text-[--foreground]">
-      {/* Header with Navigation */}
-      <Header currentPage="appointments" />
+    <>
+      <PageHeader
+        title="Appointments"
+        description="Manage patient appointments"
+        actions={
+          <Button onClick={handleOpenAppointmentModal}>
+            <Plus className="w-4 h-4 mr-2" />
+            New Appointment
+          </Button>
+        }
+      />
 
-
-      {/* Main Content - Full Width */}
-      <main className="px-3 py-4 space-y-3 sm:px-4 sm:py-6 lg:px-8 lg:py-8">
-        {/* Page Header */}
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-          {/* Left side - Filters */}
-          <div className="w-full lg:flex-1">
-            <AppointmentFilters
-              filters={filters}
-              onFiltersChange={handleFiltersChange}
-              onClearFilters={handleClearFilters}
-              staffOptions={staffOptions}
+      <main className="relative h-screen overflow-hidden">
+        {isFilterPanelOpen && (
+          <div className="fixed inset-0 z-40 flex md:hidden">
+            <div
+              className="flex-1 bg-black/40"
+              onClick={() => setIsFilterPanelOpen(false)}
             />
-          </div>
-
-          {/* Right side - View Toggle and New Appointment */}
-          <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center sm:justify-between lg:w-auto lg:flex-col lg:items-end lg:justify-start">
-            {/* View Toggle */}
-            <div className="flex w-full items-center overflow-hidden rounded-lg bg-[--muted] p-1 sm:max-w-sm lg:w-full">
-              <button
-                onClick={() => setViewMode('calendar')}
-                className={`flex flex-1 items-center justify-center rounded-md px-2 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium transition-colors ${
-                  viewMode === 'calendar'
-                    ? 'bg-[--primary] text-[--primary-foreground]'
-                    : 'text-[--muted-foreground] hover:text-[--foreground]'
-                }`}
-              >
-                <Grid3X3 className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
-                <span className="hidden sm:inline">Calendar</span>
-                <span className="sm:hidden">Cal</span>
-              </button>
-              <button
-                onClick={() => setViewMode('table')}
-                className={`flex flex-1 items-center justify-center rounded-md px-2 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium transition-colors ${
-                  viewMode === 'table'
-                    ? 'bg-[--primary] text-[--primary-foreground]'
-                    : 'text-[--muted-foreground] hover:text-[--foreground]'
-                }`}
-              >
-                <List className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
-                <span className="hidden sm:inline">Table</span>
-                <span className="sm:hidden">List</span>
-              </button>
+            <div className="relative flex h-full w-11/12 max-w-sm flex-col border-l border-[--border] bg-[--card] shadow-2xl">
+              <div className="flex items-center justify-between border-b border-[--border] px-4 py-3">
+                <div className="flex items-center gap-2 text-sm font-semibold text-[--foreground]">
+                  <Filter className="h-4 w-4 text-[--primary]" />
+                  Filters
+                </div>
+                <button
+                  onClick={() => setIsFilterPanelOpen(false)}
+                  className="rounded-md border border-[--border] px-2 py-1 text-xs font-medium text-[--muted-foreground] transition-colors hover:bg-[--accent] hover:text-[--foreground]"
+                >
+                  Close
+                </button>
+              </div>
+              <div className="flex-1 overflow-y-auto p-3">
+                <AppointmentFilters
+                  filters={filters}
+                  onFiltersChange={handleFiltersChange}
+                  onClearFilters={handleClearFilters}
+                  staffOptions={staffOptions}
+                />
+              </div>
             </div>
-
-            {/* New Appointment Button */}
-            <button
-              onClick={handleOpenAppointmentModal}
-              className="inline-flex w-full items-center justify-center rounded-lg bg-[--primary] px-3 sm:px-4 py-1.5 sm:py-2 text-sm sm:text-base font-medium text-[--primary-foreground] shadow-sm transition-colors hover:bg-[--primary]/90 sm:w-auto lg:w-full"
-            >
-              <Plus className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
-              <span className="hidden sm:inline">New Appointment</span>
-              <span className="sm:hidden">New</span>
-            </button>
           </div>
+        )}
+
+        {isFilterPanelOpen && (
+          <div className="hidden md:block">
+            <div className="fixed top-28 right-6 z-40 w-80 max-h-[70vh] overflow-y-auto rounded-xl border border-[--border] bg-[--card] shadow-2xl">
+              <AppointmentFilters
+                filters={filters}
+                onFiltersChange={handleFiltersChange}
+                onClearFilters={handleClearFilters}
+                staffOptions={staffOptions}
+              />
+            </div>
+          </div>
+        )}
+        <div className="relative h-full">
+          {appointmentsError && (
+            <div className="pointer-events-none absolute inset-x-4 top-4 z-40">
+              <ErrorMessage
+                error={`Failed to load appointments: ${appointmentsError}`}
+                variant="inline"
+              />
+            </div>
+          )}
+
+          {viewMode === 'calendar' && (
+            <div className="h-full">
+              <AppointmentCalendar
+                key={`calendar-${viewMode}`}
+                initialView="timeGridWeek"
+                height="100%"
+                appointments={realAppointments}
+                isLoading={isLoadingAppointments}
+                error={appointmentsError}
+                refetch={refetchAppointments}
+                onEventClick={handleOpenDetailsDrawer}
+                onEventRightClick={handleEventRightClick}
+                onDateSelect={handleCalendarDateSelect}
+                onEventDrop={handleEventDrop}
+                onEventResize={handleEventResize}
+                filters={{
+                  appointmentType: filters.appointmentTypes?.[0],
+                  status: filters.statuses?.[0],
+                  dateFrom: filters.dateFrom,
+                  dateTo: filters.dateTo,
+                  staffId: filters.staffIds?.[0]
+                }}
+                onToggleFilters={() => setIsFilterPanelOpen(prev => !prev)}
+                filtersActiveCount={activeFiltersCount}
+                isFilterPanelOpen={isFilterPanelOpen}
+                onCreateAppointment={handleOpenAppointmentModal}
+                filterSummaries={filterSummaries}
+                onClearFilters={handleClearFilters}
+                onSwitchToTable={() => setViewMode('table')}
+              />
+            </div>
+          )}
+
+          {viewMode === 'table' && (
+            <div className="h-full">
+              <div className="flex flex-col gap-2 px-4 pt-4 pb-2">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <ViewToggle value={viewMode} onChange={setViewMode} modes={['calendar', 'table']} />
+
+                  <div className="flex flex-wrap items-center gap-2">
+                    <FilterButton
+                      onClick={() => setIsFilterPanelOpen(prev => !prev)}
+                      activeCount={activeFiltersCount}
+                      isActive={isFilterPanelOpen}
+                    />
+
+                    <Button onClick={handleOpenAppointmentModal}>
+                      <Plus className="h-4 w-4 mr-2" />
+                      <span className="hidden sm:inline">New Appointment</span>
+                    </Button>
+                  </div>
+                </div>
+
+                {filterSummaries.length > 0 && (
+                  <div className="flex flex-wrap items-center justify-end gap-2 text-xs text-[--foreground]">
+                    {filterSummaries.map(summary => (
+                      <span
+                        key={summary}
+                        className="inline-flex items-center gap-2 rounded-full border border-[--border]/70 bg-[--card]/90 px-3 py-1 shadow-sm"
+                      >
+                        {summary}
+                      </span>
+                    ))}
+                    <Button
+                      onClick={handleClearFilters}
+                      variant="ghost"
+                      size="sm"
+                      className="text-[10px] font-semibold"
+                    >
+                      Clear
+                    </Button>
+                  </div>
+                )}
+              </div>
+
+              <VirtualizedTable
+                key={`table-${viewMode}`}
+                data={realAppointments}
+                columns={appointmentColumns}
+                height="100%"
+                itemHeight={80}
+                loading={isLoadingAppointments}
+                loadingMessage="Loading appointments..."
+                emptyMessage="No appointments found"
+                onRowClick={handleOpenDetailsDrawer}
+                getRowKey={appointment => appointment.id}
+                enableKeyboardNavigation
+              />
+            </div>
+          )}
         </div>
+      </main>
 
+      {contextMenu && (
+        <AppointmentContextMenu
+          appointment={contextMenu.appointment}
+          position={contextMenu.position}
+          onClose={handleCloseContextMenu}
+          onEdit={handleEditAppointment}
+          onCopy={handleCopyAppointment}
+          onCancel={handleCancelAppointment}
+          onDelete={handleDeleteAppointment}
+        />
+      )}
 
+      <AppointmentModal
+        isOpen={isAppointmentModalOpen}
+        onClose={handleCloseAppointmentModal}
+        onSuccess={handleAppointmentModalSuccess}
+        initialAppointment={editingAppointment || (selectedDate ? {
+          appointment_date: selectedDate.start.toISOString().split('T')[0],
+          start_time: selectedDate.start.toTimeString().slice(0, 5),
+          duration_minutes: Math.round((selectedDate.end.getTime() - selectedDate.start.getTime()) / (1000 * 60)),
+        } : undefined)}
+        patients={patients}
+        staff={staff}
+        isLoadingPatients={isLoadingPatients}
+        isLoadingStaff={isLoadingStaff}
+        patientsError={patientsError}
+        staffError={staffError}
+      />
 
-        {/* Appointments Error */}
-        {appointmentsError && (
-          <div className="bg-[--card] border border-[--border] rounded-xl p-6 shadow-lg">
-            <ErrorMessage
-              error={`Failed to load appointments: ${appointmentsError}`}
-              variant="inline"
-            />
-          </div>
-        )}
-
-
-
-        {/* Calendar View */}
-        {viewMode === 'calendar' && (
-          <div className="bg-[--card] border border-[--border] rounded-xl p-3 sm:p-6 shadow-lg">
-            <AppointmentCalendar
-              key={`calendar-${viewMode}`}
-              initialView="timeGridWeek"
-              height="calc(100vh - 300px)"
-              appointments={realAppointments}
-              isLoading={isLoadingAppointments}
-              error={appointmentsError}
-              refetch={refetchAppointments}
-              onEventClick={handleOpenDetailsDrawer}
-              onEventRightClick={handleEventRightClick}
-              onDateSelect={handleCalendarDateSelect}
-              onEventDrop={handleEventDrop}
-              onEventResize={handleEventResize}
-              filters={{
-                appointmentType: filters.appointmentTypes?.[0],
-                status: filters.statuses?.[0],
-                dateFrom: filters.dateFrom,
-                dateTo: filters.dateTo,
-                staffId: filters.staffIds?.[0]
-              }}
-            />
-          </div>
-        )}
-
-        {/* Virtualized Appointments Table */}
-        {viewMode === 'table' && (
-          <VirtualizedTable
-            key={`table-${viewMode}`}
-            data={realAppointments}
-            columns={appointmentColumns}
-            height={600}
-            itemHeight={80}
-            loading={isLoadingAppointments}
-            loadingMessage="Loading appointments..."
-            emptyMessage="No appointments found"
-            onRowClick={handleOpenDetailsDrawer}
-            getRowKey={(appointment) => appointment.id}
-            enableKeyboardNavigation={true}
-          />
-        )}
-
-        {/* Context Menu */}
-        {contextMenu && (
-          <AppointmentContextMenu
-            appointment={contextMenu.appointment}
-            position={contextMenu.position}
-            onClose={handleCloseContextMenu}
-            onEdit={handleEditAppointment}
-            onCopy={handleCopyAppointment}
-            onCancel={handleCancelAppointment}
-            onDelete={handleDeleteAppointment}
-          />
-        )}
-
-        {/* Appointment Modal */}
-        <AppointmentModal
-          isOpen={isAppointmentModalOpen}
-          onClose={handleCloseAppointmentModal}
-          onSuccess={handleAppointmentModalSuccess}
-          initialAppointment={editingAppointment || (selectedDate ? {
-            appointment_date: selectedDate.start.toISOString().split('T')[0],
-            start_time: selectedDate.start.toTimeString().slice(0, 5),
-            duration_minutes: Math.round((selectedDate.end.getTime() - selectedDate.start.getTime()) / (1000 * 60)),
-          } : undefined)}
+      {copySourceAppointment && (
+        <CopyAppointmentModal
+          isOpen={isCopyModalOpen}
+          onClose={handleCloseCopyModal}
+          onSuccess={handleCopyModalSuccess}
+          sourceAppointment={copySourceAppointment}
           patients={patients}
           staff={staff}
           isLoadingPatients={isLoadingPatients}
@@ -865,62 +1001,42 @@ export default function AppointmentsPage() {
           patientsError={patientsError}
           staffError={staffError}
         />
+      )}
 
-        {/* Copy Appointment Modal */}
-        {copySourceAppointment && (
-          <CopyAppointmentModal
-            isOpen={isCopyModalOpen}
-            onClose={handleCloseCopyModal}
-            onSuccess={handleCopyModalSuccess}
-            sourceAppointment={copySourceAppointment}
-            patients={patients}
-            staff={staff}
-            isLoadingPatients={isLoadingPatients}
-            isLoadingStaff={isLoadingStaff}
-            patientsError={patientsError}
-            staffError={staffError}
-          />
-        )}
+      <AppointmentDetailsDrawer
+        isOpen={isDetailsDrawerOpen}
+        onClose={handleCloseDetailsDrawer}
+        appointment={selectedAppointment}
+        patient={selectedAppointment ? patients.find(p => p.id === selectedAppointment.patient_id) : null}
+        staff={staff}
+        onEdit={handleEditFromDrawer}
+        onCopy={handleCopyFromDrawer}
+        onDelete={handleDeleteFromDrawer}
+      />
 
-        {/* Appointment Details Drawer */}
-        <AppointmentDetailsDrawer
-          isOpen={isDetailsDrawerOpen}
-          onClose={handleCloseDetailsDrawer}
-          appointment={selectedAppointment}
-          patient={selectedAppointment ? patients.find(p => p.id === selectedAppointment.patient_id) : null}
-          staff={staff}
-          onEdit={handleEditFromDrawer}
-          onCopy={handleCopyFromDrawer}
-          onDelete={handleDeleteFromDrawer}
+      {recurringEditAppointment && (
+        <RecurringAppointmentEditModal
+          appointment={recurringEditAppointment}
+          isOpen={isRecurringEditModalOpen}
+          onClose={() => {
+            setIsRecurringEditModalOpen(false);
+            setRecurringEditAppointment(null);
+          }}
+          onUpdate={handleRecurringAppointmentUpdate}
         />
+      )}
 
-        {/* Recurring Appointment Edit Modal */}
-        {recurringEditAppointment && (
-          <RecurringAppointmentEditModal
-            appointment={recurringEditAppointment}
-            isOpen={isRecurringEditModalOpen}
-            onClose={() => {
-              setIsRecurringEditModalOpen(false);
-              setRecurringEditAppointment(null);
-            }}
-            onUpdate={handleRecurringAppointmentUpdate}
-          />
-        )}
-
-        {/* Recurring Appointment Delete Modal */}
-        {recurringDeleteAppointment && (
-          <RecurringAppointmentDeleteModal
-            appointment={recurringDeleteAppointment}
-            isOpen={isRecurringDeleteModalOpen}
-            onClose={() => {
-              setIsRecurringDeleteModalOpen(false);
-              setRecurringDeleteAppointment(null);
-            }}
-            onDelete={handleRecurringAppointmentDelete}
-          />
-        )}
-
-      </main>
-    </div>
+      {recurringDeleteAppointment && (
+        <RecurringAppointmentDeleteModal
+          appointment={recurringDeleteAppointment}
+          isOpen={isRecurringDeleteModalOpen}
+          onClose={() => {
+            setIsRecurringDeleteModalOpen(false);
+            setRecurringDeleteAppointment(null);
+          }}
+          onDelete={handleRecurringAppointmentDelete}
+        />
+      )}
+    </>
   );
 }

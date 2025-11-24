@@ -1,7 +1,8 @@
 'use client';
 
 import { DriverSegmentsBoard } from '@/components/features/appointments/calendar/DriverSegmentsBoard';
-import Header from '@/components/layout/Header';
+import { PageHeader } from '@/components/layout/PageHeader';
+import { ShadButton as Button, Input } from '@/components/ui';
 import type { Staff } from '@/types/staff';
 import type { TransportationSegment, TransportationSegmentStatus } from '@/types/transportationSegment';
 import { Calendar, RefreshCw } from 'lucide-react';
@@ -137,42 +138,36 @@ export default function DriverBoardPage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-[--background] text-[--foreground]">
-      <Header currentPage="driver-board" />
-
-      <main className="px-8 py-8">
-        {/* Page Header */}
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h1 className="text-3xl font-bold text-[--foreground]">Driver Board</h1>
-            <p className="text-[--muted-foreground] text-lg mt-1">
-              Monitor driver segments and schedules
-            </p>
-          </div>
-
+    <>
+      <PageHeader
+        title="Driver Board"
+        description="Monitor driver segments and schedules"
+        actions={
           <div className="flex items-center space-x-4">
             {/* Date Selector */}
             <div className="flex items-center space-x-2">
               <Calendar className="w-5 h-5 text-[--muted-foreground]" />
-              <input
+              <Input
                 type="date"
                 value={selectedDate}
                 onChange={(e) => setSelectedDate(e.target.value)}
-                className="px-3 py-2 border border-[--border] rounded-lg bg-[--card] text-[--foreground] focus:ring-2 focus:ring-[--primary] focus:border-transparent"
+                className="w-auto"
               />
             </div>
 
             {/* Refresh Button */}
-            <button
+            <Button
               onClick={fetchData}
               disabled={isLoading}
-              className="flex items-center space-x-2 px-4 py-2 bg-[--primary] text-[--primary-foreground] rounded-lg hover:bg-[--primary]/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
-              <span>Refresh</span>
-            </button>
+              <RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+              Refresh
+            </Button>
           </div>
-        </div>
+        }
+      />
+
+      <main className="px-4 py-8">
 
         {/* Driver Segments Board */}
         <DriverSegmentsBoard
@@ -190,6 +185,6 @@ export default function DriverBoardPage() {
           error={error}
         />
       </main>
-    </div>
+    </>
   );
 }

@@ -1,11 +1,10 @@
 'use client';
 
-import { ErrorMessage, LoadingOverlay } from '@/components/ui';
+import { Dialog, DialogContent, DialogDescription, DialogTitle, ErrorMessage, LoadingOverlay } from '@/components/ui';
 import { useToastContext } from '@/components/ui/ToastContainer';
 import { AppointmentForm } from './AppointmentForm';
 // Remove direct service import - we'll use API calls instead
 import type { Appointment, Patient, Staff, StaffAssignment } from '@/types';
-import { X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 interface AppointmentModalProps {
@@ -159,20 +158,11 @@ export function AppointmentModal({
     onClose();
   };
 
-  if (!isOpen) return null;
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-black/50 backdrop-blur-sm"
-        onClick={handleCancel}
-      />
-
-      {/* Modal */}
-      <div className="relative bg-white border border-gray-200 rounded-2xl shadow-2xl w-full max-w-7xl max-h-[98vh] overflow-hidden">
+    <Dialog open={isOpen} onOpenChange={(open) => !open && handleCancel()}>
+      <DialogContent className="max-w-7xl max-h-[98vh] overflow-hidden p-0">
         {/* Header */}
-        <div className="flex items-center justify-between p-8 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50">
+        <div className="flex items-center justify-between p-8 border-b border-[--border] bg-gradient-to-r from-blue-50 to-indigo-50">
           <div className="flex items-center space-x-4">
             <div className="w-14 h-14 bg-blue-100 rounded-xl flex items-center justify-center">
               <svg className="w-7 h-7 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -180,23 +170,17 @@ export function AppointmentModal({
               </svg>
             </div>
             <div>
-              <h2 className="text-3xl font-bold text-gray-900">
+              <DialogTitle className="text-3xl font-bold text-gray-900">
                 {initialAppointment?.id ? 'Edit Appointment' : 'New Appointment'}
-              </h2>
-              <p className="text-gray-600 mt-2 text-lg">
+              </DialogTitle>
+              <DialogDescription className="text-gray-600 mt-2 text-lg">
                 {initialAppointment?.id
                   ? 'Update appointment details and staff assignments'
                   : 'Create a new appointment with patient and staff details'
                 }
-              </p>
+              </DialogDescription>
             </div>
           </div>
-          <button
-            onClick={handleCancel}
-            className="p-3 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-xl transition-colors"
-          >
-            <X className="w-7 h-7" />
-          </button>
         </div>
 
         {/* Content */}
@@ -242,7 +226,7 @@ export function AppointmentModal({
             />
           )}
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

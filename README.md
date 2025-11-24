@@ -39,7 +39,7 @@ MediCare Scheduler is designed specifically for **Best DOC**, a single-company h
 ```bash
 # Clone the repository
 git clone <repository-url>
-cd Telegram-Appointment-Scheduler
+cd medicare-scheduler
 
 # Install dependencies
 npm install

@@ -1,5 +1,6 @@
 'use client';
 
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui';
 import type { Appointment, Patient, Staff } from '@/types';
 import { getAppointmentStatusDisplayName, getAppointmentTypeDisplayName } from '@/types/appointment';
 import type { TransportationSegmentOverrideAudit } from '@/types/auditTrail';
@@ -19,7 +20,6 @@ import {
     Stethoscope,
     Trash2,
     User,
-    X,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { TransportationSegmentsDisplay } from './TransportationSegmentsDisplay';
@@ -45,31 +45,12 @@ export function AppointmentDetailsDrawer({
   onCopy,
   onDelete,
 }: AppointmentDetailsDrawerProps) {
-  const [isClosing, setIsClosing] = useState(false);
   const [appointmentStaff, setAppointmentStaff] = useState<any[]>([]);
   const [isLoadingStaff, setIsLoadingStaff] = useState(false);
   const [segmentOverrides, setSegmentOverrides] = useState<Record<string, TransportationSegmentOverrideAudit[]>>({});
   const [isLoadingOverrides, setIsLoadingOverrides] = useState(false);
 
-  // Handle escape key
-  useEffect(() => {
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isOpen) {
-        handleClose();
-      }
-    };
-
-    if (isOpen) {
-      document.addEventListener('keydown', handleEscape);
-      // Prevent body scroll when drawer is open
-      document.body.style.overflow = 'hidden';
-    }
-
-    return () => {
-      document.removeEventListener('keydown', handleEscape);
-      document.body.style.overflow = 'unset';
-    };
-  }, [isOpen]);
+  // Sheet handles escape key and body scroll automatically
 
   // Fetch staff assignments when appointment changes
   useEffect(() => {
@@ -174,17 +155,7 @@ export function AppointmentDetailsDrawer({
   }, [appointment?.driver_id, appointment?.id, appointmentStaff]);
 
   const handleClose = () => {
-    setIsClosing(true);
-    setTimeout(() => {
-      setIsClosing(false);
-      onClose();
-    }, 200); // Match animation duration
-  };
-
-  const handleBackdropClick = (e: React.MouseEvent) => {
-    if (e.target === e.currentTarget) {
-      handleClose();
-    }
+    onClose();
   };
 
   if (!isOpen || !appointment) return null;
@@ -239,37 +210,16 @@ export function AppointmentDetailsDrawer({
   };
 
   return (
-    <>
-      {/* Backdrop */}
-      <div
-        className={`fixed inset-0 bg-black/50 backdrop-blur-sm z-40 transition-opacity duration-200 ${
-          isClosing ? 'opacity-0' : 'opacity-100'
-        }`}
-        onClick={handleBackdropClick}
-      />
-
-      {/* Drawer */}
-      <div
-        className={`fixed right-0 top-0 h-full w-full max-w-2xl bg-white shadow-2xl z-50 transform transition-transform duration-200 ease-in-out flex flex-col ${
-          isClosing ? 'translate-x-full' : 'translate-x-0'
-        }`}
-      >
-        {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200 bg-gray-50 flex-shrink-0">
-          <div>
-            <h2 className="text-2xl font-bold text-gray-900">Appointment Details</h2>
-            <p className="text-gray-600 mt-1">
-              {getAppointmentTypeDisplayName(appointment.appointment_type)}
-            </p>
-          </div>
-          <button
-            onClick={handleClose}
-            className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-200 rounded-lg transition-colors"
-            aria-label="Close drawer"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
+    <Sheet open={isOpen} onOpenChange={(open) => !open && handleClose()}>
+      <SheetContent side="right" className="w-full max-w-2xl flex flex-col">
+        <SheetHeader>
+          <SheetTitle className="text-2xl">
+            Appointment Details
+          </SheetTitle>
+          <SheetDescription>
+            {getAppointmentTypeDisplayName(appointment.appointment_type)}
+          </SheetDescription>
+        </SheetHeader>
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-6 space-y-6 min-h-0">
@@ -696,7 +646,7 @@ export function AppointmentDetailsDrawer({
             </div>
           </div>
         </div>
-      </div>
-    </>
+      </SheetContent>
+    </Sheet>
   );
 }

@@ -84,8 +84,8 @@ jest.mock('next/server', () => ({
 }));
 
 // Mock Supabase with comprehensive query builder support
-const { mockSupabaseClient, resetMockSupabase } = require('./src/utils/supabase-mocks');
-const { LEGACY_TIMEZONE, isValidTimezone } = require('./src/utils/timezone');
+import { mockSupabaseClient, resetMockSupabase } from './src/utils/supabase-mocks';
+import { LEGACY_TIMEZONE, isValidTimezone } from './src/utils/timezone';
 
 // Initialize mock data
 resetMockSupabase();
@@ -105,7 +105,7 @@ const mockGoogleMaps = {
     setCenter: jest.fn(),
     setZoom: jest.fn(),
     getCenter: jest.fn(() => ({ lat: () => 25.2048, lng: () => 55.2708 })),
-    getZoom: jest.fn(() => 10)
+    getZoom: jest.fn(() => 10),
   })),
   AdvancedMarkerElement: jest.fn().mockImplementation(() => ({
     addListener: jest.fn(),
@@ -113,8 +113,8 @@ const mockGoogleMaps = {
     setMap: jest.fn(),
     setPosition: jest.fn(),
     setTitle: jest.fn(),
-    setContent: jest.fn()
-  }))
+    setContent: jest.fn(),
+  })),
 };
 
 jest.mock('./src/services/googleMapsService', () => ({
@@ -131,7 +131,7 @@ jest.mock('./src/services/googleMapsService', () => ({
             return Promise.resolve({ AdvancedMarkerElement: mockGoogleMaps.AdvancedMarkerElement });
           }
           return Promise.resolve({});
-        })
+        }),
       })),
       validateApiKey: jest.fn((key) => key === 'test-api-key')
     })),
@@ -140,8 +140,8 @@ jest.mock('./src/services/googleMapsService', () => ({
       libraries: ['places', 'geometry'],
       language: 'en',
       region: 'AE',
-      version: 'weekly'
-    }))
+      version: 'weekly',
+    })),
   },
   getGoogleMapsService: jest.fn(() => ({
     isApiInitialized: jest.fn(() => false),
@@ -155,11 +155,11 @@ jest.mock('./src/services/googleMapsService', () => ({
           return Promise.resolve({ AdvancedMarkerElement: mockGoogleMaps.AdvancedMarkerElement });
         }
         return Promise.resolve({});
-      })
+      }),
     })),
-    validateApiKey: jest.fn((key) => key === 'test-api-key')
+    validateApiKey: jest.fn((key) => key === 'test-api-key'),
   })),
-  initializeGoogleMaps: jest.fn(() => Promise.resolve())
+  initializeGoogleMaps: jest.fn(() => Promise.resolve()),
 }));
 
 // Mock Telegram Service
@@ -190,7 +190,7 @@ jest.mock('./src/config/googleMapsConfig', () => ({
     maxRetries: 1,
     retryDelay: 100,
     cacheTimeout: 1000,
-    enableCaching: false
+    enableCaching: false,
   })),
   getCurrentEnvironment: jest.fn(() => 'test'),
   getEnvironmentConfig: jest.fn(() => ({
@@ -205,8 +205,8 @@ jest.mock('./src/config/googleMapsConfig', () => ({
     maxRetries: 1,
     retryDelay: 100,
     cacheTimeout: 1000,
-    enableCaching: false
-  }))
+    enableCaching: false,
+  })),
 }));
 
 // Mock environment configuration
@@ -297,11 +297,11 @@ const mockMarkerClusterer = jest.fn().mockImplementation(() => ({
   removeMarker: jest.fn(),
   removeMarkers: jest.fn(),
   render: jest.fn(),
-  setMap: jest.fn()
+  setMap: jest.fn(),
 }));
 
 jest.mock('@googlemaps/markerclusterer', () => ({
-  MarkerClusterer: mockMarkerClusterer
+  MarkerClusterer: mockMarkerClusterer,
 }));
 
 // Suppress console errors in tests unless explicitly needed

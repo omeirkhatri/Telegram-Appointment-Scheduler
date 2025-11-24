@@ -1,9 +1,8 @@
 'use client';
 
-import { Badge } from '@/components/ui/Badge';
-import { Button } from '@/components/ui/Button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
+import { Badge, Button, Card, CardContent, CardHeader, CardTitle, Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui';
 // Custom modal implementation - no external dialog/select components needed
+import type { DriverRecommendation } from '@/services/driverScoringService';
 import type { Staff } from '@/types/staff';
 import type { TransportationSegment, TransportationSegmentStatus } from '@/types/transportationSegment';
 import { getTransportationSegmentStatusLabel } from '@/types/transportationSegment';
@@ -14,9 +13,11 @@ import {
     MapPin,
     Phone,
     User,
+    Users,
     XCircle
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { DriverScoringDisplay } from './DriverScoringDisplay';
 
 interface DriverReassignmentModalProps {
   isOpen: boolean;
@@ -40,6 +41,9 @@ export function DriverReassignmentModal({
   const [selectedDriverId, setSelectedDriverId] = useState<string>('');
   const [selectedStatus, setSelectedStatus] = useState<TransportationSegmentStatus>('scheduled');
   const [showConflicts, setShowConflicts] = useState(false);
+  const [recommendations, setRecommendations] = useState<DriverRecommendation[]>([]);
+  const [loadingRecommendations, setLoadingRecommendations] = useState(false);
+  const [showRecommendations, setShowRecommendations] = useState(false);
 
   useEffect(() => {
     if (segment) {
@@ -47,6 +51,32 @@ export function DriverReassignmentModal({
       setSelectedStatus(segment.status);
     }
   }, [segment]);
+
+  // Load driver recommendations when modal opens
+  useEffect(() => {
+    if (isOpen && segment) {
+      loadRecommendations();
+    }
+  }, [isOpen, segment]);
+
+  const loadRecommendations = async () => {
+    if (!segment) return;
+
+    setLoadingRecommendations(true);
+    try {
+      const response = await fetch(`/api/transportation-segments/recommendations?segmentId=${segment.id}&maxRecommendations=5&includeMetadata=true`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch driver recommendations');
+      }
+      const result = await response.json();
+      setRecommendations(result.data.recommendations);
+    } catch (error) {
+      console.error('Failed to load driver recommendations:', error);
+      setRecommendations([]);
+    } finally {
+      setLoadingRecommendations(false);
+    }
+  };
 
   // Prevent body scroll when modal is open
   useEffect(() => {
@@ -67,6 +97,10 @@ export function DriverReassignmentModal({
     }
   };
 
+  const handleDriverSelectFromRecommendations = (driverId: string) => {
+    setSelectedDriverId(driverId);
+  };
+
   const handleStatusUpdate = () => {
     if (segment && selectedStatus !== segment.status) {
       onStatusUpdate(segment.id, selectedStatus);
@@ -77,6 +111,8 @@ export function DriverReassignmentModal({
     setSelectedDriverId('');
     setSelectedStatus('scheduled');
     setShowConflicts(false);
+    setRecommendations([]);
+    setShowRecommendations(false);
     onClose();
   };
 
@@ -129,31 +165,15 @@ export function DriverReassignmentModal({
 
   if (!segment) return null;
 
-  if (!isOpen) return null;
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-black/50 backdrop-blur-sm"
-        onClick={handleClose}
-      />
-
-      {/* Modal */}
-      <div className="relative bg-[--card] border border-[--border] rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] mx-4 flex flex-col">
-        {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-[--border]">
-          <div className="flex items-center space-x-2">
+    <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
+      <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
+        <DialogHeader>
+          <DialogTitle className="flex items-center space-x-2">
             <User className="w-5 h-5" />
-            <h2 className="text-xl font-bold text-[--foreground]">Reassign Driver & Update Status</h2>
-          </div>
-          <button
-            onClick={handleClose}
-            className="p-2 text-[--muted-foreground] hover:text-[--foreground] hover:bg-[--accent] rounded-lg transition-colors"
-          >
-            <XCircle className="w-5 h-5" />
-          </button>
-        </div>
+            <span>Reassign Driver & Update Status</span>
+          </DialogTitle>
+        </DialogHeader>
 
         <div className="flex-1 overflow-y-auto p-6">
           <div className="space-y-6">
@@ -252,6 +272,48 @@ export function DriverReassignmentModal({
                     );
                   })}
                 </select>
+              </div>
+
+              {/* Driver Recommendations */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <Users className="w-4 h-4 text-gray-500" />
+                    <span className="text-sm font-medium text-gray-700">AI Driver Recommendations</span>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowRecommendations(!showRecommendations)}
+                    className="text-xs"
+                  >
+                    {showRecommendations ? 'Hide' : 'Show'} Recommendations
+                  </Button>
+                </div>
+
+                {showRecommendations && (
+                  <div className="border border-gray-200 rounded-lg p-3 bg-gray-50">
+                    {loadingRecommendations ? (
+                      <div className="text-center text-gray-500 py-4">
+                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500 mx-auto mb-2"></div>
+                        <p className="text-xs">Loading recommendations...</p>
+                      </div>
+                    ) : recommendations.length > 0 ? (
+                      <DriverScoringDisplay
+                        recommendations={recommendations}
+                        maxDisplay={3}
+                        showDetailedScores={true}
+                        onDriverSelect={handleDriverSelectFromRecommendations}
+                        selectedDriverId={selectedDriverId}
+                      />
+                    ) : (
+                      <div className="text-center text-gray-500 py-4">
+                        <Users className="w-6 h-6 mx-auto mb-2" />
+                        <p className="text-xs">No recommendations available</p>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* Driver Details */}
@@ -400,7 +462,7 @@ export function DriverReassignmentModal({
             )}
           </div>
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

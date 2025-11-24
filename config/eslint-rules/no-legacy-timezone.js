@@ -1,4 +1,4 @@
-const path = require('path');
+import path from 'path';
 
 const DEFAULT_RESTRICTED_VALUES = [
   'Asia/Dubai',
@@ -19,7 +19,7 @@ function normalizeFilename(filename) {
   return filename.split(path.sep).join('/');
 }
 
-module.exports = {
+const noLegacyTimezoneRule = {
   meta: {
     type: 'problem',
     docs: {
@@ -95,3 +95,5 @@ module.exports = {
     };
   },
 };
+
+export default noLegacyTimezoneRule;

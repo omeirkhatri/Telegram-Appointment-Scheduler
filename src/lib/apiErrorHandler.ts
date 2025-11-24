@@ -321,6 +321,21 @@ export class ApiErrorHandler {
   }
 
   /**
+   * Handle internal server errors (alias for handleInternalError)
+   */
+  public handleInternalServerError(
+    message: string,
+    details?: string,
+    requestId?: string
+  ): NextResponse<ApiErrorResponse> {
+    const error = new Error(message);
+    if (details) {
+      error.message = `${message}: ${details}`;
+    }
+    return this.handleInternalError(error, requestId, true);
+  }
+
+  /**
    * Handle generic errors with automatic type detection
    */
   public handleError(

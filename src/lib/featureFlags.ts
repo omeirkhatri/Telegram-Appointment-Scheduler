@@ -313,7 +313,7 @@ export const FEATURE_FLAGS: Record<string, FeatureFlag> = {
     key: 'TRANSPORTATION_SEGMENTS_REPORTING',
     name: 'Transportation Segments Reporting',
     description: 'Enable reporting and analytics for transportation segments',
-    enabled: false,
+    enabled: true,
     category: 'api',
     environment: 'all',
     dependencies: ['TRANSPORTATION_SEGMENTS_ENABLED'],
@@ -339,6 +339,73 @@ export const FEATURE_FLAGS: Record<string, FeatureFlag> = {
     category: 'api',
     environment: 'all',
     dependencies: ['TRANSPORTATION_SEGMENTS_ENABLED'],
+    experimental: true,
+  },
+
+  // Driver Assignment Overhaul Features
+  DRIVER_ASSIGNMENT_OVERHAUL: {
+    key: 'DRIVER_ASSIGNMENT_OVERHAUL',
+    name: 'Driver Assignment Overhaul',
+    description: 'Enable new driver assignment workflow with assign-now/assign-later modes, capacity planner, and assistive assignment engine',
+    enabled: config.driverAssignmentOverhaul?.enabled ?? false,
+    category: 'api',
+    environment: 'all',
+    dependencies: ['TRANSPORTATION_SEGMENTS_ENABLED'],
+    experimental: true,
+  },
+
+  DRIVER_ASSIGNMENT_OVERHAUL_UI: {
+    key: 'DRIVER_ASSIGNMENT_OVERHAUL_UI',
+    name: 'Driver Assignment Overhaul UI',
+    description: 'Enable new UI components for driver assignment overhaul (assignment mode toggle, capacity planner, unassigned queue)',
+    enabled: config.driverAssignmentOverhaul?.uiEnabled ?? false,
+    category: 'ui',
+    environment: 'all',
+    dependencies: ['DRIVER_ASSIGNMENT_OVERHAUL', 'TRANSPORTATION_SEGMENTS_UI'],
+    experimental: true,
+  },
+
+  DRIVER_ASSIGNMENT_OVERHAUL_CAPACITY_PLANNER: {
+    key: 'DRIVER_ASSIGNMENT_OVERHAUL_CAPACITY_PLANNER',
+    name: 'Driver Assignment Overhaul Capacity Planner',
+    description: 'Enable capacity planner dashboard with driver lanes, unassigned queue, and insights panel',
+    enabled: config.driverAssignmentOverhaul?.capacityPlannerEnabled ?? false,
+    category: 'ui',
+    environment: 'all',
+    dependencies: ['DRIVER_ASSIGNMENT_OVERHAUL_UI'],
+    experimental: true,
+  },
+
+  DRIVER_ASSIGNMENT_OVERHAUL_ASSISTIVE_ENGINE: {
+    key: 'DRIVER_ASSIGNMENT_OVERHAUL_ASSISTIVE_ENGINE',
+    name: 'Driver Assignment Overhaul Assistive Engine',
+    description: 'Enable assistive assignment engine with driver scoring, recommendations, and override tracking',
+    enabled: config.driverAssignmentOverhaul?.assistiveEngineEnabled ?? false,
+    category: 'api',
+    environment: 'all',
+    dependencies: ['DRIVER_ASSIGNMENT_OVERHAUL'],
+    experimental: true,
+  },
+
+  DRIVER_ASSIGNMENT_OVERHAUL_ANALYTICS: {
+    key: 'DRIVER_ASSIGNMENT_OVERHAUL_ANALYTICS',
+    name: 'Driver Assignment Overhaul Analytics',
+    description: 'Enable analytics and metrics collection for driver assignment overhaul features',
+    enabled: config.driverAssignmentOverhaul?.analyticsEnabled ?? false,
+    category: 'api',
+    environment: 'all',
+    dependencies: ['DRIVER_ASSIGNMENT_OVERHAUL'],
+    experimental: true,
+  },
+
+  DRIVER_ASSIGNMENT_OVERHAUL_ESCALATION: {
+    key: 'DRIVER_ASSIGNMENT_OVERHAUL_ESCALATION',
+    name: 'Driver Assignment Overhaul Escalation',
+    description: 'Enable six-hour escalation alerts and monitoring for unassigned segments',
+    enabled: config.driverAssignmentOverhaul?.escalationEnabled ?? false,
+    category: 'api',
+    environment: 'all',
+    dependencies: ['DRIVER_ASSIGNMENT_OVERHAUL'],
     experimental: true,
   },
 };
@@ -680,6 +747,52 @@ export function isTransportationSegmentsOverridesEnabled(): boolean {
  */
 export function isTransportationSegmentsTravelTimeEnabled(): boolean {
   return isFeatureEnabled('TRANSPORTATION_SEGMENTS_TRAVEL_TIME');
+}
+
+// =============================================================================
+// DRIVER ASSIGNMENT OVERHAUL FEATURE FLAGS
+// =============================================================================
+
+/**
+ * Check if driver assignment overhaul is enabled
+ */
+export function isDriverAssignmentOverhaulEnabled(): boolean {
+  return isFeatureEnabled('DRIVER_ASSIGNMENT_OVERHAUL');
+}
+
+/**
+ * Check if driver assignment overhaul UI is enabled
+ */
+export function isDriverAssignmentOverhaulUIEnabled(): boolean {
+  return isFeatureEnabled('DRIVER_ASSIGNMENT_OVERHAUL_UI');
+}
+
+/**
+ * Check if driver assignment overhaul capacity planner is enabled
+ */
+export function isDriverAssignmentOverhaulCapacityPlannerEnabled(): boolean {
+  return isFeatureEnabled('DRIVER_ASSIGNMENT_OVERHAUL_CAPACITY_PLANNER');
+}
+
+/**
+ * Check if driver assignment overhaul assistive engine is enabled
+ */
+export function isDriverAssignmentOverhaulAssistiveEngineEnabled(): boolean {
+  return isFeatureEnabled('DRIVER_ASSIGNMENT_OVERHAUL_ASSISTIVE_ENGINE');
+}
+
+/**
+ * Check if driver assignment overhaul analytics is enabled
+ */
+export function isDriverAssignmentOverhaulAnalyticsEnabled(): boolean {
+  return isFeatureEnabled('DRIVER_ASSIGNMENT_OVERHAUL_ANALYTICS');
+}
+
+/**
+ * Check if driver assignment overhaul escalation is enabled
+ */
+export function isDriverAssignmentOverhaulEscalationEnabled(): boolean {
+  return isFeatureEnabled('DRIVER_ASSIGNMENT_OVERHAUL_ESCALATION');
 }
 
 // =============================================================================

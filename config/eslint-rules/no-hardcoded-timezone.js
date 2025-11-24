@@ -1,6 +1,6 @@
 /**
  * ESLint rule to prevent hard-coded timezone references
- * 
+ *
  * This rule blocks hard-coded timezone strings, offsets, and abbreviations
  * to encourage the use of the timezone resolver system.
  */

@@ -46,6 +46,9 @@ export const appointmentFormSchema = z.object({
 
   driver_id: z.string().uuid('Invalid driver ID').optional().or(z.literal('')),
 
+  // Assignment mode for driver transportation
+  assignment_mode: z.enum(['assign_now', 'assign_later']).optional(),
+
   notes: z
     .string()
     .max(1000, 'Notes must be less than 1000 characters')
@@ -92,13 +95,14 @@ export const appointmentFormSchema = z.object({
   })).optional(),
 }).refine(
   (data) => {
-    if (data.transportation_type === 'driver' && !data.driver_id) {
+    // Only require driver_id if transportation_type is driver AND assignment_mode is assign_now
+    if (data.transportation_type === 'driver' && data.assignment_mode === 'assign_now' && !data.driver_id) {
       return false;
     }
     return true;
   },
   {
-    message: 'Driver ID is required when transportation type is driver',
+    message: 'Driver ID is required when transportation type is driver and assignment mode is assign now',
     path: ['driver_id'],
   },
 ).refine(
@@ -164,13 +168,14 @@ export const appointmentUpdateFormSchema = appointmentFormSchema.partial().refin
   },
 ).refine(
   (data) => {
-    if (data.transportation_type === 'driver' && !data.driver_id) {
+    // Only require driver_id if transportation_type is driver AND assignment_mode is assign_now
+    if (data.transportation_type === 'driver' && data.assignment_mode === 'assign_now' && !data.driver_id) {
       return false;
     }
     return true;
   },
   {
-    message: 'Driver ID is required when transportation type is driver',
+    message: 'Driver ID is required when transportation type is driver and assignment mode is assign now',
     path: ['driver_id'],
   },
 ).refine(

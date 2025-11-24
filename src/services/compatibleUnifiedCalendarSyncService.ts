@@ -5,15 +5,18 @@
  * the unified sync functionality. It uses the existing google_event_id field
  * and adds basic status tracking using timestamps.
  */
+import 'server-only';
 
-import { createClient } from '@supabase/supabase-js';
-import { getGoogleCalendarService } from './googleCalendarService';
+import { getServiceRoleClient } from '@/lib/supabase';
+// Load Google Calendar service dynamically on demand to avoid client bundling
 
-// Initialize Supabase client
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+// Lazily acquire a server-only Supabase client when needed
+function getServerSupabase() {
+  if (typeof window !== 'undefined') {
+    throw new Error('Server-only Supabase client used on the client');
+  }
+  return getServiceRoleClient();
+}
 
 export interface SyncResult {
   success: boolean;
@@ -39,7 +42,7 @@ export interface SyncStatistics {
 }
 
 export class CompatibleUnifiedCalendarSyncService {
-  private googleCalendarService = getGoogleCalendarService();
+  private googleCalendarService: any;
   private isProcessing = false;
 
   /**
@@ -50,7 +53,7 @@ export class CompatibleUnifiedCalendarSyncService {
 
     try {
       // Get appointment with staff assignments that don't have calendar events
-      const { data: appointment, error: appointmentError } = await supabase
+      const { data: appointment, error: appointmentError } = await getServerSupabase()
         .from('appointments')
         .select(`
           *,
@@ -75,7 +78,7 @@ export class CompatibleUnifiedCalendarSyncService {
 
       // Also check for driver_id assignments if no staff assignments found
       if (appointmentError && appointment?.driver_id) {
-        const { data: driverData, error: driverError } = await supabase
+        const { data: driverData, error: driverError } = await getServerSupabase()
           .from('staff')
           .select('id, first_name, last_name, google_calendar_id, email')
           .eq('id', appointment.driver_id)
@@ -135,7 +138,7 @@ export class CompatibleUnifiedCalendarSyncService {
 
     try {
       // Get appointment with staff assignments that have calendar events
-      const { data: appointment, error: appointmentError } = await supabase
+      const { data: appointment, error: appointmentError } = await getServerSupabase()
         .from('appointments')
         .select(`
           *,
@@ -191,7 +194,7 @@ export class CompatibleUnifiedCalendarSyncService {
 
     try {
       // Get staff assignments with calendar events for this appointment
-      const { data: assignments, error: assignmentsError } = await supabase
+      const { data: assignments, error: assignmentsError } = await getServerSupabase()
         .from('appointment_staff')
         .select(`
           id,
@@ -245,7 +248,7 @@ export class CompatibleUnifiedCalendarSyncService {
       console.log('🔄 [UNIFIED] Processing pending calendar syncs...');
 
       // Find appointments with staff assignments that don't have calendar events
-      const { data: pendingSyncs, error } = await supabase
+      const { data: pendingSyncs, error } = await getServerSupabase()
         .from('appointments')
         .select(`
           id,
@@ -276,7 +279,7 @@ export class CompatibleUnifiedCalendarSyncService {
         .limit(50);
 
       // Also find appointments with driver_id assignments that need sync
-      const { data: driverSyncs, error: driverError } = await supabase
+      const { data: driverSyncs, error: driverError } = await getServerSupabase()
         .from('appointments')
         .select(`
           id,
@@ -297,7 +300,7 @@ export class CompatibleUnifiedCalendarSyncService {
       // Process driver appointments
       if (!driverError && driverSyncs && driverSyncs.length > 0) {
         for (const appointment of driverSyncs) {
-          const { data: driverData } = await supabase
+          const { data: driverData } = await getServerSupabase()
             .from('staff')
             .select('id, first_name, last_name, google_calendar_id, email')
             .eq('id', appointment.driver_id)
@@ -369,7 +372,7 @@ export class CompatibleUnifiedCalendarSyncService {
 
     try {
       // Find appointment_staff records with calendar events but no corresponding appointment
-      const { data: orphanedEvents, error } = await supabase
+      const { data: orphanedEvents, error } = await getServerSupabase()
         .from('appointment_staff')
         .select(`
           id,
@@ -420,7 +423,7 @@ export class CompatibleUnifiedCalendarSyncService {
 
           if (result.success) {
             // Clear the event ID
-            await supabase
+            await getServerSupabase()
               .from('appointment_staff')
               .update({ google_event_id: null })
               .eq('id', event.id);
@@ -451,18 +454,18 @@ export class CompatibleUnifiedCalendarSyncService {
   async getHealthStatus(): Promise<SyncHealthStatus> {
     try {
       // Get basic statistics from existing tables
-      const { data: totalAssignments, error: totalError } = await supabase
+      const { data: totalAssignments, error: totalError } = await getServerSupabase()
         .from('appointment_staff')
         .select('id', { count: 'exact' })
         .not('staff.google_calendar_id', 'is', null);
 
-      const { data: withEvents, error: eventsError } = await supabase
+      const { data: withEvents, error: eventsError } = await getServerSupabase()
         .from('appointment_staff')
         .select('id', { count: 'exact' })
         .not('google_event_id', 'is', null)
         .not('staff.google_calendar_id', 'is', null);
 
-      const { data: pendingSync, error: pendingError } = await supabase
+      const { data: pendingSync, error: pendingError } = await getServerSupabase()
         .from('appointments')
         .select('id', { count: 'exact' })
         .eq('status', 'scheduled')
@@ -512,18 +515,18 @@ export class CompatibleUnifiedCalendarSyncService {
    */
   async getSyncStatistics(): Promise<SyncStatistics> {
     try {
-      const { count: totalAssignments } = await supabase
+      const { count: totalAssignments } = await getServerSupabase()
         .from('appointment_staff')
         .select('id', { count: 'exact' })
         .not('staff.google_calendar_id', 'is', null);
 
-      const { count: withEvents } = await supabase
+      const { count: withEvents } = await getServerSupabase()
         .from('appointment_staff')
         .select('id', { count: 'exact' })
         .not('google_event_id', 'is', null)
         .not('staff.google_calendar_id', 'is', null);
 
-      const { count: pendingSyncs } = await supabase
+      const { count: pendingSyncs } = await getServerSupabase()
         .from('appointments')
         .select('id', { count: 'exact' })
         .eq('status', 'scheduled')
@@ -568,6 +571,10 @@ export class CompatibleUnifiedCalendarSyncService {
       const startDateTime = new Date(`${appointment.appointment_date}T${appointment.start_time}`);
       const endDateTime = new Date(startDateTime.getTime() + (appointment.duration_minutes || 60) * 60000);
 
+      if (!this.googleCalendarService) {
+        const { getGoogleCalendarService } = await import('./googleCalendarService');
+        this.googleCalendarService = getGoogleCalendarService();
+      }
       const result = await this.googleCalendarService.createEvent({
         staff_id: staff.id,
         google_calendar_id: staff.google_calendar_id,
@@ -616,6 +623,10 @@ export class CompatibleUnifiedCalendarSyncService {
       const startDateTime = new Date(`${appointment.appointment_date}T${appointment.start_time}`);
       const endDateTime = new Date(startDateTime.getTime() + (appointment.duration_minutes || 60) * 60000);
 
+      if (!this.googleCalendarService) {
+        const { getGoogleCalendarService } = await import('./googleCalendarService');
+        this.googleCalendarService = getGoogleCalendarService();
+      }
       const result = await this.googleCalendarService.updateEvent(
         staff.google_calendar_id,
         eventId,
@@ -650,6 +661,10 @@ export class CompatibleUnifiedCalendarSyncService {
     console.log(`🗑️ [UNIFIED] Deleting calendar event ${eventId} for ${staff.first_name} ${staff.last_name}`);
 
     try {
+      if (!this.googleCalendarService) {
+        const { getGoogleCalendarService } = await import('./googleCalendarService');
+        this.googleCalendarService = getGoogleCalendarService();
+      }
       const result = await this.googleCalendarService.deleteEvent(
         staff.google_calendar_id,
         eventId

@@ -1,3 +1,5 @@
+// server-only can't be imported in client bundles; ensure only server code imports this file
+
 /**
  * Google Calendar Service
  *
