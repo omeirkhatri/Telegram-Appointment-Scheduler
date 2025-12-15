@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, ReactNode, useContext, useEffect, useState } from 'react';
 
 interface DebugState {
   showMapDebugInfo: boolean;
@@ -18,20 +18,29 @@ export function DebugProvider({ children }: DebugProviderProps) {
 
   // Load debug state from localStorage on mount
   useEffect(() => {
-    const saved = localStorage.getItem('debug-map-info');
-    if (saved !== null && saved !== 'undefined') {
-      try {
+    if (typeof window === 'undefined') return; // Only run on client
+
+    try {
+      const saved = localStorage.getItem('debug-map-info');
+      if (saved !== null && saved !== 'undefined') {
         setShowMapDebugInfo(JSON.parse(saved));
-      } catch (error) {
-        // If parsing fails, default to false
-        setShowMapDebugInfo(false);
       }
+    } catch (error) {
+      // If parsing fails, default to false
+      setShowMapDebugInfo(false);
     }
   }, []);
 
   // Save debug state to localStorage when it changes
   useEffect(() => {
-    localStorage.setItem('debug-map-info', JSON.stringify(showMapDebugInfo));
+    if (typeof window === 'undefined') return; // Only run on client
+
+    try {
+      localStorage.setItem('debug-map-info', JSON.stringify(showMapDebugInfo));
+    } catch (error) {
+      // Silently fail if localStorage is not available
+      console.warn('Failed to save debug state to localStorage:', error);
+    }
   }, [showMapDebugInfo]);
 
   const toggleMapDebugInfo = () => {

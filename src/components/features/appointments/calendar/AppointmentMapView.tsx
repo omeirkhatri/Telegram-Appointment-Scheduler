@@ -198,7 +198,20 @@ export function AppointmentMapView({
   useEffect(() => {
     const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
     if (!apiKey) {
-      setGoogleMapsError('Google Maps API key not found');
+      const message = 'Google Maps API key not found';
+      setGoogleMapsError(message);
+
+      // Surface this as a proper map error so the UI doesn't get stuck on loading
+      setMapState(prev => ({
+        ...prev,
+        isLoading: false,
+        error: {
+          code: 'MAP_API_KEY_MISSING',
+          message,
+          details: null,
+          timestamp: Date.now()
+        }
+      }));
       return;
     }
 
@@ -231,9 +244,22 @@ export function AppointmentMapView({
     };
 
     script.onerror = () => {
-      console.error('Failed to load Google Maps API');
-      setGoogleMapsError('Failed to load Google Maps API');
+      const message = 'Failed to load Google Maps API';
+      console.error(message);
+      setGoogleMapsError(message);
       setGoogleMapsLoading(false);
+
+      // Also propagate to mapState so the dedicated error UI is shown
+      setMapState(prev => ({
+        ...prev,
+        isLoading: false,
+        error: {
+          code: 'MAP_API_LOAD_ERROR',
+          message,
+          details: null,
+          timestamp: Date.now()
+        }
+      }));
     };
 
     document.head.appendChild(script);
@@ -1759,6 +1785,28 @@ export function AppointmentMapView({
     }
   }, [filteredAppointments, mapState.isInitialized, enableClustering, showClusters, mapControlsState]);
 
+  // Handle loading state - include effective loading state
+  const showLoadingOverlay = mapState.isLoading || !mapState.isInitialized || !isContainerReady || effectiveLoading.isLoading || (!effectiveLoading.isLoaded && !effectiveLoading.isError);
+
+  // Debug logging for loading states - MUST be before any early returns
+  useEffect(() => {
+    console.log('🔍 Map loading states:', {
+      mapStateIsLoading: mapState.isLoading,
+      mapStateIsInitialized: mapState.isInitialized,
+      isContainerReady,
+      googleMapsLoaded,
+      googleMapsLoading,
+      showLoadingOverlay
+    });
+  }, [
+    mapState.isLoading,
+    mapState.isInitialized,
+    isContainerReady,
+    googleMapsLoaded,
+    googleMapsLoading,
+    showLoadingOverlay
+  ]);
+
   // Handle error state
   if (error) {
     return (
@@ -1778,28 +1826,6 @@ export function AppointmentMapView({
       </div>
     );
   }
-
-  // Handle loading state - include effective loading state
-  const showLoadingOverlay = mapState.isLoading || !mapState.isInitialized || !isContainerReady || effectiveLoading.isLoading || (!effectiveLoading.isLoaded && !effectiveLoading.isError);
-
-  // Debug logging for loading states
-  useEffect(() => {
-    console.log('🔍 Map loading states:', {
-      mapStateIsLoading: mapState.isLoading,
-      mapStateIsInitialized: mapState.isInitialized,
-      isContainerReady,
-      googleMapsLoaded,
-      googleMapsLoading,
-      showLoadingOverlay
-    });
-  }, [
-    mapState.isLoading,
-    mapState.isInitialized,
-    isContainerReady,
-    googleMapsLoaded,
-    googleMapsLoading,
-    showLoadingOverlay
-  ]);
 
   // Handle map error
   if (mapState.error) {

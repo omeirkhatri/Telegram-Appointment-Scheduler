@@ -1,7 +1,7 @@
 import {
     getNextOccurrenceDate,
 } from '@/lib/recurrenceUtils';
-import { supabase } from '@/lib/supabase';
+import { getServiceRoleClient, supabase } from '@/lib/supabase';
 // No longer using custom UUID utilities - using standard UUIDs
 import { logCalendarOperation } from '@/lib/calendarOperations';
 import { isFeatureEnabled } from '@/lib/featureFlags';
@@ -26,6 +26,16 @@ import { telegramNotificationService } from './telegramNotificationService';
 import { transportationSegmentService } from './transportationSegmentService';
 
 export class AppointmentService {
+  // Get the appropriate Supabase client (service role for server-side operations)
+  private getSupabaseClient() {
+    // If we're in a server environment, use service role client
+    if (typeof window === 'undefined') {
+      return getServiceRoleClient();
+    }
+    // Otherwise use the regular client for client-side operations
+    return supabase;
+  }
+
   // Helper method to send notifications for appointment changes
   private async sendAppointmentNotifications(
     appointment: Appointment,
@@ -68,10 +78,45 @@ export class AppointmentService {
     }
   }
 
-  // Get all appointments with optional filtering (excludes deleted appointments by default)
-  async getAppointments(filters?: AppointmentFilters): Promise<Appointment[]> {
-    // Try to get appointments with staff data, fallback to basic query if it fails
-    let query = supabase
+  // Cache for deleted status availability check
+  private deletedStatusAvailableCache: boolean | null = null;
+
+  // Helper method to check if 'deleted' status is available in the enum
+  private async isDeletedStatusAvailable(): Promise<boolean> {
+    // Return cached value if available
+    if (this.deletedStatusAvailableCache !== null) {
+      return this.deletedStatusAvailableCache;
+    }
+
+    try {
+      const client = this.getSupabaseClient();
+      // Try a simple query with deleted status to check if it's valid
+      const { error } = await client
+        .from('appointments')
+        .select('id')
+        .eq('status', 'deleted')
+        .limit(0);
+
+      // If no error or error is not about enum, the enum supports 'deleted'
+      const isAvailable = error === null || !error.message?.includes('invalid input value for enum');
+      this.deletedStatusAvailableCache = isAvailable;
+      return isAvailable;
+    } catch {
+      this.deletedStatusAvailableCache = false;
+      return false;
+    }
+  }
+
+  // Helper method to conditionally exclude deleted appointments from a query
+  private applyDeletedFilter<T extends { neq: (column: string, value: string) => any }>(query: T): T {
+    // This will be applied conditionally in the actual query methods
+    return query;
+  }
+
+  // Helper method to get appointments without deleted filter (fallback)
+  private async getAppointmentsWithoutDeletedFilter(filters?: AppointmentFilters): Promise<Appointment[]> {
+    const client = this.getSupabaseClient();
+    let query = client
       .from('appointments')
       .select(`
         *,
@@ -83,7 +128,86 @@ export class AppointmentService {
           staff:staff(id, first_name, last_name, staff_type, specialization, phone, email)
         )
       `)
-      .neq('status', 'deleted') // Exclude deleted appointments by default
+      .order('appointment_date', { ascending: true })
+      .order('start_time', { ascending: true });
+
+    // Apply filters (without deleted filter)
+    if (filters?.patient_id) {
+      query = query.eq('patient_id', filters.patient_id);
+    }
+    if (filters?.appointment_type) {
+      query = query.eq('appointment_type', filters.appointment_type);
+    }
+    if (filters?.status) {
+      query = query.eq('status', filters.status);
+    }
+    if (filters?.appointment_date) {
+      query = query.eq('appointment_date', filters.appointment_date);
+    }
+    if (filters?.date_from) {
+      query = query.gte('appointment_date', filters.date_from);
+    }
+    if (filters?.date_to) {
+      query = query.lte('appointment_date', filters.date_to);
+    }
+    if (filters?.driver_id) {
+      query = query.eq('driver_id', filters.driver_id);
+    }
+    if (filters?.transportation_type) {
+      query = query.eq('transportation_type', filters.transportation_type);
+    }
+    if (filters?.has_recurring_rule !== undefined) {
+      if (filters.has_recurring_rule) {
+        query = query.not('recurring_rule', 'is', null);
+      } else {
+        query = query.is('recurring_rule', null);
+      }
+    }
+
+    const { data, error } = await query;
+    if (error) {
+      throw new Error(`Failed to fetch appointments: ${error.message}`);
+    }
+
+    const regularAppointments = data || [];
+    return regularAppointments.map(appointment => ({
+      ...appointment,
+      patient: appointment.patient ? {
+        ...appointment.patient,
+        address: appointment.patient.flat_villa_no && appointment.patient.building_street && appointment.patient.area && appointment.patient.city
+          ? `${appointment.patient.flat_villa_no}, ${appointment.patient.building_street}, ${appointment.patient.area}, ${appointment.patient.city}`
+          : undefined
+      } : undefined
+    }));
+  }
+
+  // Get all appointments with optional filtering (excludes deleted appointments by default)
+  async getAppointments(filters?: AppointmentFilters): Promise<Appointment[]> {
+    const client = this.getSupabaseClient();
+
+    // Check if 'deleted' status is available in the enum
+    const deletedStatusAvailable = await this.isDeletedStatusAvailable();
+
+    // Try to get appointments with staff data, fallback to basic query if it fails
+    let query = client
+      .from('appointments')
+      .select(`
+        *,
+        patient:patients(id, name, phone, flat_villa_no, building_street, area, city, latitude, longitude, google_maps_link),
+        appointment_staff(
+          id,
+          role,
+          is_primary,
+          staff:staff(id, first_name, last_name, staff_type, specialization, phone, email)
+        )
+      `);
+
+    // Only filter out deleted appointments if the enum supports it
+    if (deletedStatusAvailable) {
+      query = query.neq('status', 'deleted'); // Exclude deleted appointments by default
+    }
+
+    query = query
       .order('appointment_date', { ascending: true })
       .order('start_time', { ascending: true });
 
@@ -131,17 +255,30 @@ export class AppointmentService {
     const { data, error } = await query;
 
     if (error) {
+      // Check if error is related to enum validation
+      if (error.message && error.message.includes('invalid input value for enum') && error.message.includes('deleted')) {
+        console.warn('⚠️  Migration 20250220000005_add_soft_delete_to_appointments.sql has not been applied. Please run it to enable soft delete functionality.');
+        // Retry without the deleted filter
+        return this.getAppointmentsWithoutDeletedFilter(filters);
+      }
+
       console.error('Error fetching appointments with staff data:', error);
 
       // Fallback to basic query without staff data
       console.log('Falling back to basic appointments query...');
-      let fallbackQuery = supabase
+      let fallbackQuery = client
         .from('appointments')
         .select(`
           *,
           patient:patients(id, name, phone, flat_villa_no, building_street, area, city, latitude, longitude, google_maps_link)
-        `)
-        .neq('status', 'deleted') // Exclude deleted appointments by default
+        `);
+
+      // Only filter out deleted if enum supports it
+      if (deletedStatusAvailable) {
+        fallbackQuery = fallbackQuery.neq('status', 'deleted'); // Exclude deleted appointments by default
+      }
+
+      fallbackQuery = fallbackQuery
         .order('appointment_date', { ascending: true })
         .order('start_time', { ascending: true });
 
@@ -181,6 +318,12 @@ export class AppointmentService {
       const { data: fallbackData, error: fallbackError } = await fallbackQuery;
 
       if (fallbackError) {
+        // Check if error is related to enum validation
+        if (fallbackError.message && fallbackError.message.includes('invalid input value for enum') && fallbackError.message.includes('deleted')) {
+          console.warn('⚠️  Migration 20250220000005_add_soft_delete_to_appointments.sql has not been applied. Retrying without deleted filter...');
+          // Retry without the deleted filter
+          return this.getAppointmentsWithoutDeletedFilter(filters);
+        }
         throw new Error(`Failed to fetch appointments: ${fallbackError.message}`);
       }
 
@@ -252,7 +395,8 @@ export class AppointmentService {
 
   // Get a single appointment by ID
   async getAppointment(id: string): Promise<Appointment | null> {
-    const { data, error } = await supabase
+    const client = this.getSupabaseClient();
+    const { data, error } = await client
       .from('appointments')
       .select(`
         *,
@@ -315,7 +459,8 @@ export class AppointmentService {
       recurring_occurrence_number: null // Will be set by the base appointment
     };
 
-    const { data, error } = await supabase
+    const client = this.getSupabaseClient();
+    const { data, error } = await client
       .from('appointments')
       .insert(appointmentInsertData)
       .select()
@@ -369,7 +514,8 @@ export class AppointmentService {
       throw new Error('Invalid recurring rule');
     }
 
-    const { data, error } = await supabase
+    const client = this.getSupabaseClient();
+    const { data, error } = await client
       .from('appointments')
       .update(updates)
       .eq('id', id)
@@ -422,7 +568,8 @@ export class AppointmentService {
     }
 
     // Use the database function for soft delete (handles recurring appointments)
-    const { error } = await supabase.rpc('soft_delete_appointment', {
+    const client = this.getSupabaseClient();
+    const { error } = await client.rpc('soft_delete_appointment', {
       appointment_id: id
     });
 
@@ -439,7 +586,8 @@ export class AppointmentService {
   // Hard delete an appointment (permanently remove from database)
   // This should only be used by the daemon after calendar cleanup is complete
   async hardDeleteAppointment(id: string): Promise<void> {
-    const { error } = await supabase
+    const client = this.getSupabaseClient();
+    const { error } = await client
       .from('appointments')
       .delete()
       .eq('id', id);
@@ -451,7 +599,8 @@ export class AppointmentService {
 
   // Restore a soft deleted appointment
   async restoreAppointment(id: string, newStatus: 'scheduled' | 'confirmed' = 'scheduled'): Promise<void> {
-    const { error } = await supabase.rpc('restore_appointment', {
+    const client = this.getSupabaseClient();
+    const { error } = await client.rpc('restore_appointment', {
       appointment_id: id,
       new_status: newStatus
     });
@@ -463,7 +612,8 @@ export class AppointmentService {
 
   // Get appointments including deleted ones (for admin purposes)
   async getAllAppointmentsIncludingDeleted(): Promise<Appointment[]> {
-    const { data, error } = await supabase.rpc('get_all_appointments_including_deleted');
+    const client = this.getSupabaseClient();
+    const { data, error } = await client.rpc('get_all_appointments_including_deleted');
 
     if (error) {
       throw new Error(`Failed to fetch all appointments: ${error.message}`);
@@ -474,15 +624,38 @@ export class AppointmentService {
 
   // Get appointments by patient (excludes deleted appointments)
   async getAppointmentsByPatient(patientId: string): Promise<Appointment[]> {
-    const { data, error } = await supabase
+    const client = this.getSupabaseClient();
+    const deletedStatusAvailable = await this.isDeletedStatusAvailable();
+
+    let query = client
       .from('appointments')
       .select('*')
-      .eq('patient_id', patientId)
-      .neq('status', 'deleted') // Exclude deleted appointments
+      .eq('patient_id', patientId);
+
+    if (deletedStatusAvailable) {
+      query = query.neq('status', 'deleted'); // Exclude deleted appointments
+    }
+
+    const { data, error } = await query
       .order('appointment_date', { ascending: true })
       .order('start_time', { ascending: true });
 
     if (error) {
+      // Check if error is related to enum validation
+      if (error.message && error.message.includes('invalid input value for enum') && error.message.includes('deleted')) {
+        // Retry without deleted filter
+        const { data: retryData, error: retryError } = await client
+          .from('appointments')
+          .select('*')
+          .eq('patient_id', patientId)
+          .order('appointment_date', { ascending: true })
+          .order('start_time', { ascending: true });
+
+        if (retryError) {
+          throw new Error(`Failed to fetch appointments by patient: ${retryError.message}`);
+        }
+        return retryData || [];
+      }
       throw new Error(`Failed to fetch appointments by patient: ${error.message}`);
     }
 
@@ -491,16 +664,40 @@ export class AppointmentService {
 
   // Get appointments by date range (excludes deleted appointments)
   async getAppointmentsByDateRange(startDate: string, endDate: string): Promise<Appointment[]> {
-    const { data, error } = await supabase
+    const client = this.getSupabaseClient();
+    const deletedStatusAvailable = await this.isDeletedStatusAvailable();
+
+    let query = client
       .from('appointments')
       .select('*')
       .gte('appointment_date', startDate)
-      .lte('appointment_date', endDate)
-      .neq('status', 'deleted') // Exclude deleted appointments
+      .lte('appointment_date', endDate);
+
+    if (deletedStatusAvailable) {
+      query = query.neq('status', 'deleted'); // Exclude deleted appointments
+    }
+
+    const { data, error } = await query
       .order('appointment_date', { ascending: true })
       .order('start_time', { ascending: true });
 
     if (error) {
+      // Check if error is related to enum validation
+      if (error.message && error.message.includes('invalid input value for enum') && error.message.includes('deleted')) {
+        // Retry without deleted filter
+        const { data: retryData, error: retryError } = await client
+          .from('appointments')
+          .select('*')
+          .gte('appointment_date', startDate)
+          .lte('appointment_date', endDate)
+          .order('appointment_date', { ascending: true })
+          .order('start_time', { ascending: true });
+
+        if (retryError) {
+          throw new Error(`Failed to fetch appointments by date range: ${retryError.message}`);
+        }
+        return retryData || [];
+      }
       throw new Error(`Failed to fetch appointments by date range: ${error.message}`);
     }
 
@@ -509,15 +706,38 @@ export class AppointmentService {
 
   // Get appointments by type (excludes deleted appointments)
   async getAppointmentsByType(appointmentType: string): Promise<Appointment[]> {
-    const { data, error } = await supabase
+    const client = this.getSupabaseClient();
+    const deletedStatusAvailable = await this.isDeletedStatusAvailable();
+
+    let query = client
       .from('appointments')
       .select('*')
-      .eq('appointment_type', appointmentType)
-      .neq('status', 'deleted') // Exclude deleted appointments
+      .eq('appointment_type', appointmentType);
+
+    if (deletedStatusAvailable) {
+      query = query.neq('status', 'deleted'); // Exclude deleted appointments
+    }
+
+    const { data, error } = await query
       .order('appointment_date', { ascending: true })
       .order('start_time', { ascending: true });
 
     if (error) {
+      // Check if error is related to enum validation
+      if (error.message && error.message.includes('invalid input value for enum') && error.message.includes('deleted')) {
+        // Retry without deleted filter
+        const { data: retryData, error: retryError } = await client
+          .from('appointments')
+          .select('*')
+          .eq('appointment_type', appointmentType)
+          .order('appointment_date', { ascending: true })
+          .order('start_time', { ascending: true });
+
+        if (retryError) {
+          throw new Error(`Failed to fetch appointments by type: ${retryError.message}`);
+        }
+        return retryData || [];
+      }
       throw new Error(`Failed to fetch appointments by type: ${error.message}`);
     }
 
@@ -526,7 +746,8 @@ export class AppointmentService {
 
   // Get appointments by status (includes deleted appointments if status is 'deleted')
   async getAppointmentsByStatus(status: string): Promise<Appointment[]> {
-    const { data, error } = await supabase
+    const client = this.getSupabaseClient();
+    const { data, error } = await client
       .from('appointments')
       .select('*')
       .eq('status', status)
@@ -542,7 +763,8 @@ export class AppointmentService {
 
   // Get recurring appointments
   async getRecurringAppointments(): Promise<Appointment[]> {
-    const { data, error } = await supabase
+    const client = this.getSupabaseClient();
+    const { data, error } = await client
       .from('appointments')
       .select('*')
       .not('recurring_rule', 'is', null)
@@ -558,7 +780,8 @@ export class AppointmentService {
 
   // Get appointments for a specific date
   async getAppointmentsForDate(date: string): Promise<Appointment[]> {
-    const { data, error } = await supabase
+    const client = this.getSupabaseClient();
+    const { data, error } = await client
       .from('appointments')
       .select('*')
       .eq('appointment_date', date)
@@ -573,7 +796,8 @@ export class AppointmentService {
 
   // Get appointments by driver
   async getAppointmentsByDriver(driverId: string): Promise<Appointment[]> {
-    const { data, error } = await supabase
+    const client = this.getSupabaseClient();
+    const { data, error } = await client
       .from('appointments')
       .select('*')
       .eq('driver_id', driverId)
@@ -589,7 +813,8 @@ export class AppointmentService {
 
   // Search appointments by custom fields
   async searchAppointmentsByCustomFields(searchTerm: string): Promise<Appointment[]> {
-    const { data, error } = await supabase
+    const client = this.getSupabaseClient();
+    const { data, error } = await client
       .from('appointments')
       .select('*')
       .textSearch('custom_fields', searchTerm)
@@ -605,7 +830,8 @@ export class AppointmentService {
 
   // Update appointment status
   async updateAppointmentStatus(id: string, status: string): Promise<Appointment> {
-    const { data, error } = await supabase
+    const client = this.getSupabaseClient();
+    const { data, error } = await client
       .from('appointments')
       .update({ status })
       .eq('id', id)
@@ -1077,14 +1303,31 @@ export class AppointmentService {
 
   // Soft delete future recurring occurrences for a base appointment
   private async deleteFutureRecurringOccurrences(baseAppointmentId: string): Promise<void> {
-    const { error } = await supabase
+    const deletedStatusAvailable = await this.isDeletedStatusAvailable();
+
+    if (!deletedStatusAvailable) {
+      console.warn('⚠️  Cannot soft delete recurring occurrences: deleted status not available in enum. Please apply migration 20250220000005_add_soft_delete_to_appointments.sql');
+      return;
+    }
+
+    const client = this.getSupabaseClient();
+    let query = client
       .from('appointments')
       .update({ status: 'deleted', updated_at: new Date().toISOString() })
       .eq('custom_fields->base_appointment_id', baseAppointmentId)
-      .eq('custom_fields->is_recurring_generated', true)
-      .neq('status', 'deleted'); // Only update if not already deleted
+      .eq('custom_fields->is_recurring_generated', true);
+
+    // Only add this filter if deleted status is available
+    query = query.neq('status', 'deleted'); // Only update if not already deleted
+
+    const { error } = await query;
 
     if (error) {
+      // Check if error is related to enum validation
+      if (error.message && error.message.includes('invalid input value for enum') && error.message.includes('deleted')) {
+        console.warn('⚠️  Migration 20250220000005_add_soft_delete_to_appointments.sql has not been applied. Skipping soft delete of recurring occurrences.');
+        return;
+      }
       console.error('Error soft deleting future recurring occurrences:', error);
     }
   }
@@ -1200,7 +1443,8 @@ export class AppointmentService {
       }
 
       // Update the base appointment with the new cancelled occurrences list
-      const { error } = await supabase
+      const client = this.getSupabaseClient();
+      const { error } = await client
         .from('appointments')
         .update({
           custom_fields: {
@@ -1278,7 +1522,8 @@ export class AppointmentService {
 
       try {
         // First try the JSON query
-        const { data, error } = await supabase
+        const client = this.getSupabaseClient();
+        const { data, error } = await client
           .from('appointments')
           .select('id, custom_fields, appointment_date, start_time')
           .eq('custom_fields->>base_appointment_id', baseAppointmentId);
@@ -1293,7 +1538,8 @@ export class AppointmentService {
         console.log('JSON query failed, fetching all appointments and filtering client-side');
 
         // Fallback: Get all appointments and filter client-side
-        const { data: allAppointments, error: fetchError } = await supabase
+        const client = this.getSupabaseClient();
+        const { data: allAppointments, error: fetchError } = await client
           .from('appointments')
           .select('id, custom_fields, appointment_date, start_time');
 
@@ -1342,7 +1588,8 @@ export class AppointmentService {
 
       try {
         // First try the JSON query
-        const { data, error } = await supabase
+        const client = this.getSupabaseClient();
+        const { data, error } = await client
           .from('appointments')
           .select('id, custom_fields, appointment_date, start_time')
           .eq('custom_fields->>base_appointment_id', baseAppointmentId);
@@ -1357,7 +1604,8 @@ export class AppointmentService {
         console.log('JSON query failed, fetching all appointments and filtering client-side');
 
         // Fallback: Get all appointments and filter client-side
-        const { data: allAppointments, error: fetchError } = await supabase
+        const client = this.getSupabaseClient();
+        const { data: allAppointments, error: fetchError } = await client
           .from('appointments')
           .select('id, custom_fields, appointment_date, start_time');
 
@@ -1422,7 +1670,8 @@ export class AppointmentService {
     byStatus: Record<string, number>;
     byType: Record<string, number>;
   }> {
-    let query = supabase.from('appointments').select('*');
+    const client = this.getSupabaseClient();
+    let query = client.from('appointments').select('*');
 
     if (dateFrom) {
       query = query.gte('appointment_date', dateFrom);
@@ -1629,7 +1878,8 @@ export class AppointmentService {
       }
 
       // Get all staff assigned to this appointment
-      const { data: appointmentStaff, error: staffError } = await supabase
+      const client = this.getSupabaseClient();
+      const { data: appointmentStaff, error: staffError } = await client
         .from('appointment_staff')
         .select('staff_id, staff:staff_id(google_calendar_id, first_name, last_name)')
         .eq('appointment_id', appointment.id);
@@ -1702,7 +1952,8 @@ export class AppointmentService {
   private async storeGoogleEventId(appointmentId: string, staffId: string, googleEventId: string): Promise<void> {
     try {
       // Get current google_event_ids
-      const { data: appointment, error: fetchError } = await supabase
+      const client = this.getSupabaseClient();
+      const { data: appointment, error: fetchError } = await client
         .from('appointments')
         .select('google_event_ids')
         .eq('id', appointmentId)
@@ -1720,7 +1971,7 @@ export class AppointmentService {
         [staffId]: googleEventId
       };
 
-      const { error: updateError } = await supabase
+      const { error: updateError } = await client
         .from('appointments')
         .update({ google_event_ids: updatedEventIds })
         .eq('id', appointmentId);

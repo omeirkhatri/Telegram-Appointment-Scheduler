@@ -1,0 +1,61 @@
+{
+  "leadDetails": {
+    "1": {
+      "activities": [
+        {
+          "id": "activity_72955c86-f0ee-4218-b2fd-1416648dd8d5",
+          "lead_id": "1",
+          "user_id": "mock-user",
+          "user_name": "Unknown User",
+          "activity_type": "note_added",
+          "description": "Added a note: \"Test\"",
+          "metadata": {
+            "note_id": "note_660679a1-42d0-4a69-ab68-6fa539add7e0"
+          },
+          "created_at": "2025-12-03T12:18:03.491Z"
+        },
+        {
+          "id": "activity_20fe86ed-07c8-4b5b-9870-2d1e399ea5f4",
+          "lead_id": "1",
+          "user_id": "mock-user",
+          "user_name": "Unknown User",
+          "activity_type": "note_added",
+          "description": "Added a note: \"Hi\"",
+          "metadata": {
+            "note_id": "note_c684cfa3-d0df-4e1b-b769-5a9fbbb5e77f"
+          },
+          "created_at": "2025-12-03T12:15:09.824Z"
+        }
+      ],
+      "notes": [
+        {
+          "id": "note_660679a1-42d0-4a69-ab68-6fa539add7e0",
+          "lead_id": "1",
+          "user_id": "mock-user",
+          "user_name": "Unknown User",
+          "note": "Test",
+          "is_pinned": false,
+          "created_at": "2025-12-03T12:18:03.490Z",
+          "updated_at": "2025-12-03T12:18:03.490Z"
+        },
+        {
+          "id": "note_c684cfa3-d0df-4e1b-b769-5a9fbbb5e77f",
+          "lead_id": "1",
+          "user_id": "mock-user",
+          "user_name": "Unknown User",
+          "note": "Hi",
+          "is_pinned": false,
+          "created_at": "2025-12-03T12:15:09.823Z",
+          "updated_at": "2025-12-03T12:15:09.823Z"
+        }
+      ],
+      "quotes": [],
+      "unread": {
+        "notes": [],
+        "quotes": []
+      }
+    }
+  },
+  "lastSaved": "2025-12-04T12:02:53.540Z",
+  "version": "1.0.0"
+}

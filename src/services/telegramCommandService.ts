@@ -560,8 +560,8 @@ export class TelegramCommandService {
       `)
       .eq('staff_id', staffId)
       .eq('appointments.appointment_date', dateString)
-      .eq('appointments.status', 'scheduled')
-      .neq('appointments.status', 'deleted'); // Exclude deleted appointments
+      .eq('appointments.status', 'scheduled');
+      // Note: deleted filter removed to avoid enum validation errors if migration not applied
 
     // Also get appointments where staff is assigned as driver via driver_id
     const { data: driverAppointments, error: driverError } = await supabase
@@ -591,8 +591,8 @@ export class TelegramCommandService {
       `)
       .eq('driver_id', staffId)
       .eq('appointment_date', dateString)
-      .eq('status', 'scheduled')
-      .neq('status', 'deleted');
+      .eq('status', 'scheduled');
+      // Note: deleted filter removed to avoid enum validation errors if migration not applied
 
     if (error) {
       console.error('Error fetching staff appointments:', error);

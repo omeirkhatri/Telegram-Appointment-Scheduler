@@ -30,21 +30,43 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  return (
-    <html lang='en'>
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
-        <ErrorBoundary>
-          <ToastProvider>
-            <DebugProvider>
-              <KeyboardShortcutsProvider>
-                {children}
-              </KeyboardShortcutsProvider>
-            </DebugProvider>
-          </ToastProvider>
-        </ErrorBoundary>
-      </body>
-    </html>
-  );
+  try {
+    return (
+      <html lang='en'>
+        <body
+          className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        >
+          <ErrorBoundary>
+            <ToastProvider>
+              <DebugProvider>
+                <KeyboardShortcutsProvider>
+                  {children}
+                </KeyboardShortcutsProvider>
+              </DebugProvider>
+            </ToastProvider>
+          </ErrorBoundary>
+        </body>
+      </html>
+    );
+  } catch (error) {
+    console.error('RootLayout error:', error);
+    // Return a minimal layout on error
+    return (
+      <html lang='en'>
+        <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+          <div className="min-h-screen flex items-center justify-center">
+            <div className="text-center">
+              <h1 className="text-2xl font-bold mb-4">Application Error</h1>
+              <p className="text-gray-600 mb-4">
+                {error instanceof Error ? error.message : 'An unexpected error occurred'}
+              </p>
+              <pre className="text-xs text-left bg-gray-100 p-4 rounded overflow-auto max-w-2xl">
+                {error instanceof Error ? error.stack : String(error)}
+              </pre>
+            </div>
+          </div>
+        </body>
+      </html>
+    );
+  }
 }

@@ -81,14 +81,43 @@ export function useAppointments(options: UseAppointmentsOptions = {}): UseAppoin
       });
 
       if (!response.ok) {
-        const errorText = await response.text();
-        console.error('API Error Response:', {
+        let errorText = '';
+        let errorData = null;
+
+        try {
+          errorText = await response.text();
+          if (errorText) {
+            try {
+              errorData = JSON.parse(errorText);
+            } catch {
+              // If not JSON, keep as text
+            }
+          }
+        } catch (e) {
+          // If reading body fails, continue with empty errorText
+        }
+
+        const errorDetails = {
           status: response.status,
           statusText: response.statusText,
           url: response.url,
-          body: errorText
+          body: errorText || '(empty)',
+          parsedError: errorData || '(not JSON)'
+        };
+
+        // Log error details both as object and as string for better debugging
+        console.error('API Error Response:', JSON.stringify(errorDetails, null, 2));
+        console.error('API Error Details:', {
+          status: response.status,
+          statusText: response.statusText,
+          url: response.url,
+          body: errorText || '(empty)',
+          parsedError: errorData || '(not JSON)'
         });
-        throw new Error(`Failed to fetch appointments: ${response.status} ${response.statusText}`);
+
+        // Try to extract a meaningful error message
+        const errorMessage = errorData?.error || errorData?.message || errorText || `Failed to fetch appointments: ${response.status} ${response.statusText}`;
+        throw new Error(errorMessage);
       }
 
       const data = await response.json();

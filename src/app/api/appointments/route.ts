@@ -21,6 +21,23 @@ import { NextRequest, NextResponse } from 'next/server';
 // GET /api/appointments - Get all appointments with optional filtering
 export async function GET(request: NextRequest) {
   try {
+    // Validate Supabase configuration
+    const { config } = await import('@/lib/env');
+    try {
+      config.supabase.validateConnection();
+    } catch (configError) {
+      console.error('Supabase configuration error:', configError);
+      const errorResponse = createErrorResponse(
+        'Database configuration error',
+        {
+          message: configError instanceof Error ? configError.message : 'Unknown configuration error',
+          hint: 'Please check your environment variables: NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY'
+        },
+        request
+      );
+      return NextResponse.json(errorResponse, { status: 500 });
+    }
+
     // Validate API version
     const versionValidation = validateApiVersion(request);
     if (!versionValidation.valid) {
@@ -117,9 +134,23 @@ export async function GET(request: NextRequest) {
     return await addVersionHeaders(jsonResponse, request);
   } catch (error) {
     console.error('Error fetching appointments:', error);
+
+    // Log detailed error information
+    const errorDetails = {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+      name: error instanceof Error ? error.name : undefined,
+      ...(error && typeof error === 'object' ? error : {}),
+    };
+    console.error('Error details:', JSON.stringify(errorDetails, null, 2));
+
     const errorResponse = createErrorResponse(
       error instanceof Error ? error.message : 'Failed to fetch appointments',
-      undefined,
+      {
+        ...errorDetails,
+        // Don't expose stack trace in production
+        ...(process.env.NODE_ENV === 'production' ? {} : { stack: errorDetails.stack }),
+      },
       request
     );
     return NextResponse.json(errorResponse, { status: 500 });

@@ -17,6 +17,33 @@ import { appointmentService } from './appointmentService';
 import { getGoogleCalendarService } from './googleCalendarService';
 
 export class AppointmentStaffService {
+  // Cache for deleted status availability check (mirrors appointmentService behavior)
+  private deletedStatusAvailableCache: boolean | null = null;
+
+  // Helper to check if 'deleted' is a valid value for appointment_status_enum
+  private async isDeletedStatusAvailable(): Promise<boolean> {
+    // Return cached value if available
+    if (this.deletedStatusAvailableCache !== null) {
+      return this.deletedStatusAvailableCache;
+    }
+
+    try {
+      // Try a simple query using 'deleted' to see if the enum accepts it
+      const { error } = await supabase
+        .from('appointments')
+        .select('id')
+        .eq('status', 'deleted')
+        .limit(0);
+
+      // If there's no enum error, treat 'deleted' as available
+      const isAvailable = error === null || !error.message?.includes('invalid input value for enum');
+      this.deletedStatusAvailableCache = isAvailable;
+      return isAvailable;
+    } catch {
+      this.deletedStatusAvailableCache = false;
+      return false;
+    }
+  }
   // Get all appointment staff assignments with optional filtering
   async getAppointmentStaff(filters?: AppointmentStaffFilters): Promise<AppointmentStaff[]> {
     let query = supabase
@@ -466,6 +493,9 @@ export class AppointmentStaffService {
     endDate: string,
   ): Promise<AppointmentStaffWithDetails[]> {
     try {
+      // Only filter out deleted appointments if the enum supports it
+      const deletedStatusAvailable = await this.isDeletedStatusAvailable();
+
       const { data, error } = await supabase
         .from('appointment_staff')
         .select(`
@@ -514,7 +544,6 @@ export class AppointmentStaffService {
         `)
         .gte('appointment.appointment_date', startDate)
         .lte('appointment.appointment_date', endDate)
-        .neq('appointment.status', 'deleted') // Exclude deleted appointments
         .order('appointment_id', { ascending: true });
 
       if (error) {
@@ -522,7 +551,14 @@ export class AppointmentStaffService {
         throw new Error(`Failed to fetch appointments with staff for date range: ${error.message}`);
       }
 
-      return data || [];
+      // Apply deleted-status filter only when the enum supports it to avoid 22P02 errors
+      const finalData = (() => {
+        if (!data) return data;
+        if (!deletedStatusAvailable) return data;
+        return data.filter(assignment => assignment.appointment?.status !== 'deleted');
+      })();
+
+      return finalData || [];
     } catch (error) {
       console.error('Error in getAppointmentsWithStaffForDateRange:', error);
       throw error;
